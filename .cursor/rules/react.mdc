@@ -1,0 +1,205 @@
+---
+description: React
+globs: *.*
+---
+Below is a set of **coding rules and conventions** to guide an AI agent (or any developer) when working on a **Next.js + Material UI + Firestore** stack. These rules cover architecture, coding style, component structure, data handling, and deployment practices to ensure consistency, maintainability, and adherence to best practices.
+
+---
+
+## 1. **Project & Directory Structure**
+
+1. **Use TypeScript** throughout the project (`.ts` or `.tsx` files).  
+2. **Next.js “pages” and “app” structure** (depending on which Next.js version you’re using):  
+   - Keep all page components in the `pages/` or `app/` directory.  
+   - Group common UI elements in `components/`.  
+   - Separate utility/helper functions into `utils/` or `lib/`.  
+3. **Keep Firestore logic separate** from UI logic:  
+   - Place data-fetching and Firestore interaction in a dedicated folder, e.g., `lib/firestore/` or `services/`.  
+   - This ensures a clear separation of concerns.
+
+---
+
+## 2. **Coding Style & Standards**
+
+1. **Linting & Formatting**:  
+   - Use **ESLint** and **Prettier** configurations across the project.  
+   - Enforce consistent formatting (indentation, semicolons, quotes).
+
+2. **Naming Conventions**:  
+   - **PascalCase** for React components (e.g., `UserCard.tsx`).  
+   - **camelCase** for functions, variables, and hooks (e.g., `fetchUserData()`).  
+   - **SCREAMING_SNAKE_CASE** for environment variables (e.g., `NEXT_PUBLIC_FIREBASE_API_KEY`).
+
+3. **TypeScript Best Practices**:  
+   - Always define **interfaces** or **types** for component props, Firestore data models, and function arguments/returns.  
+   - Use strict mode (`"strict": true` in `tsconfig.json`).  
+   - Avoid using `any`; use more specific types or `unknown` if absolutely necessary.
+
+4. **Comments & Documentation**:  
+   - Write clear **JSDoc** or TSDoc comments for complex logic.  
+   - Briefly describe the purpose of each utility function and data model.
+
+---
+
+## 3. **Next.js Conventions**
+
+1. **Server-Side Rendering (SSR) vs. Static Site Generation (SSG)**:  
+   - Only use SSR (`getServerSideProps`) if the page content must be dynamic on each request or depends on user session.  
+   - Otherwise, prefer SSG (`getStaticProps`) or incremental static regeneration for better performance.
+
+2. **API Routes** (if using the `/pages/api` or new app directory approach):  
+   - Group related endpoints by resource under subfolders, e.g., `/pages/api/projects/[projectId]/index.ts`.  
+   - Validate and sanitize inputs to prevent injection attacks or malformed data.
+
+3. **Routing**:  
+   - Use **dynamic routes** for multi-tenant subdomains or path-based tenant identifiers (e.g., `/[tenantId]/projects`).  
+   - Keep route definitions consistent and documented.
+
+4. **Environment Variables**:  
+   - Store sensitive info like Firestore credentials in `.env.local` files (never commit to source control).  
+   - Prefix environment variables used in the browser with `NEXT_PUBLIC_`.
+
+---
+
+## 4. **Material UI Guidelines**
+
+1. **Consistent Theming**:  
+   - Create a custom MUI theme (in `theme.ts` or `muiTheme.ts`) and wrap the app in a `<ThemeProvider>`.  
+   - Define brand colors, typography, and spacing once in the theme.  
+   - Avoid inline styles whenever possible; rely on theme-specified values.
+
+2. **Use MUI Components and Hooks**:  
+   - Prefer MUI’s `<Box>`, `<Grid>`, `<Typography>`, etc. for layout and text.  
+   - Use MUI’s responsive design APIs for breakpoints (`theme.breakpoints.up/down`).  
+   - Use MUI’s hooks for styling (`makeStyles` or `styled` with emotion in MUI v5).
+
+3. **Avoid Over-Nesting**:  
+   - Minimize deeply nested `Box` or `div` elements. Keep the layout structure flat and modular.
+
+---
+
+## 5. **Firestore Interaction**
+
+1. **Data Modeling**:  
+   - Use **collection** → **document** hierarchy consistently.  
+   - Store a `tenantId` or `organizationId` in every document for multi-tenant isolation.  
+   - Keep document shapes well-defined and typed (via TypeScript interfaces).
+
+2. **Security Rules**:  
+   - Ensure Firestore security rules always check `request.auth.uid` and `resource.data.tenantId`.  
+   - Restrict reads and writes to documents that match the user’s tenant.
+
+3. **Real-Time Listeners**:  
+   - Use Firestore’s **onSnapshot** in client-side React components for real-time updates.  
+   - Always `unsubscribe` on unmount to prevent memory leaks:
+     ```ts
+     useEffect(() => {
+       const unsubscribe = onSnapshot(/* ... */);
+       return () => unsubscribe();
+     }, []);
+     ```
+4. **Minimal Reads**:  
+   - Query only the data you need. For instance, use `.where('tenantId', '==', currentTenantId)` to filter at the database level.
+
+5. **Error Handling**:  
+   - Use try/catch around Firestore operations.  
+   - Surface user-friendly error messages in the UI where appropriate.
+
+---
+
+## 6. **Multi-Tenancy Rules**
+
+1. **Tenant Context**:  
+   - Store the current tenant information in a global React context or pass it down as props.  
+   - Use consistent naming (e.g., `tenantId`) across all data models and routes.
+
+2. **Scoped Queries**:  
+   - **Never** fetch unscoped data from Firestore. Always filter by `tenantId`.  
+   - Verify user’s membership in the tenant before allowing any create/update/delete.
+
+3. **Role-Based Access Control (RBAC)**:  
+   - If roles (Admin, Manager, Contributor, Viewer) exist, store them in the user’s profile doc or in custom Firebase claims.  
+   - Check roles in both the Firestore security rules and the client logic as a double layer of protection.
+
+---
+
+## 7. **State Management & Custom Hooks**
+
+1. **React Query / SWR (Optional)**:  
+   - Consider using **React Query** or **SWR** to handle data fetching and caching.  
+   - Firestore’s real-time approach may overlap with these libraries, so adopt them if you need caching or offline scenarios.
+
+2. **Custom Hooks**:  
+   - Create hooks like `useProjects(tenantId: string)`, `useStories(projectId: string)`, etc. in `lib/hooks/`.  
+   - Encapsulate Firestore queries and snapshot listeners in these hooks.
+
+---
+
+## 8. **Testing**
+
+1. **Unit Tests**:  
+   - Use **Jest** + **React Testing Library** for UI components.  
+   - Test Firestore data functions separately in node or with mock libraries.
+
+2. **Integration Tests**:  
+   - Optional but recommended for critical flows (e.g., user login, story creation).  
+   - Could use **Cypress** or **Playwright** for E2E tests.
+
+3. **Mocking Firestore**:  
+   - For unit tests, use **firebase-mock** or a custom mock to avoid real network calls.  
+   - Ensure your tests don’t leak real credentials.
+
+---
+
+## 9. **Deployment & Environment Management**
+
+1. **Hosting on Vercel** (recommended):
+   - Connect GitHub/GitLab/Bitbucket repo to Vercel for automatic CI/CD.  
+   - Use Vercel’s environment variable UI for production/staging secrets.
+
+2. **Firestore Production vs. Staging**:
+   - Maintain separate projects or separate Firestore instances.  
+   - Provide environment variables like `NEXT_PUBLIC_FIREBASE_PROJECT_ID` for each environment.
+
+3. **Monitoring & Logging**:
+   - Use **Firebase Console** or third-party logging services (e.g., LogRocket, Sentry) to track client-side errors and performance.
+
+---
+
+## 10. **Performance & Optimization**
+
+1. **Lazy Loading**:  
+   - Split large MUI-heavy components using **dynamic imports** (`next/dynamic`) if they aren’t critical on initial load.  
+   - Only load Firestore queries when data is actually needed.
+
+2. **Caching**:  
+   - Leverage built-in caching from Firestore’s client library if needed.  
+   - For SSR pages, consider `revalidate` or `fallback` in Next.js to minimize repeated server-side fetches.
+
+3. **Image Optimization**:  
+   - Use Next.js `<Image />` component for automatic image resizing and lazy loading.
+
+---
+
+## 11. **AI Agent-Specific Rules**
+
+1. **Follow TypeScript Interfaces**:  
+   - Never introduce new data fields without updating the corresponding interface/type.  
+   - Validate all function arguments and returns.
+
+2. **Avoid Hardcoding**:  
+   - Use environment variables or a config file for credentials and tenant-specific values.  
+   - Provide fallback defaults in your code only where necessary.
+
+3. **Maintain Theming Consistency**:  
+   - When generating new components, integrate them with the existing MUI theme (e.g., `theme.spacing(...)`, `theme.palette.primary.main`).
+
+4. **Security & Privacy**:  
+   - Never log sensitive information (like tokens, private user data).  
+   - In sample code, always show usage of placeholders (e.g., `process.env.NEXT_PUBLIC_FIREBASE_API_KEY`) rather than actual keys.
+
+---
+
+## **Conclusion**
+
+Adhering to these coding rules will help maintain a **clean architecture**, ensure **multi-tenant security**, and deliver a **consistent user experience** in a **Next.js + Material UI + Firestore** environment. By combining clear separation of concerns, robust TypeScript definitions, and built-in real-time data flows, developers (and AI agents) can produce a scalable, maintainable application aligned with modern best practices.

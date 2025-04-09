@@ -13,16 +13,19 @@ import {
   Alert,
   AlertTitle,
   Stack,
+  Divider,
 } from "@mui/material";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import GoogleIcon from "@mui/icons-material/Google";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +41,22 @@ export default function LoginPage() {
       setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setGoogleLoading(true);
+
+    try {
+      await signInWithGoogle();
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("Google login error:", err);
+      const errorMessage = err.message || "Failed to sign in with Google. Please try again.";
+      setError(errorMessage);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -90,6 +109,20 @@ export default function LoginPage() {
             >
               {loading ? "Signing in..." : "Sign In"}
             </Button>
+
+            <Divider sx={{ my: 2 }}>OR</Divider>
+
+            <Button
+              fullWidth
+              disabled={googleLoading}
+              startIcon={<GoogleIcon />}
+              sx={{ mb: 2 }}
+              variant="outlined"
+              onClick={handleGoogleSignIn}
+            >
+              {googleLoading ? "Signing in..." : "Sign in with Google"}
+            </Button>
+
             <Stack direction="row" justifyContent="space-between">
               <Link href="/forgot-password" style={{ textDecoration: "none" }}>
                 Forgot password?

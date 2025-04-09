@@ -96,8 +96,16 @@ resource "google_firebase_web_app" "anko_story_board_app" {
   depends_on = [google_firebase_project.default]
 }
 
+data "google_firebase_web_app_config" "anko_story_board_app" {
+  provider   = google-beta
+  project    = google_project.anko_story_board.project_id
+  web_app_id = google_firebase_web_app.anko_story_board_app.app_id
+
+  depends_on = [google_firebase_web_app.anko_story_board_app]
+}
+
 # Output Firebase configuration for the web app
 output "firebase_web_app_config" {
-  value     = google_firebase_web_app.anko_story_board_app.config
+  value     = data.google_firebase_web_app_config.anko_story_board_app
   sensitive = true
 }

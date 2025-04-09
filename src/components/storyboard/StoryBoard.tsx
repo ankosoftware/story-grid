@@ -24,13 +24,13 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import DoubleArrowIcon from "@mui/icons-material/DoubleArrow";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Issue, Release, IssueStatus, IssuePriority, IssueType } from "@/lib/firebase/models/types";
 
 interface StoryMapProps {
   projectId: string;
-  activities: Issue[]; // BACKBONE items - User Activities/Goals
-  epics: Record<string, Issue[]>; // Epics by backbone ID (User Tasks)
+  activities: Issue[]; // Backbone items – User Activities/Goals
+  epics: Record<string, Issue[]>; // Epics by activity (backbone) ID (User Tasks)
   issues: Record<string, Issue[]>; // Stories by epic ID
   releases: Release[];
   loading: boolean;
@@ -77,7 +77,9 @@ export default function StoryMap({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  // State for dialogs
+  // --------------------------
+  // Local state for dialogs, menus, etc.
+  // --------------------------
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [activityName, setActivityName] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
@@ -109,26 +111,25 @@ export default function StoryMap({
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [movingStory, setMovingStory] = useState(false);
 
-  // Function to handle opening move story menu
+  // --------------------------
+  // Handlers for Move Issue Menu
+  // --------------------------
   const handleOpenMoveMenu = (event: React.MouseEvent<HTMLElement>, storyId: string) => {
     event.stopPropagation();
     setMoveMenuAnchorEl(event.currentTarget);
     setSelectedStoryId(storyId);
   };
 
-  // Function to handle closing move story menu
   const handleCloseMoveMenu = () => {
     setMoveMenuAnchorEl(null);
     setSelectedStoryId(null);
   };
 
-  // Function to handle moving a story to a release
   const handleMoveStory = async (releaseId: string | null) => {
     if (!selectedStoryId || !onMoveIssue) {
       handleCloseMoveMenu();
       return;
     }
-
     try {
       setMovingStory(true);
       await onMoveIssue(selectedStoryId, releaseId);
@@ -140,7 +141,9 @@ export default function StoryMap({
     }
   };
 
-  // Function to handle opening activity dialog
+  // --------------------------
+  // Handlers for Activity Dialog
+  // --------------------------
   const handleOpenActivityDialog = () => {
     setActivityDialogOpen(true);
     setActivityName("");
@@ -148,18 +151,15 @@ export default function StoryMap({
     setActivityError(null);
   };
 
-  // Function to handle closing activity dialog
   const handleCloseActivityDialog = () => {
     setActivityDialogOpen(false);
   };
 
-  // Function to handle creating new activity
   const handleCreateActivity = async () => {
     if (!activityName.trim()) {
       setActivityError("Activity name is required");
       return;
     }
-
     try {
       setAddingActivity(true);
       setActivityError(null);
@@ -175,7 +175,9 @@ export default function StoryMap({
     }
   };
 
-  // Function to handle opening epic dialog
+  // --------------------------
+  // Handlers for Epic Dialog
+  // --------------------------
   const handleOpenEpicDialog = (activityId: string) => {
     setSelectedActivityId(activityId);
     setEpicDialogOpen(true);
@@ -184,24 +186,20 @@ export default function StoryMap({
     setEpicError(null);
   };
 
-  // Function to handle closing epic dialog
   const handleCloseEpicDialog = () => {
     setEpicDialogOpen(false);
     setSelectedActivityId(null);
   };
 
-  // Function to handle creating new epic
   const handleCreateEpic = async () => {
     if (!selectedActivityId) {
       setEpicError("No activity selected");
       return;
     }
-
     if (!epicName.trim()) {
       setEpicError("Epic name is required");
       return;
     }
-
     try {
       setAddingEpic(true);
       setEpicError(null);
@@ -218,7 +216,9 @@ export default function StoryMap({
     }
   };
 
-  // Function to handle opening story dialog
+  // --------------------------
+  // Handlers for Story Dialog
+  // --------------------------
   const handleOpenStoryDialog = (epicId: string) => {
     setSelectedParentId(epicId);
     setStoryDialogOpen(true);
@@ -227,24 +227,20 @@ export default function StoryMap({
     setStoryError(null);
   };
 
-  // Function to handle closing story dialog
   const handleCloseStoryDialog = () => {
     setStoryDialogOpen(false);
     setSelectedParentId(null);
   };
 
-  // Function to handle creating new story
   const handleCreateStory = async () => {
     if (!selectedParentId) {
       setStoryError("No epic selected");
       return;
     }
-
     if (!storyName.trim()) {
       setStoryError("Story name is required");
       return;
     }
-
     try {
       setAddingStory(true);
       setStoryError(null);
@@ -259,7 +255,9 @@ export default function StoryMap({
     }
   };
 
-  // Function to handle opening release dialog
+  // --------------------------
+  // Handlers for Release Dialog
+  // --------------------------
   const handleOpenReleaseDialog = () => {
     setReleaseDialogOpen(true);
     setReleaseName("");
@@ -267,18 +265,15 @@ export default function StoryMap({
     setReleaseError(null);
   };
 
-  // Function to handle closing release dialog
   const handleCloseReleaseDialog = () => {
     setReleaseDialogOpen(false);
   };
 
-  // Function to handle creating new release
   const handleCreateRelease = async () => {
     if (!releaseName.trim()) {
       setReleaseError("Release name is required");
       return;
     }
-
     try {
       setAddingRelease(true);
       setReleaseError(null);
@@ -293,33 +288,138 @@ export default function StoryMap({
     }
   };
 
-  // Function to get status color
+  // --------------------------
+  // Helper functions for color coding
+  // --------------------------
   const getStatusColor = (status: IssueStatus) => {
     switch (status) {
       case IssueStatus.TO_DO:
-        return "#e0e0e0"; // Grey
+        return "#e0e0e0";
       case IssueStatus.IN_PROGRESS:
-        return "#bbdefb"; // Light blue
+        return "#bbdefb";
       case IssueStatus.DONE:
-        return "#c8e6c9"; // Light green
+        return "#c8e6c9";
       default:
         return "#e0e0e0";
     }
   };
 
-  // Function to get priority color
   const getPriorityColor = (priority: IssuePriority) => {
     switch (priority) {
       case IssuePriority.HIGH:
-        return "#f44336"; // Red
+        return "#f44336";
       case IssuePriority.MEDIUM:
-        return "#ff9800"; // Orange
+        return "#ff9800";
       case IssuePriority.LOW:
-        return "#4caf50"; // Green
+        return "#4caf50";
       default:
         return "#ff9800";
     }
   };
+
+  // --------------------------
+  // Reusable Card Components
+  // --------------------------
+  const StoryMapCard = ({
+    type,
+    item,
+    onAction,
+    children,
+  }: {
+    type: "activity" | "epic" | "story";
+    item: Issue;
+    onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
+    children?: React.ReactNode;
+  }) => {
+    // Card styling based on type
+    const cardStyles = {
+      activity: {
+        bgcolor: theme.palette.primary.main,
+        color: "white",
+        height: "60px",
+        width: "100px",
+      },
+      epic: {
+        bgcolor: "#00acc1",
+        color: "white",
+        height: "60px",
+        width: "100px",
+      },
+      story: {
+        bgcolor: "white",
+        color: "text.primary",
+        height: "60px",
+        width: "100px",
+        border: "1px solid #e0e0e0",
+        borderLeft: `4px solid ${getPriorityColor(item.priority)}`,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+      },
+      blank: {
+        bgcolor: "white",
+        color: "text.primary",
+        height: "60px",
+        width: "100px",
+        border: "1px solid #e0e0e0",
+      },
+    };
+
+    return (
+      <Card
+        sx={{
+          ...cardStyles[type],
+          mb: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+        }}
+      >
+        <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <Typography
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              variant={type === "activity" ? "subtitle1" : "body2"}
+            >
+              {item.name}
+            </Typography>
+            {onAction && (
+              <IconButton
+                size="small"
+                sx={{ mt: -0.5, mr: -0.5 }}
+                onClick={e => onAction(e, item.id)}
+              >
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+          {children}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // --------------------------
+  // Rendering functions for Story cards
+  // --------------------------
+  const renderStoryCard = (story: Issue) => (
+    <StoryMapCard key={story.id} item={story} type="story" onAction={handleOpenMoveMenu}>
+      {story.status !== IssueStatus.TO_DO && (
+        <Chip
+          label={story.status}
+          size="small"
+          sx={{
+            mt: 1,
+            fontSize: "0.7rem",
+            bgcolor: getStatusColor(story.status),
+            height: "18px",
+          }}
+        />
+      )}
+    </StoryMapCard>
+  );
 
   if (loading) {
     return (
@@ -337,33 +437,9 @@ export default function StoryMap({
     );
   }
 
-  // Group stories by release for release bands
-  const storiesByRelease: Record<string, Issue[]> = {};
-
-  // Initialize empty arrays for each release
-  releases.forEach(release => {
-    storiesByRelease[release.id] = [];
-  });
-
-  // Add an entry for unassigned stories
-  storiesByRelease["unassigned"] = [];
-
-  // Populate stories by release
-  Object.values(issues).forEach(issueArray => {
-    issueArray.forEach(issue => {
-      if (issue.type === IssueType.STORY) {
-        if (issue.releaseId && storiesByRelease[issue.releaseId]) {
-          storiesByRelease[issue.releaseId].push(issue);
-        } else {
-          storiesByRelease.unassigned.push(issue);
-        }
-      }
-    });
-  });
-
   return (
-    <Box sx={{ width: "100%" }}>
-      {/* Story board header with actions */}
+    <Box>
+      {/* Header Actions */}
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3, flexWrap: "wrap" }}>
         <Typography component="h2" variant="h5">
           Story Map
@@ -378,488 +454,242 @@ export default function StoryMap({
         </Box>
       </Box>
 
-      {activities?.length === 0 ? (
-        <Box sx={{ textAlign: "center", py: 4 }}>
-          <Typography gutterBottom color="text.secondary" variant="h6">
-            No activities yet
-          </Typography>
-          <Typography paragraph color="text.secondary" variant="body2">
-            Add your first activity to start building your story map.
-          </Typography>
-          <Button startIcon={<AddIcon />} variant="contained" onClick={handleOpenActivityDialog}>
-            Add Activity
-          </Button>
-        </Box>
-      ) : (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            border: `1px solid ${theme.palette.divider}`,
-            overflowX: "auto",
-          }}
-        >
-          {/* Story Map Layout */}
+      {/* Main Story Map Structure */}
+      <Paper
+        sx={{
+          p: 2,
+          border: `1px solid ${theme.palette.divider}`,
+          overflowX: "auto",
+        }}
+      >
+        <Box sx={{ minWidth: activities.length * 250 }}>
+          {/* Activities Row */}
           <Box
             sx={{
               display: "flex",
-              flexDirection: "row",
-              minWidth: isMobile ? "800px" : "auto", // Force horizontal scroll on mobile
+              mb: 2,
             }}
           >
-            {/* Left sidebar with labels */}
+            {activities.map(activity => (
+              <Box key={activity.id} sx={{ mx: 1 }}>
+                <StoryMapCard item={activity} type="activity">
+                  {/* Activity card has no additional content */}
+                </StoryMapCard>
+
+                {/* Epics Row - Horizontal */}
+                <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
+                  {epics[activity.id] &&
+                    epics[activity.id].map(epic => (
+                      <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
+                        <StoryMapCard item={epic} type="epic">
+                          {/* Epic card has no additional content */}
+                        </StoryMapCard>
+
+                        {/* Stories Column - Vertical under each epic */}
+                        <Box sx={{ mb: 2 }}>
+                          {issues[epic.id] && issues[epic.id].length > 0 ? (
+                            issues[epic.id].map(story => renderStoryCard(story))
+                          ) : (
+                            <Typography
+                              sx={{
+                                display: "block",
+                                color: "text.disabled",
+                                fontSize: "0.7rem",
+                                mb: 1,
+                              }}
+                              variant="caption"
+                            >
+                              No stories
+                            </Typography>
+                          )}
+                          <Tooltip title={`Add Story to ${epic.name}`}>
+                            <IconButton
+                              size="small"
+                              sx={{
+                                border: `1px dashed ${theme.palette.grey[400]}`,
+                                borderRadius: 1,
+                                display: "block",
+                                margin: "0 auto",
+                                mt: 1,
+                              }}
+                              onClick={() => handleOpenStoryDialog(epic.id)}
+                            >
+                              <AddIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    ))}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Tooltip title={`Add Task to ${activity.name}`}>
+                      <IconButton
+                        size="small"
+                        sx={{
+                          border: `1px dashed #00acc1`,
+                          borderRadius: 1,
+                          display: "block",
+                          margin: "0 auto",
+                          mt: 1,
+                          mb: 3,
+                        }}
+                        onClick={() => handleOpenEpicDialog(activity.id)}
+                      >
+                        <AddIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+
+                {/* Add Epic Button */}
+              </Box>
+            ))}
+
+            {/* Add Activity Button */}
             <Box
               sx={{
-                width: "150px",
-                flexShrink: 0,
-                pr: 2,
-                borderRight: `1px solid ${theme.palette.divider}`,
+                width: 50,
                 display: "flex",
-                flexDirection: "column",
+                alignItems: "flex-start",
+                justifyContent: "center",
+                pt: 1,
               }}
             >
-              <Box
-                sx={{
-                  height: "100px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-start",
-                  mb: 1,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontWeight: "bold",
-                    transform: "rotate(0deg)",
-                    color: theme.palette.primary.main,
-                    whiteSpace: "nowrap",
-                  }}
-                  variant="subtitle1"
+              <Tooltip title="Add Activity">
+                <IconButton
+                  color="primary"
+                  sx={{ border: `1px dashed ${theme.palette.primary.main}`, borderRadius: 1 }}
+                  onClick={handleOpenActivityDialog}
                 >
-                  Backbone
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  bgcolor: "#f5f0ff",
-                  py: 2,
-                  px: 1,
-                  borderRadius: 1,
-                  mb: 2,
-                  flex: 1,
-                }}
-              >
-                <Box sx={{ mb: 2 }}>
-                  <Typography
-                    sx={{
-                      fontWeight: "bold",
-                      mb: 0.5,
-                    }}
-                    variant="body2"
-                  >
-                    User Activities
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box
-                sx={{
-                  bgcolor: "#fff0f3",
-                  py: 2,
-                  px: 1,
-                  borderRadius: 1,
-                  flex: 1,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontWeight: "bold",
-                    mb: 0.5,
-                  }}
-                  variant="body2"
-                >
-                  User Stories
-                </Typography>
-              </Box>
+                  <AddIcon />
+                </IconButton>
+              </Tooltip>
             </Box>
+          </Box>
 
-            {/* Main content */}
-            <Box sx={{ flex: 1, pl: 2, display: "flex", flexDirection: "column" }}>
-              {/* Activities Row */}
+          {/* Release Management Section */}
+          <Box sx={{ mt: 4 }}>
+            {releases.length > 0 && (
+              <Typography sx={{ mb: 2, mt: 2 }} variant="h6">
+                Release Swimlanes
+              </Typography>
+            )}
+            {releases.map(release => (
               <Box
+                key={release.id}
                 sx={{
                   display: "flex",
-                  mb: 2,
-                  gap: 2,
-                  overflowX: "auto",
-                  pb: 1,
+                  flexDirection: "row",
+                  mb: 3,
+                  pb: 3,
+                  borderBottom: `1px solid ${theme.palette.divider}`,
                 }}
               >
-                {activities.map(activity => (
-                  <Card
-                    key={activity.id}
-                    sx={{
-                      bgcolor: "#0052cc",
-                      color: "white",
-                      minWidth: "150px",
-                      maxWidth: "200px",
-                      height: "80px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <CardContent
-                      sx={{
-                        p: 1.5,
-                        "&:last-child": { pb: 1.5 },
-                        textAlign: "center",
-                      }}
-                    >
-                      <Typography sx={{ fontWeight: "bold" }} variant="subtitle1">
-                        {activity.name}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                ))}
-
                 <Box
                   sx={{
-                    minWidth: "80px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    width: 220,
+                    flexShrink: 0,
+                    pr: 2,
+                    borderRight: `1px solid ${theme.palette.divider}`,
                   }}
                 >
-                  <Tooltip title="Add User Activity">
-                    <IconButton
-                      color="primary"
-                      sx={{
-                        border: `1px dashed ${theme.palette.primary.main}`,
-                        borderRadius: 1,
-                      }}
-                      onClick={handleOpenActivityDialog}
-                    >
-                      <AddIcon />
-                    </IconButton>
-                  </Tooltip>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 1.5,
+                      border: `1px solid ${theme.palette.primary.main}`,
+                      borderLeft: `4px solid ${theme.palette.primary.main}`,
+                      backgroundColor: theme.palette.primary.light + "10",
+                    }}
+                  >
+                    <Typography fontWeight="bold" variant="subtitle2">
+                      {release.name}
+                    </Typography>
+                    {release.description && (
+                      <Typography
+                        color="text.secondary"
+                        sx={{ display: "block", mt: 0.5 }}
+                        variant="caption"
+                      >
+                        {release.description}
+                      </Typography>
+                    )}
+                  </Paper>
                 </Box>
-              </Box>
-
-              {/* Epics (User Tasks) Row */}
-              <Box sx={{ mb: 3 }}>
                 <Box
                   sx={{
                     display: "flex",
+                    flexDirection: "row",
                     gap: 2,
+                    flexGrow: 1,
+                    pl: 2,
                     overflowX: "auto",
-                    pb: 1,
+                    backgroundColor: theme.palette.background.default + "50",
                   }}
                 >
                   {activities.map(activity => (
                     <Box
-                      key={`epics-${activity.id}`}
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        minWidth: "150px",
-                        maxWidth: "200px",
-                        gap: 1,
-                      }}
+                      key={`release-${release.id}-activity-${activity.id}`}
+                      sx={{ width: 220, mx: 1 }}
                     >
-                      {/* Epics for this activity */}
                       {epics[activity.id] &&
-                        epics[activity.id].map(epic => (
-                          <Card
-                            key={epic.id}
-                            sx={{
-                              bgcolor: "#00b8d9",
-                              color: "white",
-                              height: "60px",
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <CardContent
-                              sx={{
-                                p: 1,
-                                "&:last-child": { pb: 1 },
-                                textAlign: "center",
-                              }}
-                            >
-                              <Typography sx={{ fontWeight: "medium" }} variant="body2">
+                        epics[activity.id].map(epic => {
+                          const releaseStories = (issues[epic.id] || []).filter(
+                            story => story.releaseId === release.id
+                          );
+                          return releaseStories.length > 0 ? (
+                            <Box key={`release-${release.id}-epic-${epic.id}`} sx={{ mb: 2 }}>
+                              <Typography
+                                sx={{ display: "block", mb: 0.5, color: "text.secondary" }}
+                                variant="caption"
+                              >
                                 {epic.name}
                               </Typography>
-                            </CardContent>
-                          </Card>
-                        ))}
-
-                      {/* Add Epic button */}
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "center",
-                          mt: 0.5,
-                        }}
-                      >
-                        <Tooltip title="Add User Task">
-                          <IconButton
-                            size="small"
-                            sx={{
-                              border: `1px dashed ${theme.palette.primary.main}`,
-                              borderRadius: 1,
-                            }}
-                            onClick={() => handleOpenEpicDialog(activity.id)}
-                          >
-                            <AddIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                              {releaseStories.map(story => renderStoryCard(story))}
+                            </Box>
+                          ) : null;
+                        })}
                     </Box>
                   ))}
+                  <Box sx={{ width: 50 }} />
                 </Box>
               </Box>
-
-              {/* Releases bands with stories */}
+            ))}
+            {releases.length > 0 ? (
+              <Button
+                startIcon={<AddIcon />}
+                sx={{ alignSelf: "flex-start", mt: 1 }}
+                variant="outlined"
+                onClick={handleOpenReleaseDialog}
+              >
+                Add Release
+              </Button>
+            ) : (
               <Box
                 sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2,
+                  textAlign: "center",
+                  py: 4,
+                  borderTop: `1px dashed ${theme.palette.divider}`,
+                  mt: 2,
                 }}
               >
-                {releases.map((release, index) => (
-                  <Box
-                    key={release.id}
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      position: "relative",
-                      pb: 2,
-                      borderBottom:
-                        index < releases.length - 1
-                          ? `2px solid ${theme.palette.primary.main}`
-                          : "none",
-                    }}
-                  >
-                    {/* Release label */}
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        right: 0,
-                        bottom: -10,
-                        zIndex: 2,
-                      }}
-                    >
-                      <Chip
-                        color="primary"
-                        label={index === 0 ? "MVP" : `Release ${index + 1}`}
-                        size="small"
-                        sx={{ fontWeight: "bold" }}
-                      />
-                    </Box>
-
-                    {/* Stories in this release */}
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 2,
-                        overflowX: "auto",
-                        pb: 1,
-                        minHeight: "80px",
-                      }}
-                    >
-                      {activities.map(activity => (
-                        <Box
-                          key={`${activity.id}-${release.id}`}
-                          sx={{
-                            display: "flex",
-                            flexDirection: "column",
-                            minWidth: "150px",
-                            maxWidth: "200px",
-                            gap: 1,
-                          }}
-                        >
-                          {/* Stories for this activity's epics in this release */}
-                          {epics[activity.id] &&
-                            epics[activity.id].map(epic => {
-                              // Find stories for this epic that are in this release
-                              const epicStories =
-                                issues[epic.id]?.filter(story => story.releaseId === release.id) ||
-                                [];
-
-                              return epicStories.map(story => (
-                                <Card
-                                  key={story.id}
-                                  sx={{
-                                    border: "1px solid #1976d2",
-                                    bgcolor: "white",
-                                    borderLeft: `4px solid ${getPriorityColor(story.priority)}`,
-                                  }}
-                                >
-                                  <CardContent
-                                    sx={{
-                                      p: 1,
-                                      "&:last-child": { pb: 1 },
-                                    }}
-                                  >
-                                    <Box
-                                      sx={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "flex-start",
-                                      }}
-                                    >
-                                      <Typography variant="body2">{story.name}</Typography>
-                                      <IconButton
-                                        size="small"
-                                        sx={{
-                                          mt: -0.5,
-                                          mr: -0.5,
-                                          "&:hover": { bgcolor: "transparent" },
-                                        }}
-                                        onClick={e => handleOpenMoveMenu(e, story.id)}
-                                      >
-                                        <MoreVertIcon fontSize="small" />
-                                      </IconButton>
-                                    </Box>
-                                  </CardContent>
-                                </Card>
-                              ));
-                            })}
-
-                          {/* Find epics for this activity */}
-                          {epics[activity.id] &&
-                            epics[activity.id].map(epic => (
-                              <Box
-                                key={`add-${epic.id}-${release.id}`}
-                                sx={{
-                                  display: "flex",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                <Tooltip title="Add User Story">
-                                  <IconButton
-                                    size="small"
-                                    sx={{
-                                      border: `1px dashed ${theme.palette.grey[400]}`,
-                                      borderRadius: 1,
-                                    }}
-                                    onClick={() => {
-                                      setSelectedParentId(epic.id);
-                                      setStoryDialogOpen(true);
-                                    }}
-                                  >
-                                    <AddIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
-                            ))}
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                ))}
-
-                {/* Add Release button */}
-                {releases.length === 0 && (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      my: 2,
-                    }}
-                  >
-                    <Button
-                      startIcon={<AddIcon />}
-                      variant="outlined"
-                      onClick={handleOpenReleaseDialog}
-                    >
-                      Add First Release
-                    </Button>
-                  </Box>
-                )}
-
-                {/* Unassigned stories section */}
-                {storiesByRelease.unassigned.length > 0 && (
-                  <Box
-                    sx={{
-                      mt: 2,
-                      p: 2,
-                      border: `1px dashed ${theme.palette.grey[400]}`,
-                      borderRadius: 1,
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        mb: 1,
-                        color: theme.palette.text.secondary,
-                      }}
-                      variant="subtitle2"
-                    >
-                      Unassigned Stories
-                    </Typography>
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 1,
-                      }}
-                    >
-                      {storiesByRelease.unassigned.map(story => (
-                        <Card
-                          key={story.id}
-                          sx={{
-                            width: { xs: "100%", sm: "200px" },
-                            border: "1px solid #e0e0e0",
-                            bgcolor: "white",
-                            borderLeft: `4px solid ${getPriorityColor(story.priority)}`,
-                          }}
-                        >
-                          <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
-                            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                              <Typography variant="body2">{story.name}</Typography>
-                              <IconButton
-                                size="small"
-                                onClick={e => handleOpenMoveMenu(e, story.id)}
-                              >
-                                <MoreVertIcon fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-
-                {/* Add release button at bottom */}
-                {releases.length > 0 && (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      mt: 1,
-                    }}
-                  >
-                    <Button
-                      size="small"
-                      startIcon={<AddIcon />}
-                      variant="outlined"
-                      onClick={handleOpenReleaseDialog}
-                    >
-                      Add Release
-                    </Button>
-                  </Box>
-                )}
+                <Typography gutterBottom color="text.secondary" variant="body1">
+                  No releases defined yet
+                </Typography>
+                <Typography paragraph color="text.secondary" sx={{ mb: 2 }} variant="body2">
+                  Add your first release to organize stories into delivery increments
+                </Typography>
+                <Button
+                  startIcon={<AddIcon />}
+                  variant="outlined"
+                  onClick={handleOpenReleaseDialog}
+                >
+                  Add Release
+                </Button>
               </Box>
-            </Box>
+            )}
           </Box>
-        </Paper>
-      )}
+        </Box>
+      </Paper>
 
       {/* Move Story Menu */}
       <Menu

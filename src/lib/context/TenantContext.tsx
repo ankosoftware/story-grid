@@ -78,17 +78,6 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // If in tenant selection or creation path but user already has a current tenant
-      // and is not in a specific tenant flow, redirect to tenant dashboard
-      if (
-        (pathname === "/tenant/select" || pathname === "/tenant/create") &&
-        currentTenant &&
-        !pathTenantId
-      ) {
-        router.push(`/${currentTenant.id}/dashboard`);
-        return;
-      }
-
       // If we're at the app root, redirect to the current tenant's dashboard
       if (pathname === "/") {
         if (currentTenant) {

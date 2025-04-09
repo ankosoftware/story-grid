@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTenant } from "@/lib/context/TenantContext";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { useEffect } from "react";
+import MainLayout from "@/components/layout/MainLayout";
 
 export default function TenantLayout({ children }: PropsWithChildren) {
   const { tenant, tenants, isLoading, switchTenant } = useTenant();
@@ -42,6 +43,6 @@ export default function TenantLayout({ children }: PropsWithChildren) {
     );
   }
 
-  // If tenant ID is valid, render the children
-  return <>{children}</>;
+  // If tenant ID is valid, render the children inside MainLayout
+  return <MainLayout title={tenant?.name || "Anko Storyboard"}>{children}</MainLayout>;
 }

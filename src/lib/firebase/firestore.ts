@@ -129,14 +129,61 @@ export const createUserProfile = async (
   await setDoc(userRef, userData);
 };
 
-// Function to update a user's current tenant
-export const updateUserCurrentTenant = async (userId: string, tenantId: string): Promise<void> => {
+/**
+ * Updates a user's current active tenant
+ *
+ * @param userId - The ID of the user to update
+ * @param tenantId - The ID of the tenant to set as current
+ * @param role - Optional. If provided, adds the tenant to the user's tenants list with this role
+ *               This is typically used when adding a user to a new tenant
+ * @returns Promise that resolves when the update is complete
+ */
+export const updateUserCurrentTenant = async (
+  userId: string,
+  tenantId: string,
+  role?: UserRole
+): Promise<void> => {
   const userRef = getUserRef(userId);
 
-  await updateDoc(userRef, {
+  // Base update with tenantId
+  const updateData: any = {
     tenantId,
     updatedAt: Timestamp.now(),
-  });
+  };
+
+  // If role is provided, this is a new tenant for the user
+  if (role) {
+    // Get current user profile to check if tenant already exists in their list
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      throw new Error("User does not exist");
+    }
+
+    const userProfile = userSnap.data();
+
+    // Check if tenant already exists in user's tenant list
+    const existingTenantIndex = userProfile.tenants.findIndex(
+      (t: UserTenantAccess) => t.tenantId === tenantId
+    );
+
+    if (existingTenantIndex === -1) {
+      // Add new tenant access
+      const newTenantAccess: UserTenantAccess = {
+        tenantId,
+        role,
+        joinedAt: Timestamp.now(),
+      };
+
+      // Add to tenants array
+      updateData.tenants = [...userProfile.tenants, newTenantAccess];
+
+      // Update role if this is the current tenant
+      updateData.role = role;
+    }
+  }
+
+  await updateDoc(userRef, updateData);
 };
 
 // Function to add a user to a tenant

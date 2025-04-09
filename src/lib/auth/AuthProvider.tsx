@@ -154,8 +154,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const profile = await getUserProfileById(user.uid);
 
       if (profile) {
-        // Add user to the tenant with ADMIN role
-        await updateUserCurrentTenant(user.uid, tenantId);
+        // Add user to the tenant with ADMIN role and set as current tenant
+        await updateUserCurrentTenant(user.uid, tenantId, UserRole.ADMIN);
       } else {
         // Create a new user profile with the tenant
         await createUserProfile(

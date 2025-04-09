@@ -111,6 +111,21 @@ export default function StoryMap({
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [movingStory, setMovingStory] = useState(false);
 
+  // Add state for story detail dialog
+  const [storyDetailDialogOpen, setStoryDetailDialogOpen] = useState(false);
+  const [selectedStory, setSelectedStory] = useState<Issue | null>(null);
+
+  // Add state for edit dialogs
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Issue | null>(null);
+  const [editingItemType, setEditingItemType] = useState<"activity" | "epic" | "story" | null>(
+    null
+  );
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editingError, setEditingError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
   // --------------------------
   // Handlers for Move Issue Menu
   // --------------------------
@@ -289,6 +304,70 @@ export default function StoryMap({
   };
 
   // --------------------------
+  // Add handler for opening story detail dialog
+  // --------------------------
+  const handleOpenStoryDetail = (story: Issue) => {
+    setSelectedStory(story);
+    setStoryDetailDialogOpen(true);
+  };
+
+  const handleCloseStoryDetail = () => {
+    setStoryDetailDialogOpen(false);
+    setSelectedStory(null);
+  };
+
+  // --------------------------
+  // Add handlers for opening items for editing
+  // --------------------------
+  const handleOpenItemForEdit = (item: Issue, type: "activity" | "epic" | "story") => {
+    setEditingItem(item);
+    setEditingItemType(type);
+    setEditName(item.name);
+    setEditDescription(item.description || "");
+    setEditingError(null);
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setEditingItem(null);
+    setEditingItemType(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem || !editingItemType) {
+      return;
+    }
+
+    if (!editName.trim()) {
+      setEditingError(`${editingItemType} name is required`);
+      return;
+    }
+
+    try {
+      setIsEditing(true);
+      setEditingError(null);
+
+      // Here you would call your update function
+      // For now, we'll just log the edit
+      console.log(`Editing ${editingItemType}:`, {
+        id: editingItem.id,
+        name: editName,
+        description: editDescription,
+      });
+
+      // TODO: Add actual update functionality
+      // await onUpdateItem(editingItem.id, editName, editDescription);
+
+      handleCloseEditDialog();
+    } catch (err) {
+      setEditingError((err as Error).message || `Failed to update ${editingItemType}`);
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  // --------------------------
   // Helper functions for color coding
   // --------------------------
   const getStatusColor = (status: IssueStatus) => {
@@ -324,12 +403,16 @@ export default function StoryMap({
     type,
     item,
     onAction,
+    onClick,
     children,
+    isAddCard = false,
   }: {
-    type: "activity" | "epic" | "story";
-    item: Issue;
+    type: "activity" | "epic" | "story" | "blank" | "release";
+    item?: Issue;
     onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
+    onClick?: () => void;
     children?: React.ReactNode;
+    isAddCard?: boolean;
   }) => {
     // Card styling based on type
     const cardStyles = {
@@ -351,27 +434,60 @@ export default function StoryMap({
         height: "60px",
         width: "100px",
         border: "1px solid #e0e0e0",
-        borderLeft: `4px solid ${getPriorityColor(item.priority)}`,
+        borderLeft: item ? `4px solid ${getPriorityColor(item?.priority)}` : undefined,
         boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
       },
       blank: {
         bgcolor: "white",
-        color: "text.primary",
+        color: "text.secondary",
         height: "60px",
         width: "100px",
-        border: "1px solid #e0e0e0",
+        border: "1px dashed #bdbdbd",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
       },
     };
+
+    if (isAddCard) {
+      return (
+        <Card
+          sx={{
+            ...cardStyles.blank,
+            mb: 1,
+            cursor: "pointer",
+            "&:hover": {
+              bgcolor: theme.palette.action.hover,
+              transition: "background-color 0.2s ease-in-out",
+            },
+          }}
+          onClick={onClick}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <AddIcon fontSize="small" />
+            <Typography variant="caption">{`Add ${type}`}</Typography>
+          </Box>
+        </Card>
+      );
+    }
 
     return (
       <Card
         sx={{
-          ...cardStyles[type],
+          ...(cardStyles[type] || cardStyles.blank),
           mb: 1,
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
+          cursor: onClick ? "pointer" : "default",
+          "&:hover": onClick
+            ? {
+                boxShadow: 3,
+                transition: "box-shadow 0.2s ease-in-out",
+              }
+            : {},
         }}
+        onClick={onClick}
       >
         <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -383,13 +499,16 @@ export default function StoryMap({
               }}
               variant={type === "activity" ? "subtitle1" : "body2"}
             >
-              {item.name}
+              {item?.name}
             </Typography>
-            {onAction && (
+            {onAction && item && (
               <IconButton
                 size="small"
                 sx={{ mt: -0.5, mr: -0.5 }}
-                onClick={e => onAction(e, item.id)}
+                onClick={e => {
+                  e.stopPropagation(); // Prevent card click when clicking the menu
+                  onAction(e, item.id);
+                }}
               >
                 <MoreVertIcon fontSize="small" />
               </IconButton>
@@ -405,7 +524,13 @@ export default function StoryMap({
   // Rendering functions for Story cards
   // --------------------------
   const renderStoryCard = (story: Issue) => (
-    <StoryMapCard key={story.id} item={story} type="story" onAction={handleOpenMoveMenu}>
+    <StoryMapCard
+      key={story.id}
+      item={story}
+      type="story"
+      onAction={handleOpenMoveMenu}
+      onClick={() => handleOpenItemForEdit(story, "story")}
+    >
       {story.status !== IssueStatus.TO_DO && (
         <Chip
           label={story.status}
@@ -472,7 +597,11 @@ export default function StoryMap({
           >
             {activities.map(activity => (
               <Box key={activity.id} sx={{ mx: 1 }}>
-                <StoryMapCard item={activity} type="activity">
+                <StoryMapCard
+                  item={activity}
+                  type="activity"
+                  onClick={() => handleOpenItemForEdit(activity, "activity")}
+                >
                   {/* Activity card has no additional content */}
                 </StoryMapCard>
 
@@ -481,7 +610,11 @@ export default function StoryMap({
                   {epics[activity.id] &&
                     epics[activity.id].map(epic => (
                       <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
-                        <StoryMapCard item={epic} type="epic">
+                        <StoryMapCard
+                          item={epic}
+                          type="epic"
+                          onClick={() => handleOpenItemForEdit(epic, "epic")}
+                        >
                           {/* Epic card has no additional content */}
                         </StoryMapCard>
 
@@ -490,79 +623,38 @@ export default function StoryMap({
                           {issues[epic.id] && issues[epic.id].length > 0 ? (
                             issues[epic.id].map(story => renderStoryCard(story))
                           ) : (
-                            <Typography
-                              sx={{
-                                display: "block",
-                                color: "text.disabled",
-                                fontSize: "0.7rem",
-                                mb: 1,
-                              }}
-                              variant="caption"
-                            >
-                              No stories
-                            </Typography>
+                            <></>
                           )}
-                          <Tooltip title={`Add Story to ${epic.name}`}>
-                            <IconButton
-                              size="small"
-                              sx={{
-                                border: `1px dashed ${theme.palette.grey[400]}`,
-                                borderRadius: 1,
-                                display: "block",
-                                margin: "0 auto",
-                                mt: 1,
-                              }}
-                              onClick={() => handleOpenStoryDialog(epic.id)}
-                            >
-                              <AddIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <StoryMapCard
+                            isAddCard={true}
+                            type="story"
+                            onClick={() => handleOpenStoryDialog(epic.id)}
+                          />
                         </Box>
                       </Box>
                     ))}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Tooltip title={`Add Task to ${activity.name}`}>
-                      <IconButton
-                        size="small"
-                        sx={{
-                          border: `1px dashed #00acc1`,
-                          borderRadius: 1,
-                          display: "block",
-                          margin: "0 auto",
-                          mt: 1,
-                          mb: 3,
-                        }}
-                        onClick={() => handleOpenEpicDialog(activity.id)}
-                      >
-                        <AddIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    <StoryMapCard
+                      isAddCard={true}
+                      type="epic"
+                      onClick={() => handleOpenEpicDialog(activity.id)}
+                    />
                   </Box>
                 </Box>
-
-                {/* Add Epic Button */}
               </Box>
             ))}
 
-            {/* Add Activity Button */}
+            {/* Add Activity Card */}
             <Box
               sx={{
-                width: 50,
+                width: 100,
                 display: "flex",
                 alignItems: "flex-start",
                 justifyContent: "center",
                 pt: 1,
               }}
             >
-              <Tooltip title="Add Activity">
-                <IconButton
-                  color="primary"
-                  sx={{ border: `1px dashed ${theme.palette.primary.main}`, borderRadius: 1 }}
-                  onClick={handleOpenActivityDialog}
-                >
-                  <AddIcon />
-                </IconButton>
-              </Tooltip>
+              <StoryMapCard isAddCard={true} type="activity" onClick={handleOpenActivityDialog} />
             </Box>
           </Box>
 
@@ -678,13 +770,7 @@ export default function StoryMap({
                 <Typography paragraph color="text.secondary" sx={{ mb: 2 }} variant="body2">
                   Add your first release to organize stories into delivery increments
                 </Typography>
-                <Button
-                  startIcon={<AddIcon />}
-                  variant="outlined"
-                  onClick={handleOpenReleaseDialog}
-                >
-                  Add Release
-                </Button>
+                <StoryMapCard isAddCard={true} type="release" onClick={handleOpenReleaseDialog} />
               </Box>
             )}
           </Box>
@@ -882,6 +968,190 @@ export default function StoryMap({
             onClick={handleCreateRelease}
           >
             {addingRelease ? "Creating..." : "Create Release"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Story Detail Dialog */}
+      <Dialog fullWidth maxWidth="md" open={storyDetailDialogOpen} onClose={handleCloseStoryDetail}>
+        {selectedStory && (
+          <>
+            <DialogTitle>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="h6">{selectedStory.name}</Typography>
+                <Chip
+                  label={selectedStory.status}
+                  size="small"
+                  sx={{ bgcolor: getStatusColor(selectedStory.status) }}
+                />
+              </Box>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Box sx={{ mb: 3 }}>
+                <Typography gutterBottom color="text.secondary" variant="subtitle2">
+                  Description
+                </Typography>
+                <Typography variant="body2">
+                  {selectedStory.description || "No description provided."}
+                </Typography>
+              </Box>
+
+              {selectedStory.acceptanceCriteria && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography gutterBottom color="text.secondary" variant="subtitle2">
+                    Acceptance Criteria
+                  </Typography>
+                  <Typography variant="body2">{selectedStory.acceptanceCriteria}</Typography>
+                </Box>
+              )}
+
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                <Box sx={{ minWidth: "120px", mb: 2 }}>
+                  <Typography color="text.secondary" variant="caption">
+                    Priority
+                  </Typography>
+                  <Chip
+                    label={selectedStory.priority}
+                    size="small"
+                    sx={{
+                      bgcolor: getPriorityColor(selectedStory.priority) + "20",
+                      color: getPriorityColor(selectedStory.priority),
+                      fontWeight: "bold",
+                    }}
+                  />
+                </Box>
+
+                {selectedStory.assignee && (
+                  <Box sx={{ minWidth: "120px", mb: 2 }}>
+                    <Typography color="text.secondary" variant="caption">
+                      Assignee
+                    </Typography>
+                    <Typography variant="body2">{selectedStory.assignee}</Typography>
+                  </Box>
+                )}
+
+                {selectedStory.releaseId && (
+                  <Box sx={{ minWidth: "120px", mb: 2 }}>
+                    <Typography color="text.secondary" variant="caption">
+                      Release
+                    </Typography>
+                    <Typography variant="body2">
+                      {releases.find(r => r.id === selectedStory.releaseId)?.name || "Unknown"}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseStoryDetail}>Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog fullWidth maxWidth="sm" open={editDialogOpen} onClose={handleCloseEditDialog}>
+        <DialogTitle>
+          {editingItemType &&
+            `Edit ${editingItemType.charAt(0).toUpperCase() + editingItemType.slice(1)}`}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            disabled={isEditing}
+            error={!!editingError}
+            helperText={editingError}
+            label="Name"
+            margin="dense"
+            sx={{ mb: 2 }}
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+          />
+          <TextField
+            fullWidth
+            multiline
+            disabled={isEditing}
+            label="Description"
+            margin="dense"
+            rows={3}
+            value={editDescription}
+            onChange={e => setEditDescription(e.target.value)}
+          />
+
+          {/* Add additional fields for stories */}
+          {editingItemType === "story" && editingItem && (
+            <>
+              <Box sx={{ mt: 3, mb: 2 }}>
+                <Typography color="text.secondary" variant="subtitle2">
+                  Additional Details
+                </Typography>
+              </Box>
+
+              {/* Status dropdown */}
+              <TextField
+                fullWidth
+                select
+                disabled={isEditing}
+                label="Status"
+                margin="dense"
+                sx={{ mb: 2 }}
+                value={editingItem.status || IssueStatus.TO_DO}
+              >
+                {Object.values(IssueStatus).map(status => (
+                  <MenuItem key={status} value={status}>
+                    {status}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {/* Priority dropdown */}
+              <TextField
+                fullWidth
+                select
+                disabled={isEditing}
+                label="Priority"
+                margin="dense"
+                sx={{ mb: 2 }}
+                value={editingItem.priority || IssuePriority.MEDIUM}
+              >
+                {Object.values(IssuePriority).map(priority => (
+                  <MenuItem key={priority} value={priority}>
+                    {priority}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {/* Release dropdown */}
+              <TextField
+                fullWidth
+                select
+                disabled={isEditing}
+                label="Release"
+                margin="dense"
+                value={editingItem.releaseId || ""}
+              >
+                <MenuItem value="">No Release</MenuItem>
+                {releases.map(release => (
+                  <MenuItem key={release.id} value={release.id}>
+                    {release.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={isEditing} onClick={handleCloseEditDialog}>
+            Cancel
+          </Button>
+          <Button
+            disabled={isEditing}
+            startIcon={isEditing ? <CircularProgress size={20} /> : undefined}
+            variant="contained"
+            onClick={handleSaveEdit}
+          >
+            {isEditing ? "Saving..." : "Save Changes"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -46,10 +46,17 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       setIsLoading(false);
 
+      // Check if the current path includes a tenant ID
+      const tenantIdMatch = pathname.match(/^\/([^\/]+)\/dashboard/);
+      const pathTenantId = tenantIdMatch ? tenantIdMatch[1] : null;
+
       // If we're not in a tenant selection flow and user has no tenants, redirect to tenant selection
       if (
         !pathname.includes("/tenant/select") &&
         !pathname.includes("/tenant/create") &&
+        !pathname.includes("/login") &&
+        !pathname.includes("/register") &&
+        !pathname.includes("/forgot-password") &&
         userTenants.length === 0
       ) {
         router.push("/tenant/select");
@@ -60,21 +67,35 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
       if (
         !pathname.includes("/tenant/select") &&
         !pathname.includes("/tenant/create") &&
+        !pathname.includes("/login") &&
+        !pathname.includes("/register") &&
+        !pathname.includes("/forgot-password") &&
         userTenants.length > 0 &&
-        !currentTenant
+        !currentTenant &&
+        !pathTenantId
       ) {
         router.push("/tenant/select");
         return;
       }
 
       // If in tenant selection or creation path but user already has a current tenant
-      // and is not in a specific tenant flow, redirect to dashboard
+      // and is not in a specific tenant flow, redirect to tenant dashboard
       if (
         (pathname === "/tenant/select" || pathname === "/tenant/create") &&
         currentTenant &&
-        !pathname.includes(`/${currentTenant.id}`) // Not in a specific tenant route
+        !pathTenantId
       ) {
-        router.push("/dashboard");
+        router.push(`/${currentTenant.id}/dashboard`);
+        return;
+      }
+
+      // If we're at the app root, redirect to the current tenant's dashboard
+      if (pathname === "/") {
+        if (currentTenant) {
+          router.push(`/${currentTenant.id}/dashboard`);
+        } else if (userTenants.length > 0) {
+          router.push("/tenant/select");
+        }
         return;
       }
     }
@@ -85,7 +106,8 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       await authSwitchTenant(tenantId);
-      router.push("/dashboard");
+      // Updated to use tenant-specific dashboard route
+      router.push(`/${tenantId}/dashboard`);
     } catch (error) {
       console.error("Error switching tenant:", error);
     } finally {
@@ -98,7 +120,8 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       const tenantId = await createNewTenant(name, description, logoUrl);
-      router.push("/dashboard");
+      // Updated to use tenant-specific dashboard route
+      router.push(`/${tenantId}/dashboard`);
       return tenantId;
     } catch (error) {
       console.error("Error creating tenant:", error);

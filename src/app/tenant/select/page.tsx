@@ -35,7 +35,8 @@ export default function TenantSelectPage() {
     setSwitchingTenantId(tenantId);
     try {
       await switchTenant(tenantId);
-      // No need to navigate here as the TenantContext handles navigation
+      // Navigate to the tenant-specific dashboard route
+      router.push(`/${tenantId}/dashboard`);
     } catch (error) {
       console.error("Error selecting tenant:", error);
       setSwitchingTenantId(null);

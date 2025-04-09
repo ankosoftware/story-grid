@@ -49,8 +49,13 @@ export const createTenant = async (
     logoUrl: logoUrl || "",
   };
 
-  // Write the tenant data to Firestore
-  await setDoc(tenantRef, tenantData);
+  try {
+    // Write the tenant data to Firestore
+    await setDoc(tenantRef, tenantData);
+  } catch (error) {
+    console.error("Error creating tenant:", error);
+    throw error;
+  }
 
   return tenantId;
 };

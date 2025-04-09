@@ -46,7 +46,7 @@ export default function TenantSelectPage() {
     return (
       <Container maxWidth="md" sx={{ mt: 8, textAlign: "center" }}>
         <CircularProgress />
-        <Typography variant="body1" sx={{ mt: 2 }}>
+        <Typography sx={{ mt: 2 }} variant="body1">
           Loading your workspace...
         </Typography>
       </Container>
@@ -55,25 +55,25 @@ export default function TenantSelectPage() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 8 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography gutterBottom component="h1" variant="h4">
         Select a Workspace
       </Typography>
 
-      <Typography variant="body1" sx={{ mb: 4 }}>
+      <Typography sx={{ mb: 4 }} variant="body1">
         Choose a workspace to continue or create a new one.
       </Typography>
 
       {tenants.length === 0 ? (
         <Box sx={{ textAlign: "center", my: 5 }}>
-          <Typography variant="h6" gutterBottom>
+          <Typography gutterBottom variant="h6">
             You don't have any workspaces yet
           </Typography>
           <Button
-            variant="contained"
             color="primary"
             component={Link}
             href="/tenant/create"
             sx={{ mt: 2 }}
+            variant="contained"
           >
             Create Your First Workspace
           </Button>
@@ -82,9 +82,8 @@ export default function TenantSelectPage() {
         <>
           <Grid container spacing={3}>
             {tenants.map(tenant => (
-              <Grid item xs={12} sm={6} md={4} key={tenant.id}>
+              <Grid key={tenant.id} item md={4} sm={6} xs={12}>
                 <Card
-                  variant="outlined"
                   sx={{
                     height: "100%",
                     display: "flex",
@@ -94,13 +93,14 @@ export default function TenantSelectPage() {
                       boxShadow: 3,
                     },
                   }}
+                  variant="outlined"
                 >
                   <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" component="h2" gutterBottom noWrap>
+                    <Typography gutterBottom noWrap component="h2" variant="h6">
                       {tenant.name}
                     </Typography>
                     {tenant.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      <Typography color="text.secondary" sx={{ mb: 2 }} variant="body2">
                         {tenant.description}
                       </Typography>
                     )}
@@ -108,12 +108,12 @@ export default function TenantSelectPage() {
                   <CardActions>
                     <Button
                       fullWidth
+                      disabled={switchingTenantId === tenant.id}
                       variant="contained"
                       onClick={() => handleTenantSelect(tenant.id)}
-                      disabled={switchingTenantId === tenant.id}
                     >
                       {switchingTenantId === tenant.id ? (
-                        <CircularProgress size={24} color="inherit" />
+                        <CircularProgress color="inherit" size={24} />
                       ) : (
                         "Select Workspace"
                       )}
@@ -127,7 +127,7 @@ export default function TenantSelectPage() {
           <Divider sx={{ my: 4 }} />
 
           <Box sx={{ textAlign: "center" }}>
-            <Button variant="outlined" color="primary" component={Link} href="/tenant/create">
+            <Button color="primary" component={Link} href="/tenant/create" variant="outlined">
               Create New Workspace
             </Button>
           </Box>

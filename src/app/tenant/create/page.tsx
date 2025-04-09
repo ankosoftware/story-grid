@@ -55,7 +55,7 @@ export default function TenantCreatePage() {
     return (
       <Container maxWidth="md" sx={{ mt: 8, textAlign: "center" }}>
         <CircularProgress />
-        <Typography variant="body1" sx={{ mt: 2 }}>
+        <Typography sx={{ mt: 2 }} variant="body1">
           Loading...
         </Typography>
       </Container>
@@ -65,11 +65,11 @@ export default function TenantCreatePage() {
   return (
     <Container maxWidth="sm" sx={{ mt: 8 }}>
       <Paper elevation={3} sx={{ px: 4, py: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography gutterBottom component="h1" variant="h4">
           Create New Workspace
         </Typography>
 
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+        <Typography color="text.secondary" sx={{ mb: 4 }} variant="body1">
           Create a new workspace for your team or project
         </Typography>
 
@@ -79,41 +79,41 @@ export default function TenantCreatePage() {
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleSubmit} noValidate>
+        <Box noValidate component="form" onSubmit={handleSubmit}>
           <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="tenantName"
-            label="Workspace Name"
-            name="tenantName"
             autoFocus
+            fullWidth
+            required
+            disabled={isCreating}
+            id="tenantName"
+            inputProps={{ maxLength: 100 }}
+            label="Workspace Name"
+            margin="normal"
+            name="tenantName"
             value={name}
             onChange={e => setName(e.target.value)}
-            disabled={isCreating}
-            inputProps={{ maxLength: 100 }}
           />
 
           <TextField
-            margin="normal"
             fullWidth
-            id="description"
-            label="Description (Optional)"
-            name="description"
             multiline
+            disabled={isCreating}
+            id="description"
+            inputProps={{ maxLength: 500 }}
+            label="Description (Optional)"
+            margin="normal"
+            name="description"
             rows={3}
             value={description}
             onChange={e => setDescription(e.target.value)}
-            disabled={isCreating}
-            inputProps={{ maxLength: 500 }}
           />
 
           <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
-            <Button component={Link} href="/tenant/select" variant="outlined" disabled={isCreating}>
+            <Button component={Link} disabled={isCreating} href="/tenant/select" variant="outlined">
               Cancel
             </Button>
 
-            <Button type="submit" variant="contained" disabled={isCreating || !name.trim()}>
+            <Button disabled={isCreating || !name.trim()} type="submit" variant="contained">
               {isCreating ? <CircularProgress size={24} /> : "Create Workspace"}
             </Button>
           </Box>

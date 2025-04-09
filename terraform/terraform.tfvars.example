@@ -1,0 +1,22 @@
+# Google Cloud Project Settings
+project_id        = "anko-story-board-app"
+project_name      = "Anko Story Board App"
+region            = "us-central1"
+firestore_location = "us-central"
+storage_location  = "US"
+
+# Your GCP billing account ID (required)
+billing_account   = "XXXXXX-XXXXXX-XXXXXX"
+
+# Optional: Your GCP organization ID
+# organization_id = "XXXXXXXXXX"
+
+# Environment settings
+environment       = "development" # Options: development, staging, production
+
+# Storage settings
+create_user_uploads_bucket = true
+
+# Service Account 
+# If you have a specific service account that needs Firebase Admin access
+# service_account_email = "your-service-account@your-project.iam.gserviceaccount.com" 

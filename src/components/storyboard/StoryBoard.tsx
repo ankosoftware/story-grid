@@ -309,7 +309,7 @@ export default function StoryBoard({
                 )}
 
                 {/* Stories */}
-                {issuesByParent[epic.id]?.length > 0 ? (
+                {issuesByParent[epic.id] && issuesByParent[epic.id].length > 0 ? (
                   issuesByParent[epic.id].map(story => (
                     <Card
                       key={story.id}

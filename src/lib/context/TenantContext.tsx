@@ -39,7 +39,9 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
 
   // Handle routing based on tenant selection
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) {
+      return;
+    }
 
     if (user) {
       setIsLoading(false);

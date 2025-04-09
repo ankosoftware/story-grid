@@ -45,8 +45,8 @@ export const createTenant = async (
     name,
     createdAt: Timestamp.now(),
     createdBy,
-    description,
-    logoUrl,
+    description: description || "",
+    logoUrl: logoUrl || "",
   };
 
   // Write the tenant data to Firestore

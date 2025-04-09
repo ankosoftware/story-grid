@@ -138,3 +138,25 @@ resource "google_firestore_index" "epics_by_tenant_order" {
 
   depends_on = [google_firestore_database.database]
 }
+
+resource "google_firestore_index" "epics_by_project_order" {
+  project    = google_project.anko_story_board.project_id
+  collection = "epics"
+
+  fields {
+    field_path = "projectId"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "displayOrder"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "__name__"
+    order      = "ASCENDING"
+  }
+
+  depends_on = [google_firestore_database.database]
+}

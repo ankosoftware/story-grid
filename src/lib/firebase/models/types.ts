@@ -106,8 +106,9 @@ export enum IssuePriority {
 
 // Type enum for issues
 export enum IssueType {
-  EPIC = "epic",
-  STORY = "story",
+  BACKBONE = "backbone", // User activities/goals
+  EPIC = "epic", // User tasks
+  STORY = "story", // User stories
 }
 
 // Issue model (replaces both Epic and Story models)

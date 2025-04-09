@@ -37,19 +37,19 @@ service cloud.firestore {
                       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "manager" || 
                        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
         
-        // Epics under projects
-        match /epics/{epicId} {
+        // Issue Type Epics under projects
+        match /issueTypeEpics/{epicId} {
           allow read: if request.auth != null && 
                        (request.auth.token.tenantId == tenantId ||
                         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
           
-          // Contributors, managers, and admins can write to epics
+          // Contributors, managers, and admins can write to issue type epics
           allow write: if request.auth != null && 
                         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "contributor" ||
                          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "manager" ||
                          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
                          
-          // Stories under epics
+          // Stories under issue type epics
           match /stories/{storyId} {
             allow read: if request.auth != null && 
                          (request.auth.token.tenantId == tenantId ||
@@ -122,9 +122,9 @@ resource "google_firestore_index" "stories_by_project_priority" {
   depends_on = [google_firestore_database.database]
 }
 
-resource "google_firestore_index" "epics_by_tenant_order" {
+resource "google_firestore_index" "issueTypeEpics_by_tenant_order" {
   project    = google_project.anko_story_board.project_id
-  collection = "epics"
+  collection = "issueTypeEpics"
 
   fields {
     field_path = "tenantId"
@@ -139,9 +139,9 @@ resource "google_firestore_index" "epics_by_tenant_order" {
   depends_on = [google_firestore_database.database]
 }
 
-resource "google_firestore_index" "epics_by_project_order" {
+resource "google_firestore_index" "issueTypeEpics_by_project_order" {
   project    = google_project.anko_story_board.project_id
-  collection = "epics"
+  collection = "issueTypeEpics"
 
   fields {
     field_path = "projectId"

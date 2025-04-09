@@ -43,14 +43,18 @@ export default function ProjectView() {
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
 
   const {
+    activities,
     epics,
-    issuesByParent,
+    issues,
     releases,
+    issuesByRelease,
     loading: boardLoading,
     error: boardError,
+    addActivity,
     addEpic,
     addStory,
     addRelease,
+    moveIssue,
   } = useStoryBoard(projectId);
 
   // Fetch project details
@@ -200,15 +204,18 @@ export default function ProjectView() {
       {/* Story board */}
       <Paper sx={{ p: 2, mb: 4 }}>
         <StoryBoard
+          activities={activities}
           epics={epics}
           error={boardError}
-          issuesByParent={issuesByParent}
+          issues={issues}
           loading={boardLoading}
           projectId={projectId}
           releases={releases}
+          onAddActivity={addActivity}
           onAddEpic={addEpic}
           onAddRelease={addRelease}
           onAddStory={addStory}
+          onMoveIssue={moveIssue}
         />
       </Paper>
 

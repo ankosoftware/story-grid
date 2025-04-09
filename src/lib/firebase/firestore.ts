@@ -559,6 +559,97 @@ export const getIssuesByProject = async (
 };
 
 /**
+ * Optimized function that retrieves all issues for a project in a single query
+ * and processes them client-side to create the required data structures.
+ *
+ * @param projectId - The ID of the project to get issues for
+ * @returns Promise that resolves to an object with activities, epics by activity,
+ * stories by epic, and all issues by their release ID
+ */
+export const getAllIssuesByProject = async (
+  projectId: string
+): Promise<{
+  activities: Issue[];
+  epicsByActivity: Record<string, Issue[]>;
+  storiesByEpic: Record<string, Issue[]>;
+  issuesByRelease: Record<string, Issue[]>;
+  allIssues: Issue[];
+}> => {
+  // Get ALL issues for the project in one query
+  const issuesQuery = query(issuesCollection, where("projectId", "==", projectId));
+
+  const issuesSnap = await getDocs(issuesQuery);
+
+  // Initialize return data structures
+  const activities: Issue[] = [];
+  const epics: Issue[] = [];
+  const epicsByActivity: Record<string, Issue[]> = {};
+  const storiesByEpic: Record<string, Issue[]> = {};
+  const issuesByRelease: Record<string, Issue[]> = {};
+  const allIssues: Issue[] = [];
+
+  // Process all issues
+  issuesSnap.forEach(doc => {
+    const issue = doc.data();
+    allIssues.push(issue);
+
+    // Categorize by type
+    if (issue.type === IssueType.EPIC) {
+      epics.push(issue);
+
+      // Check if it's an activity (epic without parent)
+      if (!issue.parentId) {
+        activities.push(issue);
+      }
+      // Otherwise, it's a regular epic under an activity
+      else if (issue.parentId) {
+        if (!epicsByActivity[issue.parentId]) {
+          epicsByActivity[issue.parentId] = [];
+        }
+        epicsByActivity[issue.parentId].push(issue);
+      }
+    }
+    // Process stories
+    else if (issue.type === IssueType.STORY && issue.parentId) {
+      // Group by parent epic
+      if (!storiesByEpic[issue.parentId]) {
+        storiesByEpic[issue.parentId] = [];
+      }
+      storiesByEpic[issue.parentId].push(issue);
+
+      // Also group by release if assigned
+      if (issue.releaseId) {
+        if (!issuesByRelease[issue.releaseId]) {
+          issuesByRelease[issue.releaseId] = [];
+        }
+        issuesByRelease[issue.releaseId].push(issue);
+      }
+    }
+  });
+
+  // Sort activities by displayOrder
+  activities.sort((a, b) => a.displayOrder - b.displayOrder);
+
+  // Sort epics by displayOrder within each activity
+  Object.keys(epicsByActivity).forEach(activityId => {
+    epicsByActivity[activityId].sort((a, b) => a.displayOrder - b.displayOrder);
+  });
+
+  // Sort stories by displayOrder within each epic
+  Object.keys(storiesByEpic).forEach(epicId => {
+    storiesByEpic[epicId].sort((a, b) => a.displayOrder - b.displayOrder);
+  });
+
+  return {
+    activities,
+    epicsByActivity,
+    storiesByEpic,
+    issuesByRelease,
+    allIssues,
+  };
+};
+
+/**
  * Creates a new release for a project
  *
  * @param projectId - The ID of the project the release belongs to
@@ -659,6 +750,28 @@ export const getIssueById = async (issueId: string): Promise<Issue | null> => {
   }
 
   return null;
+};
+
+/**
+ * Updates an issue with the provided data
+ *
+ * @param issueId - The ID of the issue to update
+ * @param updateData - Partial issue data to update
+ * @returns Promise that resolves when the update is complete
+ */
+export const updateIssue = async (
+  issueId: string,
+  updateData: Partial<Omit<Issue, "id" | "projectId" | "type" | "createdAt" | "createdBy">>
+): Promise<void> => {
+  const issueRef = getIssueRef(issueId);
+
+  // Add updatedAt timestamp
+  const dataWithTimestamp = {
+    ...updateData,
+    updatedAt: Timestamp.now(),
+  };
+
+  await updateDoc(issueRef, dataWithTimestamp);
 };
 
 /**

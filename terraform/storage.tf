@@ -12,7 +12,7 @@ resource "google_project_service" "storage" {
 # Create default Firebase Storage bucket
 # This is the main bucket Firebase uses for file storage
 resource "google_storage_bucket" "firebase_storage" {
-  name          = "${var.project_id}.appspot.com"
+  name          = "${var.project_id}-storage"
   location      = var.storage_location
   project       = google_project.anko_story_board.project_id
   force_destroy = var.environment != "production" # Be cautious with force_destroy in production
@@ -57,4 +57,4 @@ resource "google_storage_bucket" "user_uploads" {
   uniform_bucket_level_access = true
 
   depends_on = [google_project_service.storage]
-} 
+}

@@ -1,4 +1,5 @@
 # Firestore Security Rules
+# Firestore Security Rules
 resource "google_firestore_document" "firestore_rules" {
   project     = google_project.anko_story_board.project_id
   collection  = "_firestore_rules"
@@ -11,14 +12,18 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Multi-tenant security rules
     match /tenants/{tenantId} {
-      // Base tenant data can be read by any authenticated user in that tenant
-      allow read: if request.auth != null && 
-                   (request.auth.token.tenantId == tenantId || 
-                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
+      // Allow creation of new tenants by any authenticated user
+      allow create: if request.auth != null;
       
-      // Only tenant admins can write to tenant data
-      allow write: if request.auth != null && 
-                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+      // Allow read by members of the tenant or admins
+      allow read: if request.auth != null && 
+                  (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenants[tenantId].role in ["admin", "manager", "contributor"] ||
+                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
+      
+      // Allow updates by tenant admins or global admins
+      allow update: if request.auth != null && 
+                    (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenants[tenantId].role == "admin" ||
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
       
       // Projects collection under a tenant
       match /projects/{projectId} {
@@ -32,7 +37,7 @@ service cloud.firestore {
                       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "manager" || 
                        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
         
-        // Stories and epics under projects
+        // Epics under projects
         match /epics/{epicId} {
           allow read: if request.auth != null && 
                        (request.auth.token.tenantId == tenantId ||
@@ -43,18 +48,19 @@ service cloud.firestore {
                         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "contributor" ||
                          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "manager" ||
                          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
-        }
-        
-        match /stories/{storyId} {
-          allow read: if request.auth != null && 
-                       (request.auth.token.tenantId == tenantId ||
-                        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
-          
-          // Contributors, managers, and admins can write to stories
-          allow write: if request.auth != null && 
-                        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "contributor" ||
-                         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "manager" ||
-                         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
+                         
+          // Stories under epics
+          match /stories/{storyId} {
+            allow read: if request.auth != null && 
+                         (request.auth.token.tenantId == tenantId ||
+                          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
+            
+            // Contributors, managers, and admins can write to stories
+            allow write: if request.auth != null && 
+                          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "contributor" ||
+                           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "manager" ||
+                           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true);
+          }
         }
         
         match /releases/{releaseId} {
@@ -131,4 +137,4 @@ resource "google_firestore_index" "epics_by_tenant_order" {
   }
 
   depends_on = [google_firestore_database.database]
-} 
+}

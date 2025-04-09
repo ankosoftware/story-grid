@@ -199,7 +199,3 @@ Below is a set of **coding rules and conventions** to guide an AI agent (or any 
    - In sample code, always show usage of placeholders (e.g., `process.env.NEXT_PUBLIC_FIREBASE_API_KEY`) rather than actual keys.
 
 ---
-
-## **Conclusion**
-
-Adhering to these coding rules will help maintain a **clean architecture**, ensure **multi-tenant security**, and deliver a **consistent user experience** in a **Next.js + Material UI + Firestore** environment. By combining clear separation of concerns, robust TypeScript definitions, and built-in real-time data flows, developers (and AI agents) can produce a scalable, maintainable application aligned with modern best practices.

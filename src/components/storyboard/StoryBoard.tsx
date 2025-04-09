@@ -31,14 +31,14 @@ const GridContainer = styled(Grid)(({ theme }) => ({}));
 
 interface StoryBoardProps {
   projectId: string;
-  activities: Issue[]; // Backbone items - User Activities
-  epics: Record<string, Issue[]>; // Epics by activity ID
+  activities: Issue[]; // BACKBONE items - User Activities/Goals
+  epics: Record<string, Issue[]>; // Epics by backbone ID
   issues: Record<string, Issue[]>; // Stories by epic ID
   releases: Release[];
   loading: boolean;
   error: Error | null;
-  onAddActivity: (name: string, description?: string) => Promise<string>;
-  onAddEpic: (activityId: string, name: string, description?: string) => Promise<string>;
+  onAddActivity: (name: string, description?: string, parentId?: string | null) => Promise<string>;
+  onAddEpic: (backboneId: string, name: string, description?: string) => Promise<string>;
   onAddStory: (
     epicId: string,
     name: string,
@@ -167,7 +167,8 @@ export default function StoryBoard({
       setActivityError(null);
       await onAddActivity(
         activityName,
-        activityDescription.trim() ? activityDescription : undefined
+        activityDescription.trim() ? activityDescription : undefined,
+        null // Parent ID is null for backbone
       );
       handleCloseActivityDialog();
     } catch (err) {
@@ -733,7 +734,7 @@ export default function StoryBoard({
 
       {/* Add Activity Dialog */}
       <Dialog fullWidth maxWidth="sm" open={activityDialogOpen} onClose={handleCloseActivityDialog}>
-        <DialogTitle>Add New Activity (Backbone)</DialogTitle>
+        <DialogTitle>Add New Backbone (User Activity/Goal)</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus

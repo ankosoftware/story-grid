@@ -49,8 +49,8 @@ export const useStoryBoard = (projectId: string) => {
         ]);
 
         // Set all the data from our optimized query
-        setActivities(issuesData.activities);
-        setEpics(issuesData.epicsByActivity);
+        setActivities(issuesData.backbones);
+        setEpics(issuesData.epicsByBackbone);
         setIssues(issuesData.storiesByEpic);
         setIssuesByRelease(issuesData.issuesByRelease);
         setAllIssues(issuesData.allIssues);
@@ -89,7 +89,23 @@ export const useStoryBoard = (projectId: string) => {
     });
 
     // Handle different issue types
-    if (newIssue.type === IssueType.EPIC) {
+    if (newIssue.type === IssueType.BACKBONE) {
+      // It's a backbone
+      setActivities(prev => {
+        const updatedActivities = [...prev];
+        const existingIndex = updatedActivities.findIndex(a => a.id === newIssue.id);
+
+        if (existingIndex >= 0) {
+          updatedActivities[existingIndex] = newIssue;
+        } else {
+          updatedActivities.push(newIssue);
+          // Sort by displayOrder
+          updatedActivities.sort((a, b) => a.displayOrder - b.displayOrder);
+        }
+
+        return updatedActivities;
+      });
+    } else if (newIssue.type === IssueType.EPIC) {
       if (!newIssue.parentId) {
         // It's an activity (top-level epic)
         setActivities(prev => {
@@ -189,7 +205,7 @@ export const useStoryBoard = (projectId: string) => {
     }
 
     try {
-      const activityId = await createIssue(projectId, name, IssueType.EPIC, user.uid, {
+      const activityId = await createIssue(projectId, name, IssueType.BACKBONE, user.uid, {
         description,
         status: IssueStatus.TO_DO,
         priority: IssuePriority.MEDIUM,
@@ -201,7 +217,7 @@ export const useStoryBoard = (projectId: string) => {
         projectId,
         name,
         description: description || "",
-        type: IssueType.EPIC,
+        type: IssueType.BACKBONE,
         status: IssueStatus.TO_DO,
         priority: IssuePriority.MEDIUM,
         displayOrder:
@@ -216,6 +232,50 @@ export const useStoryBoard = (projectId: string) => {
       return activityId;
     } catch (err) {
       console.error("Error creating activity:", err);
+      throw err;
+    }
+  };
+
+  /**
+   * Create a new backbone
+   *
+   * @param name - Backbone name
+   * @param description - Optional backbone description
+   * @returns Promise that resolves to the ID of the created backbone
+   */
+  const addBackbone = async (name: string, description?: string): Promise<string> => {
+    if (!user) {
+      throw new Error("User must be logged in to create a backbone");
+    }
+
+    try {
+      const backboneId = await createIssue(projectId, name, IssueType.BACKBONE, user.uid, {
+        description,
+        status: IssueStatus.TO_DO,
+        priority: IssuePriority.MEDIUM,
+      });
+
+      // Get the newly created issue to update local state
+      const newBackbone: Issue = {
+        id: backboneId,
+        projectId,
+        name,
+        description: description || "",
+        type: IssueType.BACKBONE,
+        status: IssueStatus.TO_DO,
+        priority: IssuePriority.MEDIUM,
+        displayOrder:
+          activities.length > 0 ? Math.max(...activities.map(a => a.displayOrder)) + 1 : 0,
+        createdAt: new Date(),
+        createdBy: user.uid,
+      };
+
+      // Update local state
+      updateLocalIssueState(newBackbone);
+
+      return backboneId;
+    } catch (err) {
+      console.error("Error creating backbone:", err);
       throw err;
     }
   };
@@ -443,6 +503,7 @@ export const useStoryBoard = (projectId: string) => {
 
   return {
     activities,
+    backbones: activities,
     epics,
     issues,
     releases,
@@ -450,6 +511,7 @@ export const useStoryBoard = (projectId: string) => {
     loading,
     error,
     addActivity,
+    addBackbone,
     addEpic,
     addStory,
     addRelease,

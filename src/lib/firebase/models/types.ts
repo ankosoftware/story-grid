@@ -118,12 +118,12 @@ export interface Issue {
   name: string;
   description?: string;
   type: IssueType;
-  parentId?: string; // Reference to parent issue (null for epics, epic ID for stories)
+  parentId?: string | null; // Reference to parent issue (null for epics, epic ID for stories)
   status: IssueStatus;
   priority: IssuePriority;
   acceptanceCriteria?: string;
-  assignee?: string; // User ID of the assignee
-  releaseId?: string; // ID of the release it belongs to
+  assignee?: string | null; // User ID of the assignee
+  releaseId?: string | null; // ID of the release it belongs to
   displayOrder: number; // Position in the display order
   createdAt: Timestamp;
   createdBy: string; // User ID

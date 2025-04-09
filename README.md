@@ -34,3 +34,61 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Code Quality and Style
+
+This project uses ESLint and Prettier to ensure consistent code style and quality:
+
+### ESLint
+
+ESLint is configured to check for:
+
+- TypeScript best practices
+- React hooks rules
+- Accessibility issues
+- Common JavaScript errors
+
+To run the linter:
+
+```bash
+# Check for issues
+npm run lint
+
+# Fix automatically fixable issues
+npm run lint:fix
+```
+
+### Prettier
+
+Prettier is configured to ensure consistent formatting across the codebase:
+
+```bash
+# Format all files
+npm run format
+
+# Check formatting without changing files
+npm run format:check
+```
+
+### Combined Commands
+
+```bash
+# Check both linting and formatting
+npm run check
+
+# Fix linting and formatting issues
+npm run fix
+```
+
+### VS Code Integration
+
+This project includes VS Code settings to:
+
+- Format code on save
+- Fix ESLint issues on save
+- Use the correct TypeScript version
+
+Install the recommended extensions:
+
+- ESLint (`dbaeumer.vscode-eslint`)
+- Prettier - Code formatter (`esbenp.prettier-vscode`)

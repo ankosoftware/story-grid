@@ -1359,7 +1359,7 @@ const DraggableEpicCard = memo(
         <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
           <StoryMapCard item={epic} type="epic" onClick={() => handleOpenItemForEdit(epic, "epic")}>
             {storyPoints !== undefined && storyPoints > 0 && (
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
                 <Chip
                   label={storyPoints}
                   size="small"

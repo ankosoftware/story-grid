@@ -1268,14 +1268,6 @@ const DraggableStoryCard = memo(
         }}
       >
         <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
-          <DragHandleIcon
-            sx={{
-              fontSize: "0.9rem",
-              color: "text.secondary",
-              mr: 0.5,
-              visibility: isDragging ? "hidden" : "visible",
-            }}
-          />
           <MemoizedStoryCard
             key={story.id}
             getPriorityColor={getPriorityColor}
@@ -1941,6 +1933,8 @@ export default function StoryMap({
           parentId: newParentId,
           releaseId: story.releaseId, // Preserve the existing releaseId
         });
+
+        
 
         // Show success message
         setSnackbarMessage(

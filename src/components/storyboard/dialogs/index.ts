@@ -3,5 +3,7 @@ export { EpicDialog } from "./EpicDialog";
 export { StoryDialog } from "./StoryDialog";
 export { ReleaseDialog } from "./ReleaseDialog";
 export { StoryDetailDialog } from "./StoryDetailDialog";
+export { EpicDetailDialog } from "./EpicDetailDialog";
 export { EditItemDialog } from "./EditItemDialog";
 export { ReleaseDetailDialog } from "./ReleaseDetailDialog";
+export { CommentsDialog } from "./CommentsDialog";

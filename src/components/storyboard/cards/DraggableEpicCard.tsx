@@ -9,6 +9,8 @@ interface DraggableEpicCardProps {
   epic: Issue;
   handleMoveEpicToActivity: (epicId: string, newParentId: string) => Promise<void>;
   handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
+  handleOpenComments?: (item: Issue) => void;
+  handleOpenEpicDetail?: (epic: Issue) => void;
   storyPoints?: number;
 }
 
@@ -17,6 +19,8 @@ export const DraggableEpicCard = memo(
     epic,
     handleMoveEpicToActivity,
     handleOpenItemForEdit,
+    handleOpenComments,
+    handleOpenEpicDetail,
     storyPoints,
   }: DraggableEpicCardProps) => {
     const theme = useTheme();
@@ -55,6 +59,14 @@ export const DraggableEpicCard = memo(
     drag(dragRef);
     preview(previewRef);
 
+    const handleCardClick = () => {
+      if (handleOpenEpicDetail) {
+        handleOpenEpicDetail(epic);
+      } else {
+        handleOpenItemForEdit(epic, "epic");
+      }
+    };
+
     return (
       <Box
         ref={previewRef}
@@ -70,7 +82,12 @@ export const DraggableEpicCard = memo(
         }}
       >
         <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
-          <StoryMapCard item={epic} type="epic" onClick={() => handleOpenItemForEdit(epic, "epic")}>
+          <StoryMapCard
+            item={epic}
+            type="epic"
+            onClick={handleCardClick}
+            onCommentClick={handleOpenComments ? (e, item) => handleOpenComments(item) : undefined}
+          >
             {storyPoints !== undefined && storyPoints > 0 && (
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
                 <Chip

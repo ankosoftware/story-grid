@@ -11,6 +11,7 @@ interface DraggableStoryCardProps {
   getPriorityColor: (priority: IssuePriority) => string;
   handleOpenMoveMenu: (event: React.MouseEvent<HTMLElement>, storyId: string) => void;
   handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
+  handleOpenComments?: (item: Issue) => void;
   handleMoveStoryToEpic: (
     storyId: string,
     newParentId: string,
@@ -26,6 +27,7 @@ export const DraggableStoryCard = memo(
     getPriorityColor,
     handleOpenMoveMenu,
     handleOpenItemForEdit,
+    handleOpenComments,
     handleMoveStoryToEpic,
     index,
   }: DraggableStoryCardProps) => {
@@ -93,6 +95,7 @@ export const DraggableStoryCard = memo(
           <MemoizedStoryCard
             getPriorityColor={getPriorityColor}
             getStatusColor={getStatusColor}
+            handleOpenComments={handleOpenComments}
             handleOpenItemForEdit={handleOpenItemForEdit}
             handleOpenMoveMenu={handleOpenMoveMenu}
             story={story}

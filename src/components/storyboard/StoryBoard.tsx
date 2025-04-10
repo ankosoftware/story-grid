@@ -40,6 +40,8 @@ import {
   StoryDetailDialog,
   EditItemDialog,
   ReleaseDetailDialog,
+  CommentsDialog,
+  EpicDetailDialog,
 } from "./dialogs";
 
 // Import card components
@@ -122,6 +124,14 @@ export default function StoryMap({
     const saved = localStorage.getItem("stickyActivitiesRow");
     return saved ? JSON.parse(saved) : false;
   });
+
+  // Add state for comments dialog
+  const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
+  const [selectedIssueForComments, setSelectedIssueForComments] = useState<Issue | null>(null);
+
+  // Add state for Epic Detail dialog
+  const [epicDetailDialogOpen, setEpicDetailDialogOpen] = useState(false);
+  const [selectedEpic, setSelectedEpic] = useState<Issue | null>(null);
 
   // Save sticky preference when it changes
   useEffect(() => {
@@ -330,6 +340,17 @@ export default function StoryMap({
     setSelectedStory(null);
   }, []);
 
+  // Handler for Epic Detail
+  const handleOpenEpicDetail = useCallback((epic: Issue) => {
+    setSelectedEpic(epic);
+    setEpicDetailDialogOpen(true);
+  }, []);
+
+  const handleCloseEpicDetail = useCallback(() => {
+    setEpicDetailDialogOpen(false);
+    setSelectedEpic(null);
+  }, []);
+
   // Handler for editing items
   const handleOpenItemForEdit = useCallback((item: Issue, type: "activity" | "epic" | "story") => {
     setEditingItem(item);
@@ -393,6 +414,17 @@ export default function StoryMap({
     [projectId]
   );
 
+  // Add handler for opening comments dialog
+  const handleOpenComments = useCallback((issue: Issue) => {
+    setSelectedIssueForComments(issue);
+    setCommentsDialogOpen(true);
+  }, []);
+
+  const handleCloseCommentsDialog = useCallback(() => {
+    setCommentsDialogOpen(false);
+    setSelectedIssueForComments(null);
+  }, []);
+
   // --------------------------
   // Memoized rendering function for Story cards
   // --------------------------
@@ -403,13 +435,14 @@ export default function StoryMap({
         getPriorityColor={getPriorityColor}
         getStatusColor={getStatusColor}
         handleMoveStoryToEpic={handleMoveStoryToEpic}
+        handleOpenComments={handleOpenComments}
         handleOpenItemForEdit={handleOpenItemForEdit}
         handleOpenMoveMenu={handleOpenMoveMenu}
         index={index}
         story={story}
       />
     ),
-    [handleMoveStoryToEpic, handleOpenItemForEdit, handleOpenMoveMenu]
+    [handleMoveStoryToEpic, handleOpenItemForEdit, handleOpenMoveMenu, handleOpenComments]
   );
 
   // Calculate story points for epics
@@ -446,6 +479,41 @@ export default function StoryMap({
       return total;
     },
     [issues]
+  );
+
+  // Memoize the epic card component
+  const renderEpicCard = useCallback(
+    (epic: Issue) => (
+      <Box
+        key={epic.id}
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          borderRight: `1px solid ${theme.palette.divider}`,
+          px: 1,
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <DraggableEpicCard
+          epic={epic}
+          handleMoveEpicToActivity={handleMoveEpicToActivity}
+          handleOpenComments={handleOpenComments}
+          handleOpenEpicDetail={handleOpenEpicDetail}
+          handleOpenItemForEdit={handleOpenItemForEdit}
+          storyPoints={calculateEpicStoryPoints(epic.id)}
+        />
+      </Box>
+    ),
+    [
+      handleMoveEpicToActivity,
+      handleOpenItemForEdit,
+      handleOpenComments,
+      handleOpenEpicDetail,
+      calculateEpicStoryPoints,
+      theme.palette.divider,
+    ]
   );
 
   if (loading) {
@@ -551,6 +619,7 @@ export default function StoryMap({
                         item={activity}
                         type="activity"
                         onClick={() => handleOpenItemForEdit(activity, "activity")}
+                        onCommentClick={(e, item) => handleOpenComments(item)}
                       >
                         {/* Activity card has no additional content */}
                       </StoryMapCard>
@@ -573,28 +642,7 @@ export default function StoryMap({
                         }),
                       }}
                     >
-                      {epics[activity.id] &&
-                        epics[activity.id].map(epic => (
-                          <Box
-                            key={epic.id}
-                            sx={{
-                              flex: 1,
-                              minWidth: 0,
-                              borderRight: `1px solid ${theme.palette.divider}`,
-                              px: 1,
-                              height: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
-                            <DraggableEpicCard
-                              epic={epic}
-                              handleMoveEpicToActivity={handleMoveEpicToActivity}
-                              handleOpenItemForEdit={handleOpenItemForEdit}
-                              storyPoints={calculateEpicStoryPoints(epic.id)}
-                            />
-                          </Box>
-                        ))}
+                      {epics[activity.id] && epics[activity.id].map(epic => renderEpicCard(epic))}
 
                       <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
                         <StoryMapCard
@@ -849,6 +897,13 @@ export default function StoryMap({
           onClose={handleCloseStoryDetail}
         />
 
+        <EpicDetailDialog
+          epic={selectedEpic}
+          getStatusColor={getStatusColor}
+          open={epicDetailDialogOpen}
+          onClose={handleCloseEpicDetail}
+        />
+
         <EditItemDialog
           item={editingItem}
           itemType={editingItemType}
@@ -863,6 +918,12 @@ export default function StoryMap({
           release={selectedRelease}
           onClose={handleCloseReleaseDetail}
           onUpdateRelease={handleUpdateRelease}
+        />
+
+        <CommentsDialog
+          issue={selectedIssueForComments}
+          open={commentsDialogOpen}
+          onClose={handleCloseCommentsDialog}
         />
 
         {/* Snackbar for feedback messages */}

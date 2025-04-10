@@ -86,8 +86,8 @@ export interface Project {
   createdAt: Timestamp;
   createdBy: string; // User ID
   updatedAt?: Timestamp;
-  startDate?: Timestamp;
-  endDate?: Timestamp;
+  startDate?: Timestamp | null;
+  endDate?: Timestamp | null;
 }
 
 // Status enum for issues
@@ -130,6 +130,7 @@ export interface Issue {
   createdBy: string; // User ID
   updatedAt?: Timestamp;
   attachments?: IssueAttachment[];
+  commentCount?: number; // Number of comments on this issue
 }
 
 // Issue attachment model
@@ -141,6 +142,16 @@ export interface IssueAttachment {
   type: string; // e.g., 'image', 'document'
   createdAt: Timestamp;
   createdBy: string; // User ID
+}
+
+// Issue comment model
+export interface IssueComment {
+  id: string;
+  issueId: string;
+  text: string;
+  createdAt: Timestamp;
+  createdBy: string; // User ID
+  updatedAt?: Timestamp;
 }
 
 // Release model

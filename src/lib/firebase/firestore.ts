@@ -13,6 +13,7 @@ import {
   DocumentData,
   orderBy,
   writeBatch,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import {
@@ -26,6 +27,7 @@ import {
   IssueStatus,
   IssuePriority,
   IssueType,
+  IssueComment,
 } from "./models/types";
 
 // Collection references
@@ -34,6 +36,7 @@ export const usersCollection = collection(db, "users") as CollectionReference<Us
 export const projectsCollection = collection(db, "projects") as CollectionReference<Project>;
 export const issuesCollection = collection(db, "issues") as CollectionReference<Issue>;
 export const releasesCollection = collection(db, "releases") as CollectionReference<Release>;
+export const commentsCollection = collection(db, "comments") as CollectionReference<IssueComment>;
 
 // Tenant functions
 export const getTenantRef = (tenantId: string): DocumentReference<Tenant> => {
@@ -55,6 +58,10 @@ export const getIssueRef = (issueId: string): DocumentReference<Issue> => {
 
 export const getReleaseRef = (releaseId: string): DocumentReference<Release> => {
   return doc(db, "releases", releaseId) as DocumentReference<Release>;
+};
+
+export const getCommentRef = (commentId: string): DocumentReference<IssueComment> => {
+  return doc(db, "comments", commentId) as DocumentReference<IssueComment>;
 };
 
 // Function to create a new tenant
@@ -307,8 +314,8 @@ export const createProject = async (
     description: description || "",
     createdAt: Timestamp.now(),
     createdBy: userId,
-    startDate: startDate ? Timestamp.fromDate(startDate) : undefined,
-    endDate: endDate ? Timestamp.fromDate(endDate) : undefined,
+    startDate: startDate ? Timestamp.fromDate(startDate) : null,
+    endDate: endDate ? Timestamp.fromDate(endDate) : null,
   };
 
   // Write the project data to Firestore
@@ -1025,4 +1032,139 @@ export const batchUpdateIssueOrders = async (
   // Commit the batch
   await batch.commit();
   console.log(`Batch updated ${updates.length} issues with new display orders`);
+};
+
+/**
+ * Get all comments for an issue
+ *
+ * @param issueId - The ID of the issue to get comments for
+ * @returns Promise that resolves to an array of comments
+ */
+export const getCommentsForIssue = async (issueId: string): Promise<IssueComment[]> => {
+  const commentsQuery = query(
+    commentsCollection,
+    where("issueId", "==", issueId),
+    orderBy("createdAt", "asc")
+  );
+
+  const commentsSnap = await getDocs(commentsQuery);
+  return commentsSnap.docs.map(doc => doc.data());
+};
+
+/**
+ * Add a comment to an issue
+ *
+ * @param issueId - The ID of the issue to add the comment to
+ * @param text - The comment text
+ * @param userId - The ID of the user adding the comment
+ * @returns Promise that resolves to the new comment ID
+ */
+export const addComment = async (
+  issueId: string,
+  text: string,
+  userId: string
+): Promise<string> => {
+  // Create a new document reference with an auto-generated ID
+  const commentRef = doc(commentsCollection);
+  const commentId = commentRef.id;
+
+  // Get the issue to update its comment count
+  const issueRef = getIssueRef(issueId);
+  const issueSnap = await getDoc(issueRef);
+
+  if (!issueSnap.exists()) {
+    throw new Error("Issue does not exist");
+  }
+
+  const issueData = issueSnap.data();
+  const currentCommentCount = issueData.commentCount || 0;
+
+  // Create a batch to update both the comment and issue in a transaction
+  const batch = writeBatch(db);
+
+  // Prepare comment data
+  const commentData: IssueComment = {
+    id: commentId,
+    issueId,
+    text,
+    createdAt: Timestamp.now(),
+    createdBy: userId,
+  };
+
+  // Add comment to batch
+  batch.set(commentRef, commentData);
+
+  // Update issue comment count
+  batch.update(issueRef, {
+    commentCount: currentCommentCount + 1,
+    updatedAt: Timestamp.now(),
+  });
+
+  // Commit the batch
+  await batch.commit();
+
+  return commentId;
+};
+
+/**
+ * Update a comment
+ *
+ * @param commentId - The ID of the comment to update
+ * @param text - The updated comment text
+ * @returns Promise that resolves when the update is complete
+ */
+export const updateComment = async (commentId: string, text: string): Promise<void> => {
+  const commentRef = getCommentRef(commentId);
+
+  await updateDoc(commentRef, {
+    text,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+/**
+ * Delete a comment
+ *
+ * @param commentId - The ID of the comment to delete
+ * @returns Promise that resolves when the deletion is complete
+ */
+export const deleteComment = async (commentId: string): Promise<void> => {
+  // Get the comment to find its issue
+  const commentRef = getCommentRef(commentId);
+  const commentSnap = await getDoc(commentRef);
+
+  if (!commentSnap.exists()) {
+    throw new Error("Comment does not exist");
+  }
+
+  const commentData = commentSnap.data();
+  const issueId = commentData.issueId;
+
+  // Get the issue to update its comment count
+  const issueRef = getIssueRef(issueId);
+  const issueSnap = await getDoc(issueRef);
+
+  if (!issueSnap.exists()) {
+    // If the issue doesn't exist, just delete the comment
+    await deleteDoc(commentRef);
+    return;
+  }
+
+  const issueData = issueSnap.data();
+  const currentCommentCount = issueData.commentCount || 0;
+
+  // Create a batch to update both the comment and issue in a transaction
+  const batch = writeBatch(db);
+
+  // Delete comment
+  batch.delete(commentRef);
+
+  // Update issue comment count, ensuring it doesn't go below 0
+  batch.update(issueRef, {
+    commentCount: Math.max(0, currentCommentCount - 1),
+    updatedAt: Timestamp.now(),
+  });
+
+  // Commit the batch
+  await batch.commit();
 };

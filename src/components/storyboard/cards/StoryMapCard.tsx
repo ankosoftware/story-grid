@@ -1,7 +1,8 @@
 import React, { memo } from "react";
-import { Card, CardContent, Box, Typography, IconButton, useTheme } from "@mui/material";
+import { Card, CardContent, Box, Typography, IconButton, useTheme, Badge } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import ChatIcon from "@mui/icons-material/Chat";
 import { Issue, IssuePriority } from "@/lib/firebase/models/types";
 import { getPriorityColor } from "../utils/colorUtils";
 
@@ -10,12 +11,21 @@ interface StoryMapCardProps {
   item?: Issue;
   onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
   onClick?: () => void;
+  onCommentClick?: (e: React.MouseEvent<HTMLElement>, item: Issue) => void;
   children?: React.ReactNode;
   isAddCard?: boolean;
 }
 
 export const StoryMapCard = memo(
-  ({ type, item, onAction, onClick, children, isAddCard = false }: StoryMapCardProps) => {
+  ({
+    type,
+    item,
+    onAction,
+    onClick,
+    onCommentClick,
+    children,
+    isAddCard = false,
+  }: StoryMapCardProps) => {
     const theme = useTheme();
 
     // Card styling based on type
@@ -68,6 +78,14 @@ export const StoryMapCard = memo(
         height: "0px",
         width: "100px",
       },
+    };
+
+    // Handler for comment icon click
+    const handleCommentClick = (e: React.MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      if (onCommentClick && item) {
+        onCommentClick(e, item);
+      }
     };
 
     if (isAddCard) {
@@ -132,18 +150,52 @@ export const StoryMapCard = memo(
             >
               {item?.name}
             </Typography>
-            {onAction && item && (
-              <IconButton
-                size="small"
-                sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
-                onClick={e => {
-                  e.stopPropagation();
-                  onAction(e, item.id);
-                }}
-              >
-                <MoreVertIcon sx={{ fontSize: "0.9rem" }} />
-              </IconButton>
-            )}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              {/* Show comment indicator for items with comments */}
+              {item?.commentCount && item.commentCount > 0 && onCommentClick && (
+                <IconButton
+                  size="small"
+                  sx={{
+                    p: 0.3,
+                    mr: 0.2,
+                    "& svg": {
+                      color:
+                        type === "activity" || type === "epic"
+                          ? "white"
+                          : theme.palette.primary.main,
+                    },
+                  }}
+                  onClick={handleCommentClick}
+                >
+                  <Badge
+                    badgeContent={item.commentCount > 1 ? item.commentCount : undefined}
+                    color="error"
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        fontSize: "0.6rem",
+                        height: "14px",
+                        minWidth: "14px",
+                        padding: 0,
+                      },
+                    }}
+                  >
+                    <ChatIcon sx={{ fontSize: "0.9rem" }} />
+                  </Badge>
+                </IconButton>
+              )}
+              {onAction && item && (
+                <IconButton
+                  size="small"
+                  sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    onAction(e, item.id);
+                  }}
+                >
+                  <MoreVertIcon sx={{ fontSize: "0.9rem" }} />
+                </IconButton>
+              )}
+            </Box>
           </Box>
           {children}
         </CardContent>

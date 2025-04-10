@@ -14,7 +14,9 @@ export const useProjects = () => {
 
   // Fetch projects when the tenant changes
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) {
+      return;
+    }
 
     if (!user || !currentTenant) {
       setProjects([]);
@@ -51,8 +53,8 @@ export const useProjects = () => {
   const createNewProject = async (
     name: string,
     description?: string,
-    startDate?: Date,
-    endDate?: Date
+    startDate?: Date | null,
+    endDate?: Date | null
   ): Promise<string> => {
     if (!user || !currentTenant) {
       throw new Error("User must be logged in and have an active tenant to create a project");

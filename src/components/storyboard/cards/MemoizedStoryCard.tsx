@@ -1,6 +1,7 @@
 import React, { memo } from "react";
 import { Card, CardContent, Box, Typography, IconButton, Chip, useTheme } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import ChatIcon from "@mui/icons-material/Chat";
 import { Issue, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
 
 interface MemoizedStoryCardProps {
@@ -9,6 +10,7 @@ interface MemoizedStoryCardProps {
   getPriorityColor: (priority: IssuePriority) => string;
   handleOpenMoveMenu: (event: React.MouseEvent<HTMLElement>, storyId: string) => void;
   handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
+  handleOpenComments?: (item: Issue) => void;
 }
 
 export const MemoizedStoryCard = memo(
@@ -18,6 +20,7 @@ export const MemoizedStoryCard = memo(
     getPriorityColor,
     handleOpenMoveMenu,
     handleOpenItemForEdit,
+    handleOpenComments,
   }: MemoizedStoryCardProps) => {
     const theme = useTheme();
 
@@ -42,6 +45,14 @@ export const MemoizedStoryCard = memo(
       },
     };
 
+    // Handler for comment icon click
+    const handleCommentClick = (e: React.MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      if (handleOpenComments) {
+        handleOpenComments(story);
+      }
+    };
+
     return (
       <Card sx={cardStyles} onClick={() => handleOpenItemForEdit(story, "story")}>
         <CardContent sx={{ p: 0.5, "&:last-child": { pb: 0.5 } }}>
@@ -59,16 +70,49 @@ export const MemoizedStoryCard = memo(
             >
               {story.name}
             </Typography>
-            <IconButton
-              size="small"
-              sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
-              onClick={e => {
-                e.stopPropagation();
-                handleOpenMoveMenu(e, story.id);
-              }}
-            >
-              <MoreVertIcon sx={{ fontSize: "1rem" }} />
-            </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              {story.commentCount && story.commentCount > 0 && (
+                <IconButton size="small" sx={{ p: 0.3, mr: 0.2 }} onClick={handleCommentClick}>
+                  <ChatIcon
+                    sx={{
+                      fontSize: "0.9rem",
+                      color: theme.palette.primary.main,
+                    }}
+                  />
+                  {story.commentCount > 1 && (
+                    <Typography
+                      sx={{
+                        fontSize: "0.6rem",
+                        position: "absolute",
+                        top: 0,
+                        right: 0,
+                        backgroundColor: theme.palette.primary.main,
+                        color: "white",
+                        borderRadius: "50%",
+                        width: "12px",
+                        height: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      variant="caption"
+                    >
+                      {story.commentCount}
+                    </Typography>
+                  )}
+                </IconButton>
+              )}
+              <IconButton
+                size="small"
+                sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
+                onClick={e => {
+                  e.stopPropagation();
+                  handleOpenMoveMenu(e, story.id);
+                }}
+              >
+                <MoreVertIcon sx={{ fontSize: "1rem" }} />
+              </IconButton>
+            </Box>
           </Box>
 
           <Box

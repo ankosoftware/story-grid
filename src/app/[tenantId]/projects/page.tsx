@@ -57,7 +57,9 @@ export default function ProjectsPage() {
 
       const projectId = await createNewProject(
         projectName,
-        projectDescription.trim() ? projectDescription : undefined
+        projectDescription.trim() ? projectDescription : undefined,
+        null,
+        null
       );
 
       setShowSuccess(true);
@@ -77,16 +79,16 @@ export default function ProjectsPage() {
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
-        <Typography variant="h4" component="h1">
+        <Typography component="h1" variant="h4">
           Projects
         </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleClickOpen}>
+        <Button startIcon={<AddIcon />} variant="contained" onClick={handleClickOpen}>
           New Project
         </Button>
       </Box>
 
       {/* Project creation dialog */}
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <Dialog fullWidth maxWidth="sm" open={open} onClose={handleClose}>
         <DialogTitle>Create New Project</DialogTitle>
         <DialogContent>
           {createError && (
@@ -96,38 +98,38 @@ export default function ProjectsPage() {
           )}
           <TextField
             autoFocus
-            margin="dense"
+            fullWidth
             id="name"
             label="Project Name"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={projectName}
-            onChange={e => setProjectName(e.target.value)}
+            margin="dense"
             sx={{ mb: 2 }}
+            type="text"
+            value={projectName}
+            variant="outlined"
+            onChange={e => setProjectName(e.target.value)}
           />
           <TextField
-            margin="dense"
+            fullWidth
+            multiline
             id="description"
             label="Description (optional)"
-            type="text"
-            fullWidth
-            variant="outlined"
-            multiline
+            margin="dense"
             rows={4}
+            type="text"
             value={projectDescription}
+            variant="outlined"
             onChange={e => setProjectDescription(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} disabled={creating}>
+          <Button disabled={creating} onClick={handleClose}>
             Cancel
           </Button>
           <Button
-            onClick={handleCreateProject}
-            variant="contained"
             disabled={creating}
             startIcon={creating ? <CircularProgress size={20} /> : null}
+            variant="contained"
+            onClick={handleCreateProject}
           >
             {creating ? "Creating..." : "Create Project"}
           </Button>
@@ -145,20 +147,20 @@ export default function ProjectsPage() {
         </Alert>
       ) : projects.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
+          <Typography gutterBottom color="text.secondary" variant="h6">
             No projects yet
           </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
+          <Typography paragraph color="text.secondary" variant="body2">
             Create your first project to get started with story mapping.
           </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleClickOpen}>
+          <Button startIcon={<AddIcon />} variant="contained" onClick={handleClickOpen}>
             Create Project
           </Button>
         </Paper>
       ) : (
         <Grid container spacing={3}>
           {projects.map(project => (
-            <Grid item xs={12} sm={6} md={4} key={project.id}>
+            <Grid key={project.id} item md={4} sm={6} xs={12}>
               <Paper
                 sx={{
                   p: 3,
@@ -172,10 +174,10 @@ export default function ProjectsPage() {
                 }}
                 onClick={() => router.push(`/${tenant?.id}/projects/${project.id}`)}
               >
-                <Typography variant="h6" component="h2" gutterBottom>
+                <Typography gutterBottom component="h2" variant="h6">
                   {project.name}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography color="text.secondary" sx={{ mb: 2 }} variant="body2">
                   {project.description}
                 </Typography>
                 <Box sx={{ mt: "auto", display: "flex", justifyContent: "flex-end" }}>
@@ -189,12 +191,12 @@ export default function ProjectsPage() {
 
       {/* Success message */}
       <Snackbar
-        open={showSuccess}
-        autoHideDuration={5000}
-        onClose={() => setShowSuccess(false)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        autoHideDuration={5000}
+        open={showSuccess}
+        onClose={() => setShowSuccess(false)}
       >
-        <Alert onClose={() => setShowSuccess(false)} severity="success">
+        <Alert severity="success" onClose={() => setShowSuccess(false)}>
           Project created successfully!
         </Alert>
       </Snackbar>

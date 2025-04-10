@@ -76,6 +76,16 @@ export const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogP
   const [addingActivity, setAddingActivity] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
 
+  // Reset form when dialog closes or opens
+  React.useEffect(() => {
+    if (open) {
+      // Initialize with empty values when opening
+      setActivityName("");
+      setActivityDescription("");
+      setActivityError(null);
+    }
+  }, [open]);
+
   const handleCreateActivity = async () => {
     if (!activityName.trim()) {
       setActivityError("Activity name is required");
@@ -153,6 +163,16 @@ const EpicDialog = ({ open, onClose, onAddEpic, activityId }: EpicDialogProps) =
   const [epicDescription, setEpicDescription] = useState("");
   const [addingEpic, setAddingEpic] = useState(false);
   const [epicError, setEpicError] = useState<string | null>(null);
+
+  // Reset form when dialog closes or opens
+  React.useEffect(() => {
+    if (open) {
+      // Initialize with empty values when opening
+      setEpicName("");
+      setEpicDescription("");
+      setEpicError(null);
+    }
+  }, [open]);
 
   const handleCreateEpic = async () => {
     if (!activityId) {
@@ -237,14 +257,26 @@ type StoryDialogProps = {
     }
   ) => Promise<string>;
   epicId: string | null;
+  currentReleaseId?: string | null;
 };
 
-const StoryDialog = ({ open, onClose, onAddStory, epicId }: StoryDialogProps) => {
+const StoryDialog = ({ open, onClose, onAddStory, epicId, currentReleaseId }: StoryDialogProps) => {
   const [storyName, setStoryName] = useState("");
   const [storyDescription, setStoryDescription] = useState("");
   const [storyPoints, setStoryPoints] = useState<number | undefined>(undefined);
   const [addingStory, setAddingStory] = useState(false);
   const [storyError, setStoryError] = useState<string | null>(null);
+
+  // Reset form when dialog closes or opens
+  React.useEffect(() => {
+    if (open) {
+      // Initialize with empty values when opening
+      setStoryName("");
+      setStoryDescription("");
+      setStoryPoints(undefined);
+      setStoryError(null);
+    }
+  }, [open]);
 
   const handleCreateStory = async () => {
     if (!epicId) {
@@ -261,6 +293,7 @@ const StoryDialog = ({ open, onClose, onAddStory, epicId }: StoryDialogProps) =>
       await onAddStory(epicId, storyName, {
         description: storyDescription.trim() ? storyDescription : undefined,
         storyPoints: storyPoints,
+        releaseId: currentReleaseId || undefined,
       });
       onClose();
     } catch (err) {
@@ -367,6 +400,16 @@ const ReleaseDialog = ({ open, onClose, onAddRelease }: ReleaseDialogProps) => {
   const [releaseDescription, setReleaseDescription] = useState("");
   const [addingRelease, setAddingRelease] = useState(false);
   const [releaseError, setReleaseError] = useState<string | null>(null);
+
+  // Reset form when dialog closes or opens
+  React.useEffect(() => {
+    if (open) {
+      // Initialize with empty values when opening
+      setReleaseName("");
+      setReleaseDescription("");
+      setReleaseError(null);
+    }
+  }, [open]);
 
   const handleCreateRelease = async () => {
     if (!releaseName.trim()) {
@@ -1232,6 +1275,9 @@ export default function StoryMap({
   const [releaseDetailDialogOpen, setReleaseDetailDialogOpen] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
 
+  // Add state to track the current release context
+  const [currentReleaseContext, setCurrentReleaseContext] = useState<string | null>(null);
+
   // Add handler for updating issues
   const handleUpdateIssue = useCallback(async (issue: Issue, updatedData: Partial<Issue>) => {
     try {
@@ -1299,8 +1345,9 @@ export default function StoryMap({
   }, []);
 
   // Handler for Story Dialog
-  const handleOpenStoryDialog = useCallback((epicId: string) => {
+  const handleOpenStoryDialog = useCallback((epicId: string, releaseId?: string | null) => {
     setSelectedParentId(epicId);
+    setCurrentReleaseContext(releaseId || null);
     setStoryDialogOpen(true);
   }, []);
 
@@ -1725,7 +1772,7 @@ export default function StoryMap({
                             <StoryMapCard
                               isAddCard={true}
                               type="story"
-                              onClick={() => handleOpenStoryDialog(epic.id)}
+                              onClick={() => handleOpenStoryDialog(epic.id, release.id)}
                             />
                           </Box>
                         </Box>
@@ -1772,7 +1819,7 @@ export default function StoryMap({
                           <StoryMapCard
                             isAddCard={true}
                             type="story"
-                            onClick={() => handleOpenStoryDialog(epic.id)}
+                            onClick={() => handleOpenStoryDialog(epic.id, null)}
                           />
                         </Box>
                       </Box>
@@ -1824,6 +1871,7 @@ export default function StoryMap({
       />
 
       <StoryDialog
+        currentReleaseId={currentReleaseContext}
         epicId={selectedParentId}
         open={storyDialogOpen}
         onAddStory={onAddStory}

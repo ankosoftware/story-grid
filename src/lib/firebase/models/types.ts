@@ -149,8 +149,8 @@ export interface Release {
   projectId: string;
   name: string;
   description?: string;
-  startDate?: Timestamp;
-  endDate?: Timestamp;
+  startDate?: Timestamp | null;
+  endDate?: Timestamp | null;
   displayOrder: number; // Priority order of releases
   createdAt: Timestamp;
   createdBy: string; // User ID

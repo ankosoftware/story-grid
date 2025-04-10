@@ -292,8 +292,8 @@ export const createProject = async (
   name: string,
   userId: string,
   description?: string,
-  startDate?: Date,
-  endDate?: Date
+  startDate?: Date | null,
+  endDate?: Date | null
 ): Promise<string> => {
   // Create a new document reference with an auto-generated ID
   const projectRef = doc(projectsCollection);
@@ -676,9 +676,9 @@ export const createRelease = async (
   name: string,
   userId: string,
   options?: {
-    description?: string;
-    startDate?: Date;
-    endDate?: Date;
+    description?: string | null;
+    startDate?: Date | null;
+    endDate?: Date | null;
     displayOrder?: number;
   }
 ): Promise<string> => {
@@ -711,8 +711,8 @@ export const createRelease = async (
     projectId,
     name,
     description: options?.description || "",
-    startDate: startTimestamp,
-    endDate: endTimestamp,
+    startDate: startTimestamp || null,
+    endDate: endTimestamp || null,
     displayOrder: order,
     createdAt: Timestamp.now(),
     createdBy: userId,

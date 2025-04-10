@@ -555,7 +555,7 @@ const EditItemDialog = ({
   const [editStatus, setEditStatus] = useState<IssueStatus>(IssueStatus.TO_DO);
   const [editPriority, setEditPriority] = useState<IssuePriority>(IssuePriority.MEDIUM);
   const [editReleaseId, setEditReleaseId] = useState<string>("");
-  const [editStoryPoints, setEditStoryPoints] = useState<number | undefined>(undefined);
+  const [editStoryPoints, setEditStoryPoints] = useState<number | null>(null);
   const [editingError, setEditingError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -567,7 +567,7 @@ const EditItemDialog = ({
       setEditStatus(item.status || IssueStatus.TO_DO);
       setEditPriority(item.priority || IssuePriority.MEDIUM);
       setEditReleaseId(item.releaseId || "");
-      setEditStoryPoints(item.storyPoints);
+      setEditStoryPoints(item.storyPoints || null);
       setEditingError(null);
     }
   }, [item]);
@@ -1067,7 +1067,7 @@ export default function StoryMap({
       children,
       isAddCard = false,
     }: {
-      type: "activity" | "epic" | "story" | "blank" | "release";
+      type: "activity" | "epic" | "story" | "blank" | "release" | "placeholder";
       item?: Issue;
       onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
       onClick?: () => void;
@@ -1137,6 +1137,10 @@ export default function StoryMap({
             </Box>
           </Card>
         );
+      }
+
+      if (type === "placeholder") {
+        return <div style={{ height: "0px", width: "100px" }}></div>;
       }
 
       return (
@@ -1269,7 +1273,7 @@ export default function StoryMap({
                         </StoryMapCard>
 
                         {/* Stories Column - Vertical under each epic */}
-                        <Box sx={{ mb: 2 }}>
+                        {/* <Box sx={{ mb: 2 }}>
                           {issues[epic.id] && issues[epic.id].length > 0 ? (
                             issues[epic.id].map(story => renderStoryCard(story))
                           ) : (
@@ -1280,9 +1284,10 @@ export default function StoryMap({
                             type="story"
                             onClick={() => handleOpenStoryDialog(epic.id)}
                           />
-                        </Box>
+                        </Box> */}
                       </Box>
                     ))}
+
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <StoryMapCard
                       isAddCard={true}
@@ -1312,6 +1317,51 @@ export default function StoryMap({
             </Box>
           </Box>
         </Box>
+        {releases.map(release => (
+          <Box key={release.id} sx={{ minWidth: activities.length * 250 }}>
+            <Box
+              sx={{
+                display: "flex",
+                mb: 2,
+              }}
+            >
+              {activities.map(activity => (
+                <Box key={activity.id} sx={{ mx: 1 }}>
+                  {/* Add placeholder for activity */}
+                  <StoryMapCard type="placeholder" />
+
+                  {/* Epics Row - Horizontal */}
+                  <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
+                    {epics[activity.id] &&
+                      epics[activity.id].map(epic => (
+                        <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
+                          {/* Add placeholder for epic */}
+                          <StoryMapCard type="placeholder" />
+                          {/* Stories Column - Vertical under each epic */}
+                          <Box sx={{ mb: 2 }}>
+                            {issues[epic.id] && issues[epic.id].length > 0 ? (
+                              issues[epic.id].map(story => renderStoryCard(story))
+                            ) : (
+                              <></>
+                            )}
+                            <StoryMapCard
+                              isAddCard={true}
+                              type="story"
+                              onClick={() => handleOpenStoryDialog(epic.id)}
+                            />
+                          </Box>
+                        </Box>
+                      ))}
+
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <StoryMapCard type="placeholder" />
+                    </Box>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ))}
       </Paper>
 
       {/* Move Story Menu */}

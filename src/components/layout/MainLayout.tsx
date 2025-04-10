@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { Box, CssBaseline, Toolbar, useMediaQuery, useTheme } from "@mui/material";
+import React from "react";
+import { Box, CssBaseline } from "@mui/material";
 import Header from "./Header";
-import Sidebar from "./Sidebar";
 import Footer from "./Footer";
 
 interface MainLayoutProps {
@@ -9,42 +8,23 @@ interface MainLayoutProps {
   title?: string;
 }
 
-const DRAWER_WIDTH = 240;
-
-const MainLayout: React.FC<MainLayoutProps> = ({ children, title = "Anko Storyboard" }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
+const MainLayout: React.FC<MainLayoutProps> = ({ children, title = "ANKO Storyboard" }) => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <CssBaseline />
-      <Header title={title} onMenuToggle={handleDrawerToggle} />
-
-      <Sidebar
-        open={isMobile ? mobileOpen : true}
-        width={DRAWER_WIDTH}
-        onClose={handleDrawerToggle}
-        variant={isMobile ? "temporary" : "permanent"}
-      />
+      <Header title={title} />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { md: `${DRAWER_WIDTH}px` },
+          width: "100%",
           display: "flex",
           flexDirection: "column",
-          minHeight: "100vh",
+          minHeight: "calc(100vh - 64px)", // Subtract approximate height of the AppBar
         }}
       >
-        <Toolbar /> {/* This creates space under the AppBar */}
         <Box sx={{ flexGrow: 1, mb: 4 }}>{children}</Box>
         <Footer />
       </Box>

@@ -8,14 +8,16 @@ import { useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 
 export default function TenantLayout({ children }: PropsWithChildren) {
-  const { tenant, tenants, isLoading, switchTenant } = useTenant();
+  const { tenant, tenants, isLoading } = useTenant();
   const router = useRouter();
   const params = useParams();
   const tenantId = params.tenantId as string;
 
   // Validate that the tenant ID in the URL is valid and accessible
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
 
     // Check if the tenant ID exists in the user's tenants
     const tenantExists = tenants.some(t => t.id === tenantId);
@@ -35,7 +37,7 @@ export default function TenantLayout({ children }: PropsWithChildren) {
       >
         <Box sx={{ textAlign: "center" }}>
           <CircularProgress />
-          <Typography variant="h6" sx={{ mt: 2 }}>
+          <Typography sx={{ mt: 2 }} variant="h6">
             Loading workspace...
           </Typography>
         </Box>

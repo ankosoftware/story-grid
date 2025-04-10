@@ -789,6 +789,98 @@ export const updateIssue = async (
 };
 
 /**
+ * Updates a release with the provided data
+ *
+ * @param releaseId - The ID of the release to update
+ * @param updateData - Partial release data to update
+ * @returns Promise that resolves when the update is complete
+ */
+export const updateRelease = async (
+  releaseId: string,
+  updateData: Partial<Omit<Release, "id" | "projectId" | "createdAt" | "createdBy">>
+): Promise<void> => {
+  const releaseRef = getReleaseRef(releaseId);
+
+  // Convert Date objects to Timestamps if provided
+  const dataWithPossibleTimestamps = { ...updateData };
+
+  if (updateData.startDate && !(updateData.startDate instanceof Timestamp)) {
+    dataWithPossibleTimestamps.startDate = Timestamp.fromDate(
+      updateData.startDate as unknown as Date
+    );
+  }
+
+  if (updateData.endDate && !(updateData.endDate instanceof Timestamp)) {
+    dataWithPossibleTimestamps.endDate = Timestamp.fromDate(updateData.endDate as unknown as Date);
+  }
+
+  // Add updatedAt timestamp
+  const dataWithTimestamp = {
+    ...dataWithPossibleTimestamps,
+    updatedAt: Timestamp.now(),
+  };
+
+  await updateDoc(releaseRef, dataWithTimestamp);
+};
+
+/**
+ * Updates the order of a release in the project by moving it up or down
+ *
+ * @param releaseId - The ID of the release to reorder
+ * @param projectId - The ID of the project the release belongs to
+ * @param direction - Direction to move the release ("up" or "down")
+ * @returns Promise that resolves when the update is complete
+ */
+export const updateReleaseOrder = async (
+  releaseId: string,
+  projectId: string,
+  direction: "up" | "down"
+): Promise<void> => {
+  // Get all releases for the project, sorted by display order
+  const releases = await getReleases(projectId);
+
+  // Find the index of the current release
+  const currentIndex = releases.findIndex(r => r.id === releaseId);
+  if (currentIndex === -1) {
+    throw new Error("Release not found");
+  }
+
+  // Calculate the target index
+  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+  // Check if the move is valid
+  if (targetIndex < 0 || targetIndex >= releases.length) {
+    throw new Error("Cannot move release further");
+  }
+
+  // Get the target release
+  const targetRelease = releases[targetIndex];
+
+  // Create a batch to update both releases in a single atomic operation
+  const batch = writeBatch(db);
+
+  // Swap the display orders of the current and target releases
+  const currentReleaseRef = getReleaseRef(releaseId);
+  const targetReleaseRef = getReleaseRef(targetRelease.id);
+
+  const currentDisplayOrder = releases[currentIndex].displayOrder;
+  const targetDisplayOrder = targetRelease.displayOrder;
+
+  batch.update(currentReleaseRef, {
+    displayOrder: targetDisplayOrder,
+    updatedAt: Timestamp.now(),
+  });
+
+  batch.update(targetReleaseRef, {
+    displayOrder: currentDisplayOrder,
+    updatedAt: Timestamp.now(),
+  });
+
+  // Commit the batch
+  await batch.commit();
+};
+
+/**
  * Migrates existing epics and stories to the new issues collection
  *
  * @param projectId - The ID of the project to migrate data for

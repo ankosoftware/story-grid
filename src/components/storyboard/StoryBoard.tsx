@@ -26,7 +26,8 @@ import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Issue, Release, IssueStatus, IssuePriority, IssueType } from "@/lib/firebase/models/types";
-import { updateIssue } from "@/lib/firebase/firestore";
+import { updateIssue, updateRelease, updateReleaseOrder } from "@/lib/firebase/firestore";
+import { Timestamp } from "firebase/firestore";
 
 interface StoryMapProps {
   projectId: string;
@@ -612,7 +613,7 @@ const EditItemDialog = ({
   const handleStoryPointsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === "") {
-      setEditStoryPoints(undefined);
+      setEditStoryPoints(null);
     } else {
       const numValue = parseInt(value, 10);
       if (!isNaN(numValue) && numValue >= 0) {
@@ -760,6 +761,26 @@ type ReleaseDetailDialogProps = {
   onUpdateRelease?: (release: Release, updatedData: Partial<Release>) => Promise<void>;
 };
 
+// Create a safe converter for Firestore Timestamp to Date
+const safeToDate = (timestamp: unknown): Date | undefined => {
+  if (!timestamp) {
+    return undefined;
+  }
+
+  // Check if it's a Firestore Timestamp
+  if (timestamp && typeof (timestamp as any).toDate === "function") {
+    return (timestamp as any).toDate();
+  }
+
+  // Check if it's a Date or can be converted to one
+  try {
+    return new Date(timestamp as any);
+  } catch (error) {
+    console.error("Failed to convert to Date:", error);
+    return undefined;
+  }
+};
+
 const ReleaseDetailDialog = ({
   open,
   onClose,
@@ -768,8 +789,8 @@ const ReleaseDetailDialog = ({
 }: ReleaseDetailDialogProps) => {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  const [editStartDate, setEditStartDate] = useState<string>("");
-  const [editEndDate, setEditEndDate] = useState<string>("");
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editEndDate, setEditEndDate] = useState("");
   const [editingError, setEditingError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -778,10 +799,22 @@ const ReleaseDetailDialog = ({
     if (release) {
       setEditName(release.name);
       setEditDescription(release.description || "");
-      setEditStartDate(
-        release.startDate ? new Date(release.startDate).toISOString().split("T")[0] : ""
-      );
-      setEditEndDate(release.endDate ? new Date(release.endDate).toISOString().split("T")[0] : "");
+
+      // Handle Firestore Timestamp objects using our safe converter
+      if (release.startDate) {
+        const startDate = safeToDate(release.startDate);
+        setEditStartDate(startDate ? startDate.toISOString().split("T")[0] : "");
+      } else {
+        setEditStartDate("");
+      }
+
+      if (release.endDate) {
+        const endDate = safeToDate(release.endDate);
+        setEditEndDate(endDate ? endDate.toISOString().split("T")[0] : "");
+      } else {
+        setEditEndDate("");
+      }
+
       setEditingError(null);
     }
   }, [release]);
@@ -805,12 +838,17 @@ const ReleaseDetailDialog = ({
         description: editDescription,
       };
 
+      // Convert string dates to Date objects if they exist
       if (editStartDate) {
-        updatedData.startDate = new Date(editStartDate);
+        updatedData.startDate = new Date(editStartDate) as any;
+      } else {
+        updatedData.startDate = null;
       }
 
       if (editEndDate) {
-        updatedData.endDate = new Date(editEndDate);
+        updatedData.endDate = new Date(editEndDate) as any;
+      } else {
+        updatedData.endDate = null;
       }
 
       await onUpdateRelease(release, updatedData);
@@ -1006,46 +1044,95 @@ const MemoizedReleaseCard = memo(
   ({
     release,
     handleOpenReleaseForEdit,
+    handleMoveRelease,
+    isFirst,
+    isLast,
   }: {
     release: Release;
     handleOpenReleaseForEdit: (release: Release) => void;
+    handleMoveRelease?: (releaseId: string, direction: "up" | "down") => Promise<void>;
+    isFirst?: boolean;
+    isLast?: boolean;
   }) => {
     const theme = useTheme();
 
     // Format dates for display
-    const formatDate = (date: Date | undefined) => {
+    const formatDate = (timestamp: unknown) => {
+      const date = safeToDate(timestamp);
       if (!date) {
         return "";
       }
-      return new Date(date).toLocaleDateString();
+      return date.toLocaleDateString();
     };
 
-    // Card styling
-    const cardStyles = {
-      bgcolor: theme.palette.background.paper,
-      color: "text.primary",
-      border: `1px solid ${theme.palette.primary.main}`,
-      borderLeft: `4px solid ${theme.palette.primary.main}`,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-      p: 1,
-      mb: 1,
-      cursor: "pointer",
-      "&:hover": {
-        boxShadow: 3,
-        transition: "box-shadow 0.2s ease-in-out",
-      },
+    // Handle move release
+    const handleMove = (direction: "up" | "down", e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (handleMoveRelease) {
+        handleMoveRelease(release.id, direction);
+      }
     };
 
     return (
-      <Card sx={cardStyles} onClick={() => handleOpenReleaseForEdit(release)}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+          bgcolor: theme.palette.background.paper,
+          border: `1px solid ${theme.palette.primary.main}`,
+          borderLeft: `4px solid ${theme.palette.primary.main}`,
+          borderRadius: 1,
+          mb: 1,
+          p: 1,
+          "&:hover": {
+            boxShadow: 1,
+          },
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
+          <IconButton
+            disabled={isFirst}
+            size="small"
+            sx={{
+              opacity: isFirst ? 0.3 : 1,
+              color: theme.palette.text.secondary,
+            }}
+            onClick={e => handleMove("up", e)}
+          >
+            <Box component="span" sx={{ transform: "rotate(-90deg)", display: "flex" }}>
+              <DragIndicatorIcon fontSize="small" />
+            </Box>
+          </IconButton>
+          <IconButton
+            disabled={isLast}
+            size="small"
+            sx={{
+              opacity: isLast ? 0.3 : 1,
+              color: theme.palette.text.secondary,
+            }}
+            onClick={e => handleMove("down", e)}
+          >
+            <Box component="span" sx={{ transform: "rotate(90deg)", display: "flex" }}>
+              <DragIndicatorIcon fontSize="small" />
+            </Box>
+          </IconButton>
+        </Box>
+
+        <Box
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            flexDirection: "column",
+            cursor: "pointer",
+          }}
+          onClick={() => handleOpenReleaseForEdit(release)}
+        >
           <Typography fontWeight="bold" variant="subtitle1">
             {release.name}
           </Typography>
-        </Box>
 
-        {(release.startDate || release.endDate) && (
-          <Box sx={{ mt: 1, display: "flex", gap: 1, alignItems: "center" }}>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.5 }}>
             {release.startDate && (
               <Chip
                 label={`Start: ${formatDate(release.startDate)}`}
@@ -1061,14 +1148,28 @@ const MemoizedReleaseCard = memo(
               />
             )}
           </Box>
-        )}
 
-        {release.description && (
-          <Typography color="text.secondary" sx={{ mt: 1, fontSize: "0.8rem" }} variant="body2">
-            {release.description}
-          </Typography>
-        )}
-      </Card>
+          {release.description && (
+            <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: "0.8rem" }} variant="body2">
+              {release.description}
+            </Typography>
+          )}
+        </Box>
+
+        <Box>
+          <Tooltip title="Edit release">
+            <IconButton
+              size="small"
+              onClick={e => {
+                e.stopPropagation();
+                handleOpenReleaseForEdit(release);
+              }}
+            >
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
     );
   }
 );
@@ -1109,6 +1210,9 @@ export default function StoryMap({
   const [moveMenuAnchorEl, setMoveMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [movingStory, setMovingStory] = useState(false);
+
+  // Add state for moving releases
+  const [movingRelease, setMovingRelease] = useState(false);
 
   // Add state for story detail dialog
   const [storyDetailDialogOpen, setStoryDetailDialogOpen] = useState(false);
@@ -1255,11 +1359,8 @@ export default function StoryMap({
       try {
         setUpdatingIssue(true);
 
-        // Call the Firestore updateRelease function - you'll need to implement this
-        // For now, we'll just log it
-        console.log(`Would update release: ${release.id}`, updatedData);
-        // TODO: Implement actual release update functionality
-        // await updateRelease(release.id, updatedData);
+        // Call the Firestore updateRelease function
+        await updateRelease(release.id, updatedData);
 
         console.log(`Updated release: ${release.id}`, updatedData);
       } catch (error) {
@@ -1270,6 +1371,25 @@ export default function StoryMap({
       }
     },
     []
+  );
+
+  // Add handler for moving releases
+  const handleMoveRelease = useCallback(
+    async (releaseId: string, direction: "up" | "down") => {
+      try {
+        setMovingRelease(true);
+
+        // Use the updateReleaseOrder function from firestore
+        await updateReleaseOrder(releaseId, projectId, direction);
+
+        console.log(`Moved release ${releaseId} ${direction}`);
+      } catch (error) {
+        console.error("Error moving release:", error);
+      } finally {
+        setMovingRelease(false);
+      }
+    },
+    [projectId]
   );
 
   // --------------------------
@@ -1531,20 +1651,6 @@ export default function StoryMap({
                         >
                           {/* Epic card has no additional content */}
                         </StoryMapCard>
-
-                        {/* Stories Column - Vertical under each epic */}
-                        {/* <Box sx={{ mb: 2 }}>
-                          {issues[epic.id] && issues[epic.id].length > 0 ? (
-                            issues[epic.id].map(story => renderStoryCard(story))
-                          ) : (
-                            <></>
-                          )}
-                          <StoryMapCard
-                            isAddCard={true}
-                            type="story"
-                            onClick={() => handleOpenStoryDialog(epic.id)}
-                          />
-                        </Box> */}
                       </Box>
                     ))}
 
@@ -1577,12 +1683,15 @@ export default function StoryMap({
             </Box>
           </Box>
         </Box>
-        {releases.map(release => (
+        {releases.map((release, index) => (
           <Box key={release.id} sx={{ minWidth: activities.length * 250 }}>
             {/* Release Header */}
-            <Box sx={{ display: "flex", alignItems: "center", mb: 1, p: 1, bgcolor: "#f0f0f0" }}>
+            <Box sx={{ display: "flex" }}>
               <MemoizedReleaseCard
+                handleMoveRelease={handleMoveRelease}
                 handleOpenReleaseForEdit={handleOpenReleaseForEdit}
+                isFirst={index === 0}
+                isLast={index === releases.length - 1}
                 release={release}
               />
             </Box>

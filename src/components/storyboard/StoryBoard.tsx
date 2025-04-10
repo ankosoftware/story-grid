@@ -21,13 +21,31 @@ import {
   Tooltip,
   useTheme,
   useMediaQuery,
+  Snackbar,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import DragHandleIcon from "@mui/icons-material/DragHandle";
 import { Issue, Release, IssueStatus, IssuePriority, IssueType } from "@/lib/firebase/models/types";
 import { updateIssue, updateRelease, updateReleaseOrder } from "@/lib/firebase/firestore";
 import { Timestamp } from "firebase/firestore";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+
+// Define drag item types
+const ItemTypes = {
+  STORY: "story",
+  EPIC: "epic",
+};
+
+// Define draggable item interface
+interface DragItem {
+  type: string;
+  id: string;
+  parentId: string | null;
+  originalIndex: number;
+}
 
 interface StoryMapProps {
   projectId: string;
@@ -1181,6 +1199,286 @@ const MemoizedStoryCard = memo(
 // Add displayName to fix the linter warning
 MemoizedStoryCard.displayName = "MemoizedStoryCard";
 
+// Create a draggable story card component
+const DraggableStoryCard = memo(
+  ({
+    story,
+    getStatusColor,
+    getPriorityColor,
+    handleOpenMoveMenu,
+    handleOpenItemForEdit,
+    handleMoveStoryToEpic,
+  }: {
+    story: Issue;
+    getStatusColor: (status: IssueStatus) => string;
+    getPriorityColor: (priority: IssuePriority) => string;
+    handleOpenMoveMenu: (event: React.MouseEvent<HTMLElement>, storyId: string) => void;
+    handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
+    handleMoveStoryToEpic: (storyId: string, newParentId: string) => Promise<void>;
+  }) => {
+    // Setup drag source
+    const [{ isDragging }, drag, preview] = useDrag(
+      () => ({
+        type: ItemTypes.STORY,
+        item: {
+          type: ItemTypes.STORY,
+          id: story.id,
+          parentId: story.parentId || null,
+          originalIndex: story.displayOrder,
+        },
+        collect: monitor => ({
+          isDragging: monitor.isDragging(),
+        }),
+        end: (item, monitor) => {
+          const dropResult = monitor.getDropResult<{ id: string; type: string }>();
+          if (
+            item &&
+            dropResult &&
+            dropResult.type === "epic" &&
+            dropResult.id !== story.parentId
+          ) {
+            // Only move if dropped on a different parent
+            handleMoveStoryToEpic(story.id, dropResult.id);
+          }
+        },
+      }),
+      [story.id, story.parentId, story.displayOrder, handleMoveStoryToEpic]
+    );
+
+    // Use refs properly for react-dnd
+    const previewRef = React.useRef(null);
+    const dragRef = React.useRef(null);
+
+    // Connect the preview and drag refs
+    drag(dragRef);
+    preview(previewRef);
+
+    return (
+      <Box
+        ref={previewRef}
+        sx={{
+          opacity: isDragging ? 0.6 : 1,
+          cursor: "move",
+          transform: isDragging ? "scale(1.05)" : "scale(1)",
+          transition: "transform 0.2s ease, opacity 0.2s ease",
+          zIndex: isDragging ? 1000 : 1,
+        }}
+      >
+        <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
+          <DragHandleIcon
+            sx={{
+              fontSize: "0.9rem",
+              color: "text.secondary",
+              mr: 0.5,
+              visibility: isDragging ? "hidden" : "visible",
+            }}
+          />
+          <MemoizedStoryCard
+            key={story.id}
+            getPriorityColor={getPriorityColor}
+            getStatusColor={getStatusColor}
+            handleOpenItemForEdit={handleOpenItemForEdit}
+            handleOpenMoveMenu={handleOpenMoveMenu}
+            story={story}
+          />
+        </Box>
+      </Box>
+    );
+  }
+);
+
+// Add displayName to fix the linter warning
+DraggableStoryCard.displayName = "DraggableStoryCard";
+
+// Create a draggable epic card component
+const DraggableEpicCard = memo(
+  ({
+    epic,
+    handleOpenItemForEdit,
+    handleMoveEpicToActivity,
+  }: {
+    epic: Issue;
+    handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
+    handleMoveEpicToActivity: (epicId: string, newParentId: string) => Promise<void>;
+  }) => {
+    // Setup drag source
+    const [{ isDragging }, drag, preview] = useDrag(
+      () => ({
+        type: ItemTypes.EPIC,
+        item: {
+          type: ItemTypes.EPIC,
+          id: epic.id,
+          parentId: epic.parentId || null,
+          originalIndex: epic.displayOrder,
+        },
+        collect: monitor => ({
+          isDragging: monitor.isDragging(),
+        }),
+        end: (item, monitor) => {
+          const dropResult = monitor.getDropResult<{ id: string; type: string }>();
+          if (
+            item &&
+            dropResult &&
+            dropResult.type === "activity" &&
+            dropResult.id !== epic.parentId
+          ) {
+            // Only move if dropped on a different parent
+            handleMoveEpicToActivity(epic.id, dropResult.id);
+          }
+        },
+      }),
+      [epic.id, epic.parentId, epic.displayOrder, handleMoveEpicToActivity]
+    );
+
+    // Use refs properly for react-dnd
+    const previewRef = React.useRef(null);
+    const dragRef = React.useRef(null);
+
+    // Connect the preview and drag refs
+    drag(dragRef);
+    preview(previewRef);
+
+    return (
+      <Box
+        ref={previewRef}
+        sx={{
+          opacity: isDragging ? 0.4 : 1,
+          cursor: "move",
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
+        <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
+          <DragHandleIcon
+            sx={{
+              fontSize: "0.9rem",
+              color: "white",
+              mr: 0.5,
+              visibility: isDragging ? "hidden" : "visible",
+            }}
+          />
+          <Card
+            sx={{
+              bgcolor: "#00acc1",
+              color: "white",
+              height: "50px",
+              width: "100%",
+              borderRadius: 1,
+              mb: 0.5,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start",
+              cursor: "pointer",
+              "&:hover": {
+                boxShadow: 3,
+                transition: "box-shadow 0.2s ease-in-out",
+              },
+            }}
+            onClick={() => handleOpenItemForEdit(epic, "epic")}
+          >
+            <CardContent sx={{ p: 0.5, pt: 0.5, "&:last-child": { pb: 0.5 } }}>
+              <Box
+                sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
+              >
+                <Typography
+                  sx={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    fontSize: "0.8rem",
+                    lineHeight: 1.2,
+                  }}
+                  variant="body2"
+                >
+                  {epic.name}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      </Box>
+    );
+  }
+);
+
+// Add displayName to fix the linter warning
+DraggableEpicCard.displayName = "DraggableEpicCard";
+
+// Create a droppable container for activities
+const DroppableActivityContainer = memo(
+  ({ activity, children }: { activity: Issue; children: React.ReactNode }) => {
+    const [{ isOver, canDrop }, drop] = useDrop(
+      () => ({
+        accept: [ItemTypes.EPIC],
+        drop: () => ({ id: activity.id, type: "activity" }),
+        collect: monitor => ({
+          isOver: monitor.isOver(),
+          canDrop: monitor.canDrop(),
+        }),
+      }),
+      [activity.id]
+    );
+
+    const dropRef = React.useRef(null);
+    drop(dropRef);
+
+    return (
+      <Box
+        ref={dropRef}
+        sx={{
+          p: 1,
+          borderRadius: 1,
+          background: isOver && canDrop ? "rgba(63, 81, 181, 0.1)" : "transparent",
+          border: isOver && canDrop ? "1px dashed #3f51b5" : "1px solid transparent",
+        }}
+      >
+        {children}
+      </Box>
+    );
+  }
+);
+
+DroppableActivityContainer.displayName = "DroppableActivityContainer";
+
+// Create a droppable container for epics
+const DroppableEpicContainer = memo(
+  ({ epic, children }: { epic: Issue; children: React.ReactNode }) => {
+    const [{ isOver, canDrop }, drop] = useDrop(
+      () => ({
+        accept: [ItemTypes.STORY],
+        drop: () => ({ id: epic.id, type: "epic" }),
+        collect: monitor => ({
+          isOver: monitor.isOver(),
+          canDrop: monitor.canDrop(),
+        }),
+      }),
+      [epic.id]
+    );
+
+    const dropRef = React.useRef(null);
+    drop(dropRef);
+
+    return (
+      <Box
+        ref={dropRef}
+        sx={{
+          p: 1,
+          borderRadius: 1,
+          transition: "all 0.2s ease",
+          background: isOver && canDrop ? "rgba(0, 172, 193, 0.2)" : "transparent",
+          border: isOver && canDrop ? "2px dashed #00acc1" : "1px solid transparent",
+          boxShadow: isOver && canDrop ? "0px 0px 8px rgba(0, 172, 193, 0.3)" : "none",
+        }}
+      >
+        {children}
+      </Box>
+    );
+  }
+);
+
+// Add displayName for DroppableEpicContainer
+DroppableEpicContainer.displayName = "DroppableEpicContainer";
+
 // Create a memoized release card component
 const MemoizedReleaseCard = memo(
   ({
@@ -1336,6 +1634,192 @@ const MemoizedReleaseCard = memo(
 // Add displayName to fix the linter warning
 MemoizedReleaseCard.displayName = "MemoizedReleaseCard";
 
+// Define the StoryMapCard component outside of the main component to make it accessible to all components
+const StoryMapCard = memo(
+  ({
+    type,
+    item,
+    onAction,
+    onClick,
+    children,
+    isAddCard = false,
+  }: {
+    type: "activity" | "epic" | "story" | "blank" | "release" | "placeholder";
+    item?: Issue;
+    onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
+    onClick?: () => void;
+    children?: React.ReactNode;
+    isAddCard?: boolean;
+  }) => {
+    const theme = useTheme();
+
+    // Card styling based on type
+    const cardStyles = {
+      activity: {
+        bgcolor: theme.palette.primary.main,
+        color: "white",
+        height: "50px",
+        width: "100px",
+        borderRadius: 1,
+      },
+      epic: {
+        bgcolor: "#00acc1",
+        color: "white",
+        height: "50px",
+        width: "100px",
+        borderRadius: 1,
+      },
+      story: {
+        bgcolor: "white",
+        color: "text.primary",
+        height: "50px",
+        width: "100px",
+        border: "1px solid #e0e0e0",
+        borderLeft: item ? `4px solid ${getPriorityColor(item?.priority)}` : undefined,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+        borderRadius: 1,
+      },
+      blank: {
+        bgcolor: "white",
+        color: "text.secondary",
+        height: "50px",
+        width: "100px",
+        border: "1px dashed #bdbdbd",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        borderRadius: 1,
+      },
+      release: {
+        bgcolor: theme.palette.background.paper,
+        color: "text.primary",
+        height: "50px",
+        width: "120px",
+        border: `1px solid ${theme.palette.primary.main}`,
+        borderLeft: `4px solid ${theme.palette.primary.main}`,
+        borderRadius: 1,
+      },
+      placeholder: {
+        height: "50px",
+        width: "100px",
+      },
+    };
+
+    if (isAddCard) {
+      return (
+        <Card
+          sx={{
+            ...cardStyles.blank,
+            mb: 0.5,
+            cursor: "pointer",
+            "&:hover": {
+              bgcolor: theme.palette.action.hover,
+              transition: "background-color 0.2s ease-in-out",
+            },
+          }}
+          onClick={onClick}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+            <AddIcon sx={{ fontSize: "0.9rem" }} />
+            <Typography sx={{ fontSize: "0.7rem" }} variant="caption">{`Add ${type}`}</Typography>
+          </Box>
+        </Card>
+      );
+    }
+
+    if (type === "placeholder") {
+      return <div style={{ height: "50px", width: "100px" }}></div>;
+    }
+
+    // Determine justifyContent based on card type
+    const justifyContent = type === "activity" || type === "epic" ? "flex-start" : "center";
+    const paddingTop = type === "activity" || type === "epic" ? 0.5 : 0;
+
+    return (
+      <Card
+        sx={{
+          ...(cardStyles[type] || cardStyles.blank),
+          mb: 0.5,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: justifyContent,
+          cursor: onClick ? "pointer" : "default",
+          "&:hover": onClick
+            ? {
+                boxShadow: 3,
+                transition: "box-shadow 0.2s ease-in-out",
+              }
+            : {},
+        }}
+        onClick={onClick}
+      >
+        <CardContent sx={{ p: 0.5, pt: paddingTop, "&:last-child": { pb: 0.5 } }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <Typography
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                fontSize: type === "activity" ? "0.8rem" : "0.75rem",
+                lineHeight: 1.2,
+              }}
+              variant={type === "activity" ? "body2" : "caption"}
+            >
+              {item?.name}
+            </Typography>
+            {onAction && item && (
+              <IconButton
+                size="small"
+                sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
+                onClick={e => {
+                  e.stopPropagation();
+                  onAction(e, item.id);
+                }}
+              >
+                <MoreVertIcon sx={{ fontSize: "0.9rem" }} />
+              </IconButton>
+            )}
+          </Box>
+          {children}
+        </CardContent>
+      </Card>
+    );
+  }
+);
+
+StoryMapCard.displayName = "StoryMapCard";
+
+// Helper functions for card coloring
+const getPriorityColor = (priority?: IssuePriority) => {
+  if (!priority) {
+    return "#ff9800";
+  } // Default to medium
+  switch (priority) {
+    case IssuePriority.HIGH:
+      return "#f44336";
+    case IssuePriority.MEDIUM:
+      return "#ff9800";
+    case IssuePriority.LOW:
+      return "#4caf50";
+    default:
+      return "#ff9800";
+  }
+};
+
+// Helper function for status color
+const getStatusColor = (status: IssueStatus) => {
+  switch (status) {
+    case IssueStatus.TO_DO:
+      return "#e0e0e0";
+    case IssueStatus.IN_PROGRESS:
+      return "#bbdefb";
+    case IssueStatus.DONE:
+      return "#c8e6c9";
+    default:
+      return "#e0e0e0";
+  }
+};
+
 export default function StoryMap({
   projectId,
   activities,
@@ -1394,6 +1878,10 @@ export default function StoryMap({
   // Add state to track the current release context
   const [currentReleaseContext, setCurrentReleaseContext] = useState<string | null>(null);
 
+  // Add snackbar state
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
   // Add handler for updating issues
   const handleUpdateIssue = useCallback(async (issue: Issue, updatedData: Partial<Issue>) => {
     try {
@@ -1413,8 +1901,98 @@ export default function StoryMap({
     }
   }, []);
 
+  // Add drag and drop handlers for stories and epics
+  const handleMoveStoryToEpic = useCallback(
+    async (storyId: string, newParentId: string) => {
+      try {
+        setMovingStory(true);
+        // Find the story in our local state
+        let story: Issue | undefined;
+        let targetEpic: Issue | undefined;
+
+        // Find the story
+        for (const epicId in issues) {
+          const foundStory = issues[epicId].find(s => s.id === storyId);
+          if (foundStory) {
+            story = foundStory;
+            break;
+          }
+        }
+
+        // Find the target epic name for the success message
+        for (const activityId in epics) {
+          const foundEpic = epics[activityId].find(e => e.id === newParentId);
+          if (foundEpic) {
+            targetEpic = foundEpic;
+            break;
+          }
+        }
+
+        if (!story) {
+          console.error("Story not found:", storyId);
+          return;
+        }
+
+        // Update the story's parent ID while preserving its releaseId
+        await updateIssue(storyId, {
+          parentId: newParentId,
+          releaseId: story.releaseId, // Preserve the existing releaseId
+        });
+
+        // Show success message
+        setSnackbarMessage(
+          `Moved story "${story.name}" to epic "${targetEpic?.name || "Unknown epic"}"`
+        );
+        setSnackbarOpen(true);
+
+        console.log(
+          `Moved story ${storyId} to epic ${newParentId}, preserved releaseId: ${story.releaseId}`
+        );
+      } catch (error) {
+        console.error("Error moving story:", error);
+        setSnackbarMessage(`Error moving story: ${(error as Error).message}`);
+        setSnackbarOpen(true);
+      } finally {
+        setMovingStory(false);
+      }
+    },
+    [issues, epics]
+  );
+
+  // Add handler for moving epics between activities
+  const handleMoveEpicToActivity = useCallback(
+    async (epicId: string, newParentId: string) => {
+      try {
+        setUpdatingIssue(true);
+        // Find the epic in our local state
+        let epic: Issue | undefined;
+        for (const activityId in epics) {
+          const foundEpic = epics[activityId].find(e => e.id === epicId);
+          if (foundEpic) {
+            epic = foundEpic;
+            break;
+          }
+        }
+
+        if (!epic) {
+          console.error("Epic not found:", epicId);
+          return;
+        }
+
+        // Update the epic's parent ID
+        await updateIssue(epicId, { parentId: newParentId });
+        console.log(`Moved epic ${epicId} to activity ${newParentId}`);
+      } catch (error) {
+        console.error("Error moving epic:", error);
+      } finally {
+        setUpdatingIssue(false);
+      }
+    },
+    [epics]
+  );
+
   // --------------------------
-  // Memoized handler functions to avoid unnecessary rerenders
+  // Memoized Handler functions to avoid unnecessary rerenders
   // --------------------------
   const handleOpenMoveMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>, storyId: string) => {
@@ -1589,165 +2167,23 @@ export default function StoryMap({
   // --------------------------
   const renderStoryCard = useCallback(
     (story: Issue) => (
-      <MemoizedStoryCard
+      <DraggableStoryCard
         key={story.id}
         getPriorityColor={getPriorityColor}
         getStatusColor={getStatusColor}
+        handleMoveStoryToEpic={handleMoveStoryToEpic}
         handleOpenItemForEdit={handleOpenItemForEdit}
         handleOpenMoveMenu={handleOpenMoveMenu}
         story={story}
       />
     ),
-    [getStatusColor, getPriorityColor, handleOpenMoveMenu, handleOpenItemForEdit]
-  );
-
-  const StoryMapCard = useCallback(
-    ({
-      type,
-      item,
-      onAction,
-      onClick,
-      children,
-      isAddCard = false,
-    }: {
-      type: "activity" | "epic" | "story" | "blank" | "release" | "placeholder";
-      item?: Issue;
-      onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
-      onClick?: () => void;
-      children?: React.ReactNode;
-      isAddCard?: boolean;
-    }) => {
-      // Card styling based on type
-      const cardStyles = {
-        activity: {
-          bgcolor: theme.palette.primary.main,
-          color: "white",
-          height: "50px",
-          width: "100px",
-          borderRadius: 1,
-        },
-        epic: {
-          bgcolor: "#00acc1",
-          color: "white",
-          height: "50px",
-          width: "100px",
-          borderRadius: 1,
-        },
-        story: {
-          bgcolor: "white",
-          color: "text.primary",
-          height: "50px",
-          width: "100px",
-          border: "1px solid #e0e0e0",
-          borderLeft: item ? `4px solid ${getPriorityColor(item?.priority)}` : undefined,
-          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-          borderRadius: 1,
-        },
-        blank: {
-          bgcolor: "white",
-          color: "text.secondary",
-          height: "50px",
-          width: "100px",
-          border: "1px dashed #bdbdbd",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          borderRadius: 1,
-        },
-        release: {
-          bgcolor: theme.palette.background.paper,
-          color: "text.primary",
-          height: "50px",
-          width: "120px",
-          border: `1px solid ${theme.palette.primary.main}`,
-          borderLeft: `4px solid ${theme.palette.primary.main}`,
-          borderRadius: 1,
-        },
-      };
-
-      if (isAddCard) {
-        return (
-          <Card
-            sx={{
-              ...cardStyles.blank,
-              mb: 0.5,
-              cursor: "pointer",
-              "&:hover": {
-                bgcolor: theme.palette.action.hover,
-                transition: "background-color 0.2s ease-in-out",
-              },
-            }}
-            onClick={onClick}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
-              <AddIcon sx={{ fontSize: "0.9rem" }} />
-              <Typography sx={{ fontSize: "0.7rem" }} variant="caption">{`Add ${type}`}</Typography>
-            </Box>
-          </Card>
-        );
-      }
-
-      if (type === "placeholder") {
-        return <div style={{ height: "0px", width: "100px" }}></div>;
-      }
-
-      // Determine justifyContent based on card type
-      const justifyContent = type === "activity" || type === "epic" ? "flex-start" : "center";
-      const paddingTop = type === "activity" || type === "epic" ? 0.5 : 0;
-
-      return (
-        <Card
-          sx={{
-            ...(cardStyles[type] || cardStyles.blank),
-            mb: 0.5,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: justifyContent,
-            cursor: onClick ? "pointer" : "default",
-            "&:hover": onClick
-              ? {
-                  boxShadow: 3,
-                  transition: "box-shadow 0.2s ease-in-out",
-                }
-              : {},
-          }}
-          onClick={onClick}
-        >
-          <CardContent sx={{ p: 0.5, pt: paddingTop, "&:last-child": { pb: 0.5 } }}>
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
-            >
-              <Typography
-                sx={{
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  fontSize: type === "activity" ? "0.8rem" : "0.75rem",
-                  lineHeight: 1.2,
-                }}
-                variant={type === "activity" ? "body2" : "caption"}
-              >
-                {item?.name}
-              </Typography>
-              {onAction && item && (
-                <IconButton
-                  size="small"
-                  sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
-                  onClick={e => {
-                    e.stopPropagation();
-                    onAction(e, item.id);
-                  }}
-                >
-                  <MoreVertIcon sx={{ fontSize: "0.9rem" }} />
-                </IconButton>
-              )}
-            </Box>
-            {children}
-          </CardContent>
-        </Card>
-      );
-    },
-    [theme, getPriorityColor]
+    [
+      getPriorityColor,
+      getStatusColor,
+      handleMoveStoryToEpic,
+      handleOpenItemForEdit,
+      handleOpenMoveMenu,
+    ]
   );
 
   if (loading) {
@@ -1767,108 +2203,175 @@ export default function StoryMap({
   }
 
   return (
-    <Box>
-      {/* Header Actions */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3, flexWrap: "wrap" }}>
-        <Typography component="h2" variant="h5">
-          Story Map
-        </Typography>
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          <Button
-            startIcon={<AddIcon />}
-            variant="contained"
-            onClick={() => setActivityDialogOpen(true)}
-          >
-            Add Activity
-          </Button>
-          <Button startIcon={<AddIcon />} variant="outlined" onClick={handleOpenReleaseDialog}>
-            Add Release
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Main Story Map Structure */}
-      <Paper
-        sx={{
-          p: 2,
-          border: `1px solid ${theme.palette.divider}`,
-          overflowX: "auto",
-        }}
-      >
-        <Box sx={{ minWidth: activities.length * 250 }}>
-          {/* Activities Row */}
-          <Box
-            sx={{
-              display: "flex",
-              mb: 2,
-            }}
-          >
-            {activities.map(activity => (
-              <Box key={activity.id} sx={{ mx: 1 }}>
-                <StoryMapCard
-                  item={activity}
-                  type="activity"
-                  onClick={() => handleOpenItemForEdit(activity, "activity")}
-                >
-                  {/* Activity card has no additional content */}
-                </StoryMapCard>
-
-                {/* Epics Row - Horizontal */}
-                <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
-                  {epics[activity.id] &&
-                    epics[activity.id].map(epic => (
-                      <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
-                        <StoryMapCard
-                          item={epic}
-                          type="epic"
-                          onClick={() => handleOpenItemForEdit(epic, "epic")}
-                        >
-                          {/* Epic card has no additional content */}
-                        </StoryMapCard>
-                      </Box>
-                    ))}
-
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <StoryMapCard
-                      isAddCard={true}
-                      type="epic"
-                      onClick={() => handleOpenEpicDialog(activity.id)}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-            ))}
-
-            {/* Add Activity Card */}
-            <Box
-              sx={{
-                width: 100,
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "center",
-                pt: 1,
-              }}
+    <DndProvider backend={HTML5Backend}>
+      <Box>
+        {/* Header Actions */}
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3, flexWrap: "wrap" }}>
+          <Typography component="h2" variant="h5">
+            Story Map
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              onClick={() => setActivityDialogOpen(true)}
             >
-              <StoryMapCard
-                isAddCard={true}
-                type="activity"
-                onClick={() => setActivityDialogOpen(true)}
-              />
-            </Box>
+              Add Activity
+            </Button>
+            <Button startIcon={<AddIcon />} variant="outlined" onClick={handleOpenReleaseDialog}>
+              Add Release
+            </Button>
           </Box>
         </Box>
-        {releases.map((release, index) => (
-          <Box key={release.id} sx={{ minWidth: activities.length * 250 }}>
-            {/* Release Header */}
-            <Box sx={{ display: "flex" }}>
-              <MemoizedReleaseCard
-                handleMoveRelease={handleMoveRelease}
-                handleOpenReleaseForEdit={handleOpenReleaseForEdit}
-                isFirst={index === 0}
-                isLast={index === releases.length - 1}
-                release={release}
-              />
+
+        {/* Main Story Map Structure */}
+        <Paper
+          sx={{
+            p: 2,
+            border: `1px solid ${theme.palette.divider}`,
+            overflowX: "auto",
+          }}
+        >
+          <Box sx={{ minWidth: activities.length * 250 }}>
+            {/* Activities Row */}
+            <Box
+              sx={{
+                display: "flex",
+                mb: 2,
+              }}
+            >
+              {activities.map(activity => (
+                <Box key={activity.id} sx={{ mx: 1 }}>
+                  <DroppableActivityContainer activity={activity}>
+                    <StoryMapCard
+                      item={activity}
+                      type="activity"
+                      onClick={() => handleOpenItemForEdit(activity, "activity")}
+                    >
+                      {/* Activity card has no additional content */}
+                    </StoryMapCard>
+
+                    {/* Epics Row - Horizontal */}
+                    <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
+                      {epics[activity.id] &&
+                        epics[activity.id].map(epic => (
+                          <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
+                            <DraggableEpicCard
+                              epic={epic}
+                              handleMoveEpicToActivity={handleMoveEpicToActivity}
+                              handleOpenItemForEdit={handleOpenItemForEdit}
+                            />
+                            <DroppableEpicContainer epic={epic}>
+                              {/* Stories Column - Vertical under each epic */}
+                              <Box sx={{ mb: 2 }}>
+                                {issues[epic.id] && issues[epic.id].length > 0 ? (
+                                  issues[epic.id]
+                                    .filter(story => story.releaseId === null)
+                                    .map(story => renderStoryCard(story))
+                                ) : (
+                                  <></>
+                                )}
+                                <StoryMapCard
+                                  isAddCard={true}
+                                  type="story"
+                                  onClick={() => handleOpenStoryDialog(epic.id)}
+                                />
+                              </Box>
+                            </DroppableEpicContainer>
+                          </Box>
+                        ))}
+
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <StoryMapCard
+                          isAddCard={true}
+                          type="epic"
+                          onClick={() => handleOpenEpicDialog(activity.id)}
+                        />
+                      </Box>
+                    </Box>
+                  </DroppableActivityContainer>
+                </Box>
+              ))}
+
+              {/* Add Activity Card */}
+              <Box
+                sx={{
+                  width: 100,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "center",
+                  pt: 1,
+                }}
+              >
+                <StoryMapCard
+                  isAddCard={true}
+                  type="activity"
+                  onClick={() => setActivityDialogOpen(true)}
+                />
+              </Box>
             </Box>
+          </Box>
+          {releases.map((release, index) => (
+            <Box key={release.id} sx={{ minWidth: activities.length * 250 }}>
+              {/* Release Header */}
+              <Box sx={{ display: "flex" }}>
+                <MemoizedReleaseCard
+                  handleMoveRelease={handleMoveRelease}
+                  handleOpenReleaseForEdit={handleOpenReleaseForEdit}
+                  isFirst={index === 0}
+                  isLast={index === releases.length - 1}
+                  release={release}
+                />
+              </Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  mb: 2,
+                }}
+              >
+                {activities.map(activity => (
+                  <Box key={activity.id} sx={{ mx: 1 }}>
+                    {/* Add placeholder for activity */}
+                    <StoryMapCard type="placeholder" />
+
+                    {/* Epics Row - Horizontal */}
+                    <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
+                      {epics[activity.id] &&
+                        epics[activity.id].map(epic => (
+                          <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
+                            {/* Add placeholder for epic */}
+                            <StoryMapCard type="placeholder" />
+                            {/* Stories Column - Vertical under each epic */}
+                            <DroppableEpicContainer epic={epic}>
+                              <Box sx={{ mb: 2 }}>
+                                {issues[epic.id] && issues[epic.id].length > 0 ? (
+                                  issues[epic.id]
+                                    .filter(story => story.releaseId === release.id)
+                                    .map(story => renderStoryCard(story))
+                                ) : (
+                                  <></>
+                                )}
+                                <StoryMapCard
+                                  isAddCard={true}
+                                  type="story"
+                                  onClick={() => handleOpenStoryDialog(epic.id, release.id)}
+                                />
+                              </Box>
+                            </DroppableEpicContainer>
+                          </Box>
+                        ))}
+
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <StoryMapCard type="placeholder" />
+                      </Box>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          ))}
+          {/* Unassigned Stories */}
+          <Box sx={{ minWidth: activities.length * 250 }}>
             <Box
               sx={{
                 display: "flex",
@@ -1888,20 +2391,22 @@ export default function StoryMap({
                           {/* Add placeholder for epic */}
                           <StoryMapCard type="placeholder" />
                           {/* Stories Column - Vertical under each epic */}
-                          <Box sx={{ mb: 2 }}>
-                            {issues[epic.id] && issues[epic.id].length > 0 ? (
-                              issues[epic.id]
-                                .filter(story => story.releaseId === release.id)
-                                .map(story => renderStoryCard(story))
-                            ) : (
-                              <></>
-                            )}
-                            <StoryMapCard
-                              isAddCard={true}
-                              type="story"
-                              onClick={() => handleOpenStoryDialog(epic.id, release.id)}
-                            />
-                          </Box>
+                          <DroppableEpicContainer epic={epic}>
+                            <Box sx={{ mb: 2 }}>
+                              {issues[epic.id] && issues[epic.id].length > 0 ? (
+                                issues[epic.id]
+                                  .filter(story => !story.releaseId)
+                                  .map(story => renderStoryCard(story))
+                              ) : (
+                                <></>
+                              )}
+                              <StoryMapCard
+                                isAddCard={true}
+                                type="story"
+                                onClick={() => handleOpenStoryDialog(epic.id, null)}
+                              />
+                            </Box>
+                          </DroppableEpicContainer>
                         </Box>
                       ))}
 
@@ -1913,158 +2418,121 @@ export default function StoryMap({
               ))}
             </Box>
           </Box>
-        ))}
-        {/* Unassigned Stories */}
-        <Box sx={{ minWidth: activities.length * 250 }}>
-          <Box
-            sx={{
-              display: "flex",
-              mb: 2,
-            }}
-          >
-            {activities.map(activity => (
-              <Box key={activity.id} sx={{ mx: 1 }}>
-                {/* Add placeholder for activity */}
-                <StoryMapCard type="placeholder" />
+        </Paper>
 
-                {/* Epics Row - Horizontal */}
-                <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
-                  {epics[activity.id] &&
-                    epics[activity.id].map(epic => (
-                      <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
-                        {/* Add placeholder for epic */}
-                        <StoryMapCard type="placeholder" />
-                        {/* Stories Column - Vertical under each epic */}
-                        <Box sx={{ mb: 2 }}>
-                          {issues[epic.id] && issues[epic.id].length > 0 ? (
-                            issues[epic.id]
-                              .filter(story => !story.releaseId)
-                              .map(story => renderStoryCard(story))
-                          ) : (
-                            <></>
-                          )}
-                          <StoryMapCard
-                            isAddCard={true}
-                            type="story"
-                            onClick={() => handleOpenStoryDialog(epic.id, null)}
-                          />
-                        </Box>
-                      </Box>
-                    ))}
-
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <StoryMapCard type="placeholder" />
-                  </Box>
-                </Box>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* Move Story Menu */}
-      <Menu
-        anchorEl={moveMenuAnchorEl}
-        open={Boolean(moveMenuAnchorEl)}
-        onClose={handleCloseMoveMenu}
-      >
-        <MenuItem disabled={movingStory} onClick={() => handleMoveStory(null)}>
-          Remove from release
-        </MenuItem>
-        <Divider />
-        {releases.map(release => (
-          <MenuItem
-            key={release.id}
-            disabled={movingStory}
-            onClick={() => handleMoveStory(release.id)}
-          >
-            {release.name}
+        {/* Move Story Menu */}
+        <Menu
+          anchorEl={moveMenuAnchorEl}
+          open={Boolean(moveMenuAnchorEl)}
+          onClose={handleCloseMoveMenu}
+        >
+          <MenuItem disabled={movingStory} onClick={() => handleMoveStory(null)}>
+            Remove from release
           </MenuItem>
-        ))}
-      </Menu>
+          <Divider />
+          {releases.map(release => (
+            <MenuItem
+              key={release.id}
+              disabled={movingStory}
+              onClick={() => handleMoveStory(release.id)}
+            >
+              {release.name}
+            </MenuItem>
+          ))}
+        </Menu>
 
-      {/* Dialog Components */}
-      <ActivityDialog
-        open={activityDialogOpen}
-        onAddActivity={onAddActivity}
-        onClose={() => setActivityDialogOpen(false)}
-      />
+        {/* Dialog Components */}
+        <ActivityDialog
+          open={activityDialogOpen}
+          onAddActivity={onAddActivity}
+          onClose={() => setActivityDialogOpen(false)}
+        />
 
-      <EpicDialog
-        activityId={selectedActivityId}
-        open={epicDialogOpen}
-        onAddEpic={onAddEpic}
-        onClose={handleCloseEpicDialog}
-      />
+        <EpicDialog
+          activityId={selectedActivityId}
+          open={epicDialogOpen}
+          onAddEpic={onAddEpic}
+          onClose={handleCloseEpicDialog}
+        />
 
-      <StoryDialog
-        currentReleaseId={currentReleaseContext}
-        epicId={selectedParentId}
-        open={storyDialogOpen}
-        onAddStory={onAddStory}
-        onClose={handleCloseStoryDialog}
-      />
+        <StoryDialog
+          currentReleaseId={currentReleaseContext}
+          epicId={selectedParentId}
+          open={storyDialogOpen}
+          onAddStory={onAddStory}
+          onClose={handleCloseStoryDialog}
+        />
 
-      <ReleaseDialog
-        open={releaseDialogOpen}
-        onAddRelease={onAddRelease}
-        onClose={handleCloseReleaseDialog}
-      />
+        <ReleaseDialog
+          open={releaseDialogOpen}
+          onAddRelease={onAddRelease}
+          onClose={handleCloseReleaseDialog}
+        />
 
-      <StoryDetailDialog
-        getPriorityColor={getPriorityColor}
-        getStatusColor={getStatusColor}
-        open={storyDetailDialogOpen}
-        releases={releases}
-        story={selectedStory}
-        onClose={handleCloseStoryDetail}
-      />
+        <StoryDetailDialog
+          getPriorityColor={getPriorityColor}
+          getStatusColor={getStatusColor}
+          open={storyDetailDialogOpen}
+          releases={releases}
+          story={selectedStory}
+          onClose={handleCloseStoryDetail}
+        />
 
-      <EditItemDialog
-        item={editingItem}
-        itemType={editingItemType}
-        open={editDialogOpen}
-        releases={releases}
-        onClose={handleCloseEditDialog}
-        onUpdateItem={handleUpdateIssue}
-      />
+        <EditItemDialog
+          item={editingItem}
+          itemType={editingItemType}
+          open={editDialogOpen}
+          releases={releases}
+          onClose={handleCloseEditDialog}
+          onUpdateItem={handleUpdateIssue}
+        />
 
-      <ReleaseDetailDialog
-        open={releaseDetailDialogOpen}
-        release={selectedRelease}
-        onClose={handleCloseReleaseDetail}
-        onUpdateRelease={handleUpdateRelease}
-      />
+        <ReleaseDetailDialog
+          open={releaseDetailDialogOpen}
+          release={selectedRelease}
+          onClose={handleCloseReleaseDetail}
+          onUpdateRelease={handleUpdateRelease}
+        />
 
-      {process.env.NODE_ENV === "development" && (
-        <Box sx={{ position: "fixed", bottom: 16, right: 16, zIndex: 1000 }}>
-          <Button
-            color="secondary"
-            size="small"
-            variant="contained"
-            onClick={async () => {
-              if (activities.length > 0) {
-                const testActivity = activities[0];
-                console.log("Testing realtime update for:", testActivity.id);
-                try {
-                  // Add a timestamp to the name to make the change visible
-                  const updateData = {
-                    name: `${testActivity.name} (updated at ${new Date().toLocaleTimeString()})`,
-                  };
-                  await updateIssue(testActivity.id, updateData);
-                  console.log("Update sent to Firebase, waiting for realtime update...");
-                } catch (error) {
-                  console.error("Test update failed:", error);
+        {process.env.NODE_ENV === "development" && (
+          <Box sx={{ position: "fixed", bottom: 16, right: 16, zIndex: 1000 }}>
+            <Button
+              color="secondary"
+              size="small"
+              variant="contained"
+              onClick={async () => {
+                if (activities.length > 0) {
+                  const testActivity = activities[0];
+                  console.log("Testing realtime update for:", testActivity.id);
+                  try {
+                    // Add a timestamp to the name to make the change visible
+                    const updateData = {
+                      name: `${testActivity.name} (updated at ${new Date().toLocaleTimeString()})`,
+                    };
+                    await updateIssue(testActivity.id, updateData);
+                    console.log("Update sent to Firebase, waiting for realtime update...");
+                  } catch (error) {
+                    console.error("Test update failed:", error);
+                  }
+                } else {
+                  console.log("No activities to test with");
                 }
-              } else {
-                console.log("No activities to test with");
-              }
-            }}
-          >
-            Test Realtime Update
-          </Button>
-        </Box>
-      )}
-    </Box>
+              }}
+            >
+              Test Realtime Update
+            </Button>
+          </Box>
+        )}
+
+        {/* Snackbar for feedback messages */}
+        <Snackbar
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          autoHideDuration={4000}
+          message={snackbarMessage}
+          open={snackbarOpen}
+          onClose={() => setSnackbarOpen(false)}
+        />
+      </Box>
+    </DndProvider>
   );
 }

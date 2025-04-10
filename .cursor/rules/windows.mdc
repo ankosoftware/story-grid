@@ -1,0 +1,8 @@
+---
+description: Windows
+globs: 
+---
+
+# Windows Environment
+
+- Use winwdows commands (powershell) to execute scripts

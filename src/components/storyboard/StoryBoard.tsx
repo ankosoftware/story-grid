@@ -500,7 +500,7 @@ export default function StoryMap({
         </Box>
 
         {/* Main Story Map Structure */}
-        <Paper
+        <Box
           sx={{
             p: 2,
             border: `1px solid ${theme.palette.divider}`,
@@ -526,13 +526,12 @@ export default function StoryMap({
           <Box
             sx={{
               minWidth: activities.length * 250,
+              width: "100%",
               ...(stickyActivitiesRow && {
+                backgroundColor: theme.palette.background.paper,
                 position: "sticky",
                 top: 0,
                 zIndex: 10,
-                backgroundColor: theme.palette.background.paper,
-                paddingTop: 1,
-                paddingBottom: 1,
                 boxShadow: `0 2px 4px ${theme.palette.divider}`,
                 transition: "box-shadow 0.3s ease", // Add smooth transition for box-shadow
               }),
@@ -562,6 +561,7 @@ export default function StoryMap({
                         flexDirection: "row",
                         gap: 2,
                         mb: 2,
+                        height: "100%",
                         ...(stickyActivitiesRow && {
                           position: "sticky",
                           top: theme.spacing(7), // Adjust this value based on the height of the activity cards
@@ -573,7 +573,18 @@ export default function StoryMap({
                     >
                       {epics[activity.id] &&
                         epics[activity.id].map(epic => (
-                          <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
+                          <Box
+                            key={epic.id}
+                            sx={{
+                              flex: 1,
+                              minWidth: 0,
+                              borderRight: `1px solid ${theme.palette.divider}`,
+                              px: 1,
+                              height: "100%",
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                          >
                             <DraggableEpicCard
                               epic={epic}
                               handleMoveEpicToActivity={handleMoveEpicToActivity}
@@ -583,7 +594,7 @@ export default function StoryMap({
                           </Box>
                         ))}
 
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
                         <StoryMapCard
                           isAddCard={true}
                           type="epic"
@@ -638,10 +649,29 @@ export default function StoryMap({
                     <StoryMapCard type="placeholder" />
 
                     {/* Epics Row - Horizontal */}
-                    <Box sx={{ display: "flex", flexDirection: "row", gap: 1, mb: 1 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: 1,
+                        mb: 1,
+                        height: "100%",
+                      }}
+                    >
                       {epics[activity.id] &&
                         epics[activity.id].map(epic => (
-                          <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
+                          <Box
+                            key={epic.id}
+                            sx={{
+                              flex: 1,
+                              minWidth: 0,
+                              borderRight: `1px solid ${theme.palette.divider}`,
+                              px: 1,
+                              height: "100%",
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                          >
                             {/* Add placeholder for epic */}
                             <StoryMapCard type="placeholder" />
                             {/* Add story points to the epic in the release */}
@@ -658,7 +688,7 @@ export default function StoryMap({
                             />
                             {/* Stories Column - Vertical under each epic */}
                             <DroppableEpicContainer epic={epic} releaseId={release.id}>
-                              <Box sx={{ mb: 1 }}>
+                              <Box sx={{ mb: 1, flexGrow: 1 }}>
                                 {issues[epic.id] && issues[epic.id].length > 0 ? (
                                   issues[epic.id]
                                     .filter(story => story.releaseId === release.id)
@@ -676,7 +706,7 @@ export default function StoryMap({
                           </Box>
                         ))}
 
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
                         <StoryMapCard type="placeholder" />
                       </Box>
                     </Box>
@@ -710,15 +740,28 @@ export default function StoryMap({
                   <StoryMapCard type="placeholder" />
 
                   {/* Epics Row - Horizontal */}
-                  <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2, height: "100%" }}
+                  >
                     {epics[activity.id] &&
                       epics[activity.id].map(epic => (
-                        <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
+                        <Box
+                          key={epic.id}
+                          sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            borderRight: `1px solid ${theme.palette.divider}`,
+                            px: 1,
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                          }}
+                        >
                           {/* Add placeholder for epic */}
                           <StoryMapCard type="placeholder" />
                           {/* Stories Column - Vertical under each epic */}
                           <DroppableEpicContainer epic={epic} releaseId={null}>
-                            <Box sx={{ mb: 2 }}>
+                            <Box sx={{ mb: 2, flexGrow: 1 }}>
                               {issues[epic.id] && issues[epic.id].length > 0 ? (
                                 issues[epic.id]
                                   .filter(story => !story.releaseId)
@@ -736,7 +779,7 @@ export default function StoryMap({
                         </Box>
                       ))}
 
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
                       <StoryMapCard type="placeholder" />
                     </Box>
                   </Box>
@@ -744,7 +787,7 @@ export default function StoryMap({
               ))}
             </Box>
           </Box>
-        </Paper>
+        </Box>
 
         {/* Move Story Menu */}
         <Menu

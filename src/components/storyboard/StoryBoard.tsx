@@ -752,6 +752,153 @@ const EditItemDialog = ({
   );
 };
 
+// Extract ReleaseDetail dialog component
+type ReleaseDetailDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  release: Release | null;
+  onUpdateRelease?: (release: Release, updatedData: Partial<Release>) => Promise<void>;
+};
+
+const ReleaseDetailDialog = ({
+  open,
+  onClose,
+  release,
+  onUpdateRelease,
+}: ReleaseDetailDialogProps) => {
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editStartDate, setEditStartDate] = useState<string>("");
+  const [editEndDate, setEditEndDate] = useState<string>("");
+  const [editingError, setEditingError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Reset form when release changes
+  React.useEffect(() => {
+    if (release) {
+      setEditName(release.name);
+      setEditDescription(release.description || "");
+      setEditStartDate(
+        release.startDate ? new Date(release.startDate).toISOString().split("T")[0] : ""
+      );
+      setEditEndDate(release.endDate ? new Date(release.endDate).toISOString().split("T")[0] : "");
+      setEditingError(null);
+    }
+  }, [release]);
+
+  const handleSaveEdit = async () => {
+    if (!release || !onUpdateRelease) {
+      return;
+    }
+
+    if (!editName.trim()) {
+      setEditingError("Release name is required");
+      return;
+    }
+
+    try {
+      setIsEditing(true);
+      setEditingError(null);
+
+      const updatedData: Partial<Release> = {
+        name: editName,
+        description: editDescription,
+      };
+
+      if (editStartDate) {
+        updatedData.startDate = new Date(editStartDate);
+      }
+
+      if (editEndDate) {
+        updatedData.endDate = new Date(editEndDate);
+      }
+
+      await onUpdateRelease(release, updatedData);
+      onClose();
+    } catch (err) {
+      setEditingError((err as Error).message || "Failed to update release");
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  if (!release) {
+    return null;
+  }
+
+  return (
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+      <DialogTitle>Edit Release</DialogTitle>
+      <DialogContent>
+        {editingError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {editingError}
+          </Alert>
+        )}
+        <TextField
+          autoFocus
+          fullWidth
+          disabled={isEditing}
+          error={!!editingError}
+          helperText={editingError}
+          label="Name"
+          margin="dense"
+          sx={{ mb: 2 }}
+          value={editName}
+          onChange={e => setEditName(e.target.value)}
+        />
+        <TextField
+          fullWidth
+          multiline
+          disabled={isEditing}
+          label="Description"
+          margin="dense"
+          rows={3}
+          value={editDescription}
+          onChange={e => setEditDescription(e.target.value)}
+        />
+
+        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+          <TextField
+            fullWidth
+            disabled={isEditing}
+            InputLabelProps={{ shrink: true }}
+            label="Start Date"
+            margin="dense"
+            type="date"
+            value={editStartDate}
+            onChange={e => setEditStartDate(e.target.value)}
+          />
+
+          <TextField
+            fullWidth
+            disabled={isEditing}
+            InputLabelProps={{ shrink: true }}
+            label="End Date"
+            margin="dense"
+            type="date"
+            value={editEndDate}
+            onChange={e => setEditEndDate(e.target.value)}
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button disabled={isEditing} onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          disabled={isEditing}
+          startIcon={isEditing ? <CircularProgress size={20} /> : undefined}
+          variant="contained"
+          onClick={handleSaveEdit}
+        >
+          {isEditing ? "Saving..." : "Save Changes"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 // Create a memoized story card component
 const MemoizedStoryCard = memo(
   ({
@@ -854,6 +1001,81 @@ const MemoizedStoryCard = memo(
 // Add displayName to fix the linter warning
 MemoizedStoryCard.displayName = "MemoizedStoryCard";
 
+// Create a memoized release card component
+const MemoizedReleaseCard = memo(
+  ({
+    release,
+    handleOpenReleaseForEdit,
+  }: {
+    release: Release;
+    handleOpenReleaseForEdit: (release: Release) => void;
+  }) => {
+    const theme = useTheme();
+
+    // Format dates for display
+    const formatDate = (date: Date | undefined) => {
+      if (!date) {
+        return "";
+      }
+      return new Date(date).toLocaleDateString();
+    };
+
+    // Card styling
+    const cardStyles = {
+      bgcolor: theme.palette.background.paper,
+      color: "text.primary",
+      border: `1px solid ${theme.palette.primary.main}`,
+      borderLeft: `4px solid ${theme.palette.primary.main}`,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+      p: 1,
+      mb: 1,
+      cursor: "pointer",
+      "&:hover": {
+        boxShadow: 3,
+        transition: "box-shadow 0.2s ease-in-out",
+      },
+    };
+
+    return (
+      <Card sx={cardStyles} onClick={() => handleOpenReleaseForEdit(release)}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Typography fontWeight="bold" variant="subtitle1">
+            {release.name}
+          </Typography>
+        </Box>
+
+        {(release.startDate || release.endDate) && (
+          <Box sx={{ mt: 1, display: "flex", gap: 1, alignItems: "center" }}>
+            {release.startDate && (
+              <Chip
+                label={`Start: ${formatDate(release.startDate)}`}
+                size="small"
+                sx={{ bgcolor: theme.palette.grey[100] }}
+              />
+            )}
+            {release.endDate && (
+              <Chip
+                label={`End: ${formatDate(release.endDate)}`}
+                size="small"
+                sx={{ bgcolor: theme.palette.grey[100] }}
+              />
+            )}
+          </Box>
+        )}
+
+        {release.description && (
+          <Typography color="text.secondary" sx={{ mt: 1, fontSize: "0.8rem" }} variant="body2">
+            {release.description}
+          </Typography>
+        )}
+      </Card>
+    );
+  }
+);
+
+// Add displayName to fix the linter warning
+MemoizedReleaseCard.displayName = "MemoizedReleaseCard";
+
 export default function StoryMap({
   projectId,
   activities,
@@ -901,6 +1123,10 @@ export default function StoryMap({
 
   // Add state for updating issues
   const [updatingIssue, setUpdatingIssue] = useState(false);
+
+  // Add state for release detail dialog
+  const [releaseDetailDialogOpen, setReleaseDetailDialogOpen] = useState(false);
+  const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
 
   // Add handler for updating issues
   const handleUpdateIssue = useCallback(async (issue: Issue, updatedData: Partial<Issue>) => {
@@ -1011,6 +1237,40 @@ export default function StoryMap({
     setEditingItem(null);
     setEditingItemType(null);
   }, []);
+
+  // Handler for Release Detail
+  const handleOpenReleaseForEdit = useCallback((release: Release) => {
+    setSelectedRelease(release);
+    setReleaseDetailDialogOpen(true);
+  }, []);
+
+  const handleCloseReleaseDetail = useCallback(() => {
+    setReleaseDetailDialogOpen(false);
+    setSelectedRelease(null);
+  }, []);
+
+  // Add handler for updating releases
+  const handleUpdateRelease = useCallback(
+    async (release: Release, updatedData: Partial<Release>) => {
+      try {
+        setUpdatingIssue(true);
+
+        // Call the Firestore updateRelease function - you'll need to implement this
+        // For now, we'll just log it
+        console.log(`Would update release: ${release.id}`, updatedData);
+        // TODO: Implement actual release update functionality
+        // await updateRelease(release.id, updatedData);
+
+        console.log(`Updated release: ${release.id}`, updatedData);
+      } catch (error) {
+        console.error("Error updating release:", error);
+        throw error;
+      } finally {
+        setUpdatingIssue(false);
+      }
+    },
+    []
+  );
 
   // --------------------------
   // Memoized Helper functions for color coding
@@ -1321,7 +1581,10 @@ export default function StoryMap({
           <Box key={release.id} sx={{ minWidth: activities.length * 250 }}>
             {/* Release Header */}
             <Box sx={{ display: "flex", alignItems: "center", mb: 1, p: 1, bgcolor: "#f0f0f0" }}>
-              <Typography variant="h6">{release.name}</Typography>
+              <MemoizedReleaseCard
+                handleOpenReleaseForEdit={handleOpenReleaseForEdit}
+                release={release}
+              />
             </Box>
             <Box
               sx={{
@@ -1480,6 +1743,13 @@ export default function StoryMap({
         releases={releases}
         onClose={handleCloseEditDialog}
         onUpdateItem={handleUpdateIssue}
+      />
+
+      <ReleaseDetailDialog
+        open={releaseDetailDialogOpen}
+        release={selectedRelease}
+        onClose={handleCloseReleaseDetail}
+        onUpdateRelease={handleUpdateRelease}
       />
 
       {process.env.NODE_ENV === "development" && (

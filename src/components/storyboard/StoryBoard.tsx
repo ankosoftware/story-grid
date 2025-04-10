@@ -12,6 +12,7 @@ import {
   Snackbar,
   useTheme,
   useMediaQuery,
+  Chip,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { DndProvider } from "react-dnd";
@@ -398,13 +399,16 @@ export default function StoryMap({
 
   // Calculate story points for epics
   const calculateEpicStoryPoints = useCallback(
-    (epicId: string): number => {
+    (epicId: string, releaseId?: string): number => {
       if (!issues[epicId]) {
         return 0;
       }
 
       return issues[epicId].reduce((total, story) => {
-        return total + (story.storyPoints || 0);
+        if (releaseId && story.releaseId === releaseId) {
+          return total + (story.storyPoints || 0);
+        }
+        return total;
       }, 0);
     },
     [issues]
@@ -569,6 +573,18 @@ export default function StoryMap({
                           <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
                             {/* Add placeholder for epic */}
                             <StoryMapCard type="placeholder" />
+                            {/* Add story points to the epic in the release */}
+                            <Chip
+                              label={calculateEpicStoryPoints(epic.id, release.id)}
+                              sx={{
+                                fontSize: "0.6rem",
+                                height: "16px",
+                                fontWeight: "bold",
+                                bgcolor: theme.palette.grey[200],
+                                borderRadius: "8px",
+                                marginLeft: "8px",
+                              }}
+                            />
                             {/* Stories Column - Vertical under each epic */}
                             <DroppableEpicContainer epic={epic} releaseId={release.id}>
                               <Box sx={{ mb: 1 }}>
@@ -732,36 +748,6 @@ export default function StoryMap({
           onClose={handleCloseReleaseDetail}
           onUpdateRelease={handleUpdateRelease}
         />
-
-        {process.env.NODE_ENV === "development" && (
-          <Box sx={{ position: "fixed", bottom: 16, right: 16, zIndex: 1000 }}>
-            <Button
-              color="secondary"
-              size="small"
-              variant="contained"
-              onClick={async () => {
-                if (activities.length > 0) {
-                  const testActivity = activities[0];
-                  console.log("Testing realtime update for:", testActivity.id);
-                  try {
-                    // Add a timestamp to the name to make the change visible
-                    const updateData = {
-                      name: `${testActivity.name} (updated at ${new Date().toLocaleTimeString()})`,
-                    };
-                    await updateIssue(testActivity.id, updateData);
-                    console.log("Update sent to Firebase, waiting for realtime update...");
-                  } catch (error) {
-                    console.error("Test update failed:", error);
-                  }
-                } else {
-                  console.log("No activities to test with");
-                }
-              }}
-            >
-              Test Realtime Update
-            </Button>
-          </Box>
-        )}
 
         {/* Snackbar for feedback messages */}
         <Snackbar

@@ -106,6 +106,14 @@ export const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogP
     }
   };
 
+  // Add keyboard handler for Enter key
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey && !addingActivity) {
+      e.preventDefault();
+      handleCreateActivity();
+    }
+  };
+
   return (
     <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle>Add New Activity/Goal</DialogTitle>
@@ -121,6 +129,7 @@ export const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogP
           sx={{ mb: 2 }}
           value={activityName}
           onChange={e => setActivityName(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <TextField
           fullWidth
@@ -131,6 +140,13 @@ export const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogP
           rows={3}
           value={activityDescription}
           onChange={e => setActivityDescription(e.target.value)}
+          onKeyDown={e => {
+            // Allow shift+enter for new lines in multiline fields
+            if (e.key === "Enter" && !e.shiftKey && !addingActivity) {
+              e.preventDefault();
+              handleCreateActivity();
+            }
+          }}
         />
       </DialogContent>
       <DialogActions>
@@ -195,6 +211,14 @@ const EpicDialog = ({ open, onClose, onAddEpic, activityId }: EpicDialogProps) =
     }
   };
 
+  // Add keyboard handler for Enter key
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey && !addingEpic) {
+      e.preventDefault();
+      handleCreateEpic();
+    }
+  };
+
   return (
     <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle>Add New User Task</DialogTitle>
@@ -210,6 +234,7 @@ const EpicDialog = ({ open, onClose, onAddEpic, activityId }: EpicDialogProps) =
           sx={{ mb: 2 }}
           value={epicName}
           onChange={e => setEpicName(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <TextField
           fullWidth
@@ -220,6 +245,12 @@ const EpicDialog = ({ open, onClose, onAddEpic, activityId }: EpicDialogProps) =
           rows={3}
           value={epicDescription}
           onChange={e => setEpicDescription(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" && !e.shiftKey && !addingEpic) {
+              e.preventDefault();
+              handleCreateEpic();
+            }
+          }}
         />
       </DialogContent>
       <DialogActions>
@@ -316,6 +347,14 @@ const StoryDialog = ({ open, onClose, onAddStory, epicId, currentReleaseId }: St
     }
   };
 
+  // Add keyboard handler for Enter key
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey && !addingStory) {
+      e.preventDefault();
+      handleCreateStory();
+    }
+  };
+
   return (
     <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle>Add New User Story</DialogTitle>
@@ -331,6 +370,7 @@ const StoryDialog = ({ open, onClose, onAddStory, epicId, currentReleaseId }: St
           sx={{ mb: 2 }}
           value={storyName}
           onChange={e => setStoryName(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <TextField
           fullWidth
@@ -341,6 +381,12 @@ const StoryDialog = ({ open, onClose, onAddStory, epicId, currentReleaseId }: St
           rows={3}
           value={storyDescription}
           onChange={e => setStoryDescription(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" && !e.shiftKey && !addingStory) {
+              e.preventDefault();
+              handleCreateStory();
+            }
+          }}
         />
 
         <TextField
@@ -355,6 +401,7 @@ const StoryDialog = ({ open, onClose, onAddStory, epicId, currentReleaseId }: St
           type="number"
           value={storyPoints === undefined ? "" : storyPoints}
           onChange={handleStoryPointsChange}
+          onKeyDown={handleKeyDown}
         />
 
         <Box sx={{ mt: 2 }}>
@@ -430,6 +477,14 @@ const ReleaseDialog = ({ open, onClose, onAddRelease }: ReleaseDialogProps) => {
     }
   };
 
+  // Add keyboard handler for Enter key
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey && !addingRelease) {
+      e.preventDefault();
+      handleCreateRelease();
+    }
+  };
+
   return (
     <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle>Add New Release</DialogTitle>
@@ -445,6 +500,7 @@ const ReleaseDialog = ({ open, onClose, onAddRelease }: ReleaseDialogProps) => {
           sx={{ mb: 2 }}
           value={releaseName}
           onChange={e => setReleaseName(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <TextField
           fullWidth
@@ -455,6 +511,12 @@ const ReleaseDialog = ({ open, onClose, onAddRelease }: ReleaseDialogProps) => {
           rows={3}
           value={releaseDescription}
           onChange={e => setReleaseDescription(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" && !e.shiftKey && !addingRelease) {
+              e.preventDefault();
+              handleCreateRelease();
+            }
+          }}
         />
       </DialogContent>
       <DialogActions>
@@ -665,6 +727,14 @@ const EditItemDialog = ({
     }
   };
 
+  // Add keyboard handler for Enter key
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey && !isEditing) {
+      e.preventDefault();
+      handleSaveEdit();
+    }
+  };
+
   return (
     <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle>
@@ -687,6 +757,7 @@ const EditItemDialog = ({
           sx={{ mb: 2 }}
           value={editName}
           onChange={e => setEditName(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <TextField
           fullWidth
@@ -697,6 +768,7 @@ const EditItemDialog = ({
           rows={3}
           value={editDescription}
           onChange={e => setEditDescription(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
 
         {/* Add additional fields for stories */}
@@ -718,6 +790,7 @@ const EditItemDialog = ({
               sx={{ mb: 2 }}
               value={editStatus}
               onChange={e => setEditStatus(e.target.value as IssueStatus)}
+              onKeyDown={handleKeyDown}
             >
               {Object.values(IssueStatus).map(status => (
                 <MenuItem key={status} value={status}>
@@ -736,6 +809,7 @@ const EditItemDialog = ({
               sx={{ mb: 2 }}
               value={editPriority}
               onChange={e => setEditPriority(e.target.value as IssuePriority)}
+              onKeyDown={handleKeyDown}
             >
               {Object.values(IssuePriority).map(priority => (
                 <MenuItem key={priority} value={priority}>
@@ -757,6 +831,7 @@ const EditItemDialog = ({
               type="number"
               value={editStoryPoints === undefined ? "" : editStoryPoints}
               onChange={handleStoryPointsChange}
+              onKeyDown={handleKeyDown}
             />
 
             {/* Release dropdown */}
@@ -768,6 +843,7 @@ const EditItemDialog = ({
               margin="dense"
               value={editReleaseId}
               onChange={e => setEditReleaseId(e.target.value)}
+              onKeyDown={handleKeyDown}
             >
               <MenuItem value="">No Release</MenuItem>
               {releases.map(release => (
@@ -903,6 +979,14 @@ const ReleaseDetailDialog = ({
     }
   };
 
+  // Add keyboard handler for Enter key
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey && !isEditing) {
+      e.preventDefault();
+      handleSaveEdit();
+    }
+  };
+
   if (!release) {
     return null;
   }
@@ -927,6 +1011,7 @@ const ReleaseDetailDialog = ({
           sx={{ mb: 2 }}
           value={editName}
           onChange={e => setEditName(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <TextField
           fullWidth
@@ -937,6 +1022,7 @@ const ReleaseDetailDialog = ({
           rows={3}
           value={editDescription}
           onChange={e => setEditDescription(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
 
         <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
@@ -949,6 +1035,7 @@ const ReleaseDetailDialog = ({
             type="date"
             value={editStartDate}
             onChange={e => setEditStartDate(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
 
           <TextField
@@ -960,6 +1047,7 @@ const ReleaseDetailDialog = ({
             type="date"
             value={editEndDate}
             onChange={e => setEditEndDate(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
         </Box>
       </DialogContent>
@@ -997,20 +1085,21 @@ const MemoizedStoryCard = memo(
   }) => {
     const theme = useTheme();
 
-    // Card styling based on type
+    // Card styling based on type - more compact
     const cardStyles = {
       bgcolor: "white",
       color: "text.primary",
-      height: "60px",
+      height: "50px",
       width: "100px",
       border: "1px solid #e0e0e0",
       borderLeft: `4px solid ${getPriorityColor(story.priority)}`,
       boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-      mb: 1,
+      mb: 0.5,
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
       cursor: "pointer",
+      borderRadius: 1,
       "&:hover": {
         boxShadow: 3,
         transition: "box-shadow 0.2s ease-in-out",
@@ -1019,13 +1108,16 @@ const MemoizedStoryCard = memo(
 
     return (
       <Card sx={cardStyles} onClick={() => handleOpenItemForEdit(story, "story")}>
-        <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+        <CardContent sx={{ p: 0.5, "&:last-child": { pb: 0.5 } }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <Typography
               sx={{
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
+                fontSize: "0.75rem",
+                lineHeight: 1.2,
+                maxWidth: "70px",
               }}
               variant="body2"
             >
@@ -1033,27 +1125,33 @@ const MemoizedStoryCard = memo(
             </Typography>
             <IconButton
               size="small"
-              sx={{ mt: -0.5, mr: -0.5 }}
+              sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
               onClick={e => {
-                e.stopPropagation(); // Prevent card click when clicking the menu
+                e.stopPropagation();
                 handleOpenMoveMenu(e, story.id);
               }}
             >
-              <MoreVertIcon fontSize="small" />
+              <MoreVertIcon sx={{ fontSize: "1rem" }} />
             </IconButton>
           </Box>
 
           <Box
-            sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", mt: 1 }}
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              mt: 0.5,
+            }}
           >
             {story.status !== IssueStatus.TO_DO && (
               <Chip
                 label={story.status}
                 size="small"
                 sx={{
-                  fontSize: "0.7rem",
+                  fontSize: "0.6rem",
                   bgcolor: getStatusColor(story.status),
-                  height: "18px",
+                  height: "14px",
+                  borderRadius: "7px",
                 }}
               />
             )}
@@ -1063,12 +1161,13 @@ const MemoizedStoryCard = memo(
                 size="small"
                 sx={{
                   ml: "auto",
-                  fontSize: "0.7rem",
-                  height: "18px",
+                  fontSize: "0.6rem",
+                  height: "16px",
+                  width: "16px",
                   fontWeight: "bold",
                   bgcolor: theme.palette.grey[200],
-                  minWidth: "18px",
                   borderRadius: "50%",
+                  p: 0,
                 }}
               />
             )}
@@ -1126,25 +1225,26 @@ const MemoizedReleaseCard = memo(
           border: `1px solid ${theme.palette.primary.main}`,
           borderLeft: `4px solid ${theme.palette.primary.main}`,
           borderRadius: 1,
-          mb: 1,
-          p: 1,
+          mb: 0.5,
+          p: 0.5,
           "&:hover": {
             boxShadow: 1,
           },
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mr: 1 }}>
           <IconButton
             disabled={isFirst}
             size="small"
             sx={{
               opacity: isFirst ? 0.3 : 1,
               color: theme.palette.text.secondary,
+              p: 0.5,
             }}
             onClick={e => handleMove("up", e)}
           >
             <Box component="span" sx={{ transform: "rotate(-90deg)", display: "flex" }}>
-              <DragIndicatorIcon fontSize="small" />
+              <DragIndicatorIcon sx={{ fontSize: "1rem" }} />
             </Box>
           </IconButton>
           <IconButton
@@ -1153,11 +1253,12 @@ const MemoizedReleaseCard = memo(
             sx={{
               opacity: isLast ? 0.3 : 1,
               color: theme.palette.text.secondary,
+              p: 0.5,
             }}
             onClick={e => handleMove("down", e)}
           >
             <Box component="span" sx={{ transform: "rotate(90deg)", display: "flex" }}>
-              <DragIndicatorIcon fontSize="small" />
+              <DragIndicatorIcon sx={{ fontSize: "1rem" }} />
             </Box>
           </IconButton>
         </Box>
@@ -1171,29 +1272,43 @@ const MemoizedReleaseCard = memo(
           }}
           onClick={() => handleOpenReleaseForEdit(release)}
         >
-          <Typography fontWeight="bold" variant="subtitle1">
+          <Typography fontWeight="bold" sx={{ fontSize: "0.85rem" }} variant="body2">
             {release.name}
           </Typography>
 
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.5 }}>
+          <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", mt: 0.25 }}>
             {release.startDate && (
               <Chip
                 label={`Start: ${formatDate(release.startDate)}`}
                 size="small"
-                sx={{ bgcolor: theme.palette.grey[100] }}
+                sx={{
+                  bgcolor: theme.palette.grey[100],
+                  height: "16px",
+                  fontSize: "0.6rem",
+                  borderRadius: "8px",
+                }}
               />
             )}
             {release.endDate && (
               <Chip
                 label={`End: ${formatDate(release.endDate)}`}
                 size="small"
-                sx={{ bgcolor: theme.palette.grey[100] }}
+                sx={{
+                  bgcolor: theme.palette.grey[100],
+                  height: "16px",
+                  fontSize: "0.6rem",
+                  borderRadius: "8px",
+                }}
               />
             )}
           </Box>
 
           {release.description && (
-            <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: "0.8rem" }} variant="body2">
+            <Typography
+              color="text.secondary"
+              sx={{ mt: 0.25, fontSize: "0.7rem" }}
+              variant="body2"
+            >
               {release.description}
             </Typography>
           )}
@@ -1203,12 +1318,13 @@ const MemoizedReleaseCard = memo(
           <Tooltip title="Edit release">
             <IconButton
               size="small"
+              sx={{ p: 0.5 }}
               onClick={e => {
                 e.stopPropagation();
                 handleOpenReleaseForEdit(release);
               }}
             >
-              <MoreVertIcon fontSize="small" />
+              <MoreVertIcon sx={{ fontSize: "1rem" }} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -1506,41 +1622,46 @@ export default function StoryMap({
         activity: {
           bgcolor: theme.palette.primary.main,
           color: "white",
-          height: "60px",
+          height: "50px",
           width: "100px",
+          borderRadius: 1,
         },
         epic: {
           bgcolor: "#00acc1",
           color: "white",
-          height: "60px",
+          height: "50px",
           width: "100px",
+          borderRadius: 1,
         },
         story: {
           bgcolor: "white",
           color: "text.primary",
-          height: "60px",
+          height: "50px",
           width: "100px",
           border: "1px solid #e0e0e0",
           borderLeft: item ? `4px solid ${getPriorityColor(item?.priority)}` : undefined,
           boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          borderRadius: 1,
         },
         blank: {
           bgcolor: "white",
           color: "text.secondary",
-          height: "60px",
+          height: "50px",
           width: "100px",
           border: "1px dashed #bdbdbd",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
+          borderRadius: 1,
         },
         release: {
           bgcolor: theme.palette.background.paper,
           color: "text.primary",
-          height: "60px",
+          height: "50px",
           width: "120px",
           border: `1px solid ${theme.palette.primary.main}`,
           borderLeft: `4px solid ${theme.palette.primary.main}`,
+          borderRadius: 1,
         },
       };
 
@@ -1549,7 +1670,7 @@ export default function StoryMap({
           <Card
             sx={{
               ...cardStyles.blank,
-              mb: 1,
+              mb: 0.5,
               cursor: "pointer",
               "&:hover": {
                 bgcolor: theme.palette.action.hover,
@@ -1558,9 +1679,9 @@ export default function StoryMap({
             }}
             onClick={onClick}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <AddIcon fontSize="small" />
-              <Typography variant="caption">{`Add ${type}`}</Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+              <AddIcon sx={{ fontSize: "0.9rem" }} />
+              <Typography sx={{ fontSize: "0.7rem" }} variant="caption">{`Add ${type}`}</Typography>
             </Box>
           </Card>
         );
@@ -1570,14 +1691,18 @@ export default function StoryMap({
         return <div style={{ height: "0px", width: "100px" }}></div>;
       }
 
+      // Determine justifyContent based on card type
+      const justifyContent = type === "activity" || type === "epic" ? "flex-start" : "center";
+      const paddingTop = type === "activity" || type === "epic" ? 0.5 : 0;
+
       return (
         <Card
           sx={{
             ...(cardStyles[type] || cardStyles.blank),
-            mb: 1,
+            mb: 0.5,
             display: "flex",
             flexDirection: "column",
-            justifyContent: "center",
+            justifyContent: justifyContent,
             cursor: onClick ? "pointer" : "default",
             "&:hover": onClick
               ? {
@@ -1588,7 +1713,7 @@ export default function StoryMap({
           }}
           onClick={onClick}
         >
-          <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+          <CardContent sx={{ p: 0.5, pt: paddingTop, "&:last-child": { pb: 0.5 } }}>
             <Box
               sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
             >
@@ -1597,21 +1722,23 @@ export default function StoryMap({
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
+                  fontSize: type === "activity" ? "0.8rem" : "0.75rem",
+                  lineHeight: 1.2,
                 }}
-                variant={type === "activity" ? "subtitle1" : "body2"}
+                variant={type === "activity" ? "body2" : "caption"}
               >
                 {item?.name}
               </Typography>
               {onAction && item && (
                 <IconButton
                   size="small"
-                  sx={{ mt: -0.5, mr: -0.5 }}
+                  sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
                   onClick={e => {
-                    e.stopPropagation(); // Prevent card click when clicking the menu
+                    e.stopPropagation();
                     onAction(e, item.id);
                   }}
                 >
-                  <MoreVertIcon fontSize="small" />
+                  <MoreVertIcon sx={{ fontSize: "0.9rem" }} />
                 </IconButton>
               )}
             </Box>

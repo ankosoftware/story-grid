@@ -1089,6 +1089,7 @@ export const addComment = async (
     text,
     createdAt: Timestamp.now(),
     createdBy: userId,
+    status: "open", // Default status is open
   };
 
   // Add comment to batch
@@ -1097,6 +1098,7 @@ export const addComment = async (
   // Update issue comment count
   batch.update(issueRef, {
     commentCount: currentCommentCount + 1,
+    openCommentCount: (issueData.openCommentCount || 0) + 1, // Increment open comment count
     updatedAt: Timestamp.now(),
   });
 
@@ -1139,6 +1141,7 @@ export const deleteComment = async (commentId: string): Promise<void> => {
 
   const commentData = commentSnap.data();
   const issueId = commentData.issueId;
+  const isCommentOpen = commentData.status === "open";
 
   // Get the issue to update its comment count
   const issueRef = getIssueRef(issueId);
@@ -1152,6 +1155,7 @@ export const deleteComment = async (commentId: string): Promise<void> => {
 
   const issueData = issueSnap.data();
   const currentCommentCount = issueData.commentCount || 0;
+  const currentOpenCommentCount = issueData.openCommentCount || 0;
 
   // Create a batch to update both the comment and issue in a transaction
   const batch = writeBatch(db);
@@ -1162,6 +1166,60 @@ export const deleteComment = async (commentId: string): Promise<void> => {
   // Update issue comment count, ensuring it doesn't go below 0
   batch.update(issueRef, {
     commentCount: Math.max(0, currentCommentCount - 1),
+    openCommentCount: isCommentOpen
+      ? Math.max(0, currentOpenCommentCount - 1)
+      : currentOpenCommentCount,
+    updatedAt: Timestamp.now(),
+  });
+
+  // Commit the batch
+  await batch.commit();
+};
+
+/**
+ * Toggle a comment's status between open and closed
+ *
+ * @param commentId - The ID of the comment to update
+ * @returns Promise that resolves when the update is complete
+ */
+export const toggleCommentStatus = async (commentId: string): Promise<void> => {
+  // Get the comment to find its issue and current status
+  const commentRef = getCommentRef(commentId);
+  const commentSnap = await getDoc(commentRef);
+
+  if (!commentSnap.exists()) {
+    throw new Error("Comment does not exist");
+  }
+
+  const commentData = commentSnap.data();
+  const issueId = commentData.issueId;
+  const currentStatus = commentData.status;
+  const newStatus = currentStatus === "open" ? "closed" : "open";
+
+  // Get the issue to update its open comment count
+  const issueRef = getIssueRef(issueId);
+  const issueSnap = await getDoc(issueRef);
+
+  if (!issueSnap.exists()) {
+    throw new Error("Issue does not exist");
+  }
+
+  const issueData = issueSnap.data();
+  const currentOpenCommentCount = issueData.openCommentCount || 0;
+
+  // Create a batch to update both the comment and issue in a transaction
+  const batch = writeBatch(db);
+
+  // Update comment status
+  batch.update(commentRef, {
+    status: newStatus,
+    updatedAt: Timestamp.now(),
+  });
+
+  // Update issue open comment count
+  const openCommentDelta = newStatus === "open" ? 1 : -1;
+  batch.update(issueRef, {
+    openCommentCount: Math.max(0, currentOpenCommentCount + openCommentDelta),
     updatedAt: Timestamp.now(),
   });
 

@@ -16,15 +16,20 @@ import {
   IconButton,
   Avatar,
   Paper,
+  Chip,
+  Tooltip,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
 import { Issue, IssueComment } from "@/lib/firebase/models/types";
 import {
   getCommentsForIssue,
   addComment,
   updateComment,
   deleteComment,
+  toggleCommentStatus,
 } from "@/lib/firebase/firestore";
 import { useAuth } from "@/lib/auth/AuthProvider";
 
@@ -140,6 +145,20 @@ export const CommentsDialog = ({ open, onClose, issue }: CommentsDialogProps) =>
     }
   };
 
+  const handleToggleStatus = async (commentId: string) => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await toggleCommentStatus(commentId);
+      await fetchComments(); // Refresh comments
+    } catch (err) {
+      setError("Failed to update comment status. Please try again.");
+      console.error("Error updating comment status:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const formatDate = (timestamp: any) => {
     if (!timestamp) {
       return "";
@@ -195,10 +214,25 @@ export const CommentsDialog = ({ open, onClose, issue }: CommentsDialogProps) =>
                         <Typography sx={{ fontWeight: "bold" }} variant="subtitle2">
                           User {comment.createdBy.substring(0, 6)}
                         </Typography>
-                        <Typography color="text.secondary" variant="caption">
-                          {formatDate(comment.createdAt)}
-                          {comment.updatedAt && " (edited)"}
-                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Tooltip
+                            title={comment.status === "open" ? "Mark as closed" : "Mark as open"}
+                          >
+                            <Chip
+                              color={comment.status === "open" ? "warning" : "success"}
+                              disabled={isSubmitting}
+                              icon={comment.status === "open" ? <ErrorIcon /> : <CheckCircleIcon />}
+                              label={comment.status === "open" ? "Open" : "Closed"}
+                              size="small"
+                              sx={{ cursor: "pointer" }}
+                              onClick={() => handleToggleStatus(comment.id)}
+                            />
+                          </Tooltip>
+                          <Typography color="text.secondary" variant="caption">
+                            {formatDate(comment.createdAt)}
+                            {comment.updatedAt && " (edited)"}
+                          </Typography>
+                        </Box>
                       </Box>
                       {editingCommentId === comment.id ? (
                         <Box sx={{ mt: 1 }}>

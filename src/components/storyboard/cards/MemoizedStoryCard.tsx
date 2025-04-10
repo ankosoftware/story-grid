@@ -2,6 +2,7 @@ import React, { memo } from "react";
 import { Card, CardContent, Box, Typography, IconButton, Chip, useTheme } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChatIcon from "@mui/icons-material/Chat";
+import ErrorIcon from "@mui/icons-material/Error";
 import { Issue, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
 
 interface MemoizedStoryCardProps {
@@ -72,12 +73,21 @@ export const MemoizedStoryCard = memo(
             <Box sx={{ display: "flex", alignItems: "center" }}>
               {story.commentCount && story.commentCount > 0 && (
                 <IconButton size="small" sx={{ p: 0.3, mr: 0.2 }} onClick={handleCommentClick}>
-                  <ChatIcon
-                    sx={{
-                      fontSize: "0.9rem",
-                      color: theme.palette.primary.main,
-                    }}
-                  />
+                  {story.openCommentCount && story.openCommentCount > 0 ? (
+                    <ErrorIcon
+                      sx={{
+                        fontSize: "0.9rem",
+                        color: theme.palette.warning.main,
+                      }}
+                    />
+                  ) : (
+                    <ChatIcon
+                      sx={{
+                        fontSize: "0.9rem",
+                        color: theme.palette.primary.main,
+                      }}
+                    />
+                  )}
                   {story.commentCount > 1 && (
                     <Typography
                       sx={{
@@ -85,7 +95,10 @@ export const MemoizedStoryCard = memo(
                         position: "absolute",
                         top: 0,
                         right: 0,
-                        backgroundColor: theme.palette.primary.main,
+                        backgroundColor:
+                          story.openCommentCount && story.openCommentCount > 0
+                            ? theme.palette.warning.main
+                            : theme.palette.primary.main,
                         color: "white",
                         borderRadius: "50%",
                         width: "12px",
@@ -96,7 +109,9 @@ export const MemoizedStoryCard = memo(
                       }}
                       variant="caption"
                     >
-                      {story.commentCount}
+                      {story.openCommentCount && story.openCommentCount > 0
+                        ? story.openCommentCount
+                        : story.commentCount}
                     </Typography>
                   )}
                 </IconButton>

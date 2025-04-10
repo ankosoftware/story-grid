@@ -131,6 +131,7 @@ export interface Issue {
   updatedAt?: Timestamp;
   attachments?: IssueAttachment[];
   commentCount?: number; // Number of comments on this issue
+  openCommentCount?: number; // Number of open comments on this issue
 }
 
 // Issue attachment model
@@ -152,6 +153,7 @@ export interface IssueComment {
   createdAt: Timestamp;
   createdBy: string; // User ID
   updatedAt?: Timestamp;
+  status: "open" | "closed"; // Track whether a comment is open or closed
 }
 
 // Release model

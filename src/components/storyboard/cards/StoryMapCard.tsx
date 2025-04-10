@@ -3,6 +3,7 @@ import { Card, CardContent, Box, Typography, IconButton, useTheme, Badge } from 
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChatIcon from "@mui/icons-material/Chat";
+import ErrorIcon from "@mui/icons-material/Error";
 import { Issue, IssuePriority } from "@/lib/firebase/models/types";
 import { getPriorityColor } from "../utils/colorUtils";
 
@@ -171,14 +172,22 @@ export const StoryMapCard = memo(
                       color:
                         type === "activity" || type === "epic"
                           ? "white"
-                          : theme.palette.primary.main,
+                          : item.openCommentCount && item.openCommentCount > 0
+                            ? theme.palette.warning.main
+                            : theme.palette.primary.main,
                     },
                   }}
                   onClick={handleCommentClick}
                 >
                   <Badge
-                    badgeContent={item.commentCount > 1 ? item.commentCount : undefined}
-                    color="error"
+                    badgeContent={
+                      item.openCommentCount && item.openCommentCount > 0
+                        ? item.openCommentCount
+                        : item.commentCount > 1
+                          ? item.commentCount
+                          : undefined
+                    }
+                    color={item.openCommentCount && item.openCommentCount > 0 ? "warning" : "error"}
                     sx={{
                       "& .MuiBadge-badge": {
                         fontSize: "0.6rem",
@@ -188,7 +197,11 @@ export const StoryMapCard = memo(
                       },
                     }}
                   >
-                    <ChatIcon sx={{ fontSize: "0.9rem" }} />
+                    {item.openCommentCount && item.openCommentCount > 0 ? (
+                      <ErrorIcon sx={{ fontSize: "0.9rem" }} />
+                    ) : (
+                      <ChatIcon sx={{ fontSize: "0.9rem" }} />
+                    )}
                   </Badge>
                 </IconButton>
               )}

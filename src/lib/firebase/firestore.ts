@@ -995,3 +995,34 @@ export const migrateToIssues = async (projectId: string): Promise<void> => {
     throw error;
   }
 };
+
+/**
+ * Updates display orders for multiple issues in a single batch operation
+ *
+ * @param updates - Array of objects containing issue ID and new display order
+ * @returns Promise that resolves when the batch update is complete
+ */
+export const batchUpdateIssueOrders = async (
+  updates: { id: string; displayOrder: number }[]
+): Promise<void> => {
+  // Skip if no updates
+  if (updates.length === 0) {
+    return;
+  }
+
+  // Create a batch
+  const batch = writeBatch(db);
+
+  // Add each update to the batch
+  updates.forEach(({ id, displayOrder }) => {
+    const issueRef = getIssueRef(id);
+    batch.update(issueRef, {
+      displayOrder,
+      updatedAt: Timestamp.now(),
+    });
+  });
+
+  // Commit the batch
+  await batch.commit();
+  console.log(`Batch updated ${updates.length} issues with new display orders`);
+};

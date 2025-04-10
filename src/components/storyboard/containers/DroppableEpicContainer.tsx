@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 import { useDrop } from "react-dnd";
 import { Issue } from "@/lib/firebase/models/types";
 import { ItemTypes } from "../utils/types";
-import { updateIssue } from "@/lib/firebase/firestore";
+import { updateIssue, batchUpdateIssueOrders } from "@/lib/firebase/firestore";
 
 interface DroppableEpicContainerProps {
   epic: Issue;
@@ -35,29 +35,55 @@ export const DroppableEpicContainer = memo(
           setDropIndicatorIndex(null);
           console.log("Dropping item", item, pendingDisplayOrder);
 
-          // Store the current pendingDisplayOrder in a local variable to ensure we use its value
-          const displayOrderToUse = pendingDisplayOrder;
-
-          // Only update the display order when the item is dropped
-          if (displayOrderToUse !== null && item.id) {
-            console.log("Updating issue display order on drop", item.id, displayOrderToUse);
-
-            updateIssue(item.id, {
-              displayOrder: displayOrderToUse,
-              // If the parent or release has changed, that's handled elsewhere
-              // This ensures display order is always updated
-            });
-          } else {
-            console.warn("Missing display order on drop for item:", item.id);
+          // Get the container element
+          const containerElement = dropRef.current;
+          if (!containerElement) {
+            console.warn("Container element not found during drop");
+            return { id: epic.id, type: "epic", releaseId };
           }
+
+          // Find all story cards in the container, including the one being dropped
+          const allStoryCards = Array.from(
+            containerElement.querySelectorAll("[data-story-id]")
+          ) as HTMLElement[];
+
+          // Create an array of story IDs in their visual order
+          const storyIds = allStoryCards.map(card => card.getAttribute("data-story-id") || "");
+
+          // Add the dropped item at the position indicated by dropIndicatorIndex
+          if (dropIndicatorIndex !== null && !storyIds.includes(item.id)) {
+            storyIds.splice(dropIndicatorIndex, 0, item.id);
+          }
+
+          // Filter out empty IDs
+          const validStoryIds = storyIds.filter(id => id !== "");
+
+          // Calculate new display orders for all stories
+          const BASE_ORDER = 100000;
+          const STEP = 100000;
+
+          // Create a batch of updates for all stories
+          const batchUpdates = validStoryIds.map((id, index) => ({
+            id,
+            displayOrder: (index + 1) * STEP,
+          }));
+
+          // Log the batch update
+          console.log(`Resequencing ${batchUpdates.length} items in a batch operation`);
+
+          // Use the batch update function
+          batchUpdateIssueOrders(batchUpdates).catch(error =>
+            console.error("Error updating display orders:", error)
+          );
 
           // Clear states after drop
           setPendingDisplayOrder(null);
           setDraggedItemId(null);
 
-          // When a story is dropped, return information about where it was dropped
+          // Return information about where it was dropped
           return { id: epic.id, type: "epic", releaseId };
         },
+
         hover: (
           item: {
             id: string;
@@ -97,8 +123,8 @@ export const DroppableEpicContainer = memo(
             // If no cards (or only the dragged card), place at beginning
             if (storyCards.length === 0) {
               setDropIndicatorIndex(0);
-              // If this is the first card in the epic, use a low display order (0)
-              setPendingDisplayOrder(0);
+              // Use a standard starting value for an empty container
+              setPendingDisplayOrder(100000);
               return;
             }
 
@@ -113,24 +139,9 @@ export const DroppableEpicContainer = memo(
                 setDropIndicatorIndex(i);
                 placedIndicator = true;
 
-                // Calculate new display order
-                let newDisplayOrder;
-                if (i === 0) {
-                  // First position: use lower than the first card's order
-                  const firstOrder = parseFloat(card.getAttribute("data-display-order") || "0");
-                  newDisplayOrder = Math.max(0, firstOrder - 1);
-                } else {
-                  // Middle position: between previous and current card
-                  const prevCard = storyCards[i - 1];
-                  const prevOrder = parseFloat(prevCard.getAttribute("data-display-order") || "0");
-                  const currOrder = parseFloat(card.getAttribute("data-display-order") || "0");
-                  newDisplayOrder = (prevOrder + currOrder) / 2;
-                }
-
-                // Set pending display order update (but don't update yet)
-                if (newDisplayOrder !== undefined) {
-                  setPendingDisplayOrder(newDisplayOrder);
-                }
+                // Calculate new display order based on position
+                const newDisplayOrder = (i + 1) * 100000;
+                setPendingDisplayOrder(newDisplayOrder);
                 break;
               }
             }
@@ -139,22 +150,22 @@ export const DroppableEpicContainer = memo(
             if (!placedIndicator) {
               setDropIndicatorIndex(storyCards.length);
 
-              // Last position: use higher than the last card's order
-              const lastCard = storyCards[storyCards.length - 1];
-              const lastOrder = parseFloat(lastCard.getAttribute("data-display-order") || "0");
-              setPendingDisplayOrder(lastOrder + 1);
+              // Calculate position-based display order for the end position
+              const newDisplayOrder = (storyCards.length + 1) * 100000;
+              setPendingDisplayOrder(newDisplayOrder);
             }
           } else {
             // If not hovering over a story or different type, clear indicator
             setDropIndicatorIndex(null);
           }
         },
+
         collect: monitor => ({
           isOver: monitor.isOver(),
           canDrop: monitor.canDrop(),
         }),
       },
-      [epic.id, releaseId, pendingDisplayOrder]
+      [epic.id, releaseId, pendingDisplayOrder, dropIndicatorIndex]
     );
 
     // Apply the drop ref to our container ref

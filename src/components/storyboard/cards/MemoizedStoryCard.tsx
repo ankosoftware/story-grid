@@ -57,7 +57,7 @@ export const MemoizedStoryCard = memo(
               }}
               variant="body2"
             >
-              {story?.displayOrder} {story.name}
+              {story.name}
             </Typography>
             <IconButton
               size="small"

@@ -48,6 +48,7 @@ interface StoryMapProps {
       priority?: IssuePriority;
       assignee?: string;
       releaseId?: string;
+      storyPoints?: number;
     }
   ) => Promise<string>;
   onAddRelease: (
@@ -231,6 +232,7 @@ type StoryDialogProps = {
       priority?: IssuePriority;
       assignee?: string;
       releaseId?: string;
+      storyPoints?: number;
     }
   ) => Promise<string>;
   epicId: string | null;
@@ -239,6 +241,7 @@ type StoryDialogProps = {
 const StoryDialog = ({ open, onClose, onAddStory, epicId }: StoryDialogProps) => {
   const [storyName, setStoryName] = useState("");
   const [storyDescription, setStoryDescription] = useState("");
+  const [storyPoints, setStoryPoints] = useState<number | undefined>(undefined);
   const [addingStory, setAddingStory] = useState(false);
   const [storyError, setStoryError] = useState<string | null>(null);
 
@@ -256,12 +259,26 @@ const StoryDialog = ({ open, onClose, onAddStory, epicId }: StoryDialogProps) =>
       setStoryError(null);
       await onAddStory(epicId, storyName, {
         description: storyDescription.trim() ? storyDescription : undefined,
+        storyPoints: storyPoints,
       });
       onClose();
     } catch (err) {
       setStoryError((err as Error).message || "Failed to create story");
     } finally {
       setAddingStory(false);
+    }
+  };
+
+  // Helper function to handle numeric input for story points
+  const handleStoryPointsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "") {
+      setStoryPoints(undefined);
+    } else {
+      const numValue = parseInt(value, 10);
+      if (!isNaN(numValue) && numValue >= 0) {
+        setStoryPoints(numValue);
+      }
     }
   };
 
@@ -291,6 +308,21 @@ const StoryDialog = ({ open, onClose, onAddStory, epicId }: StoryDialogProps) =>
           value={storyDescription}
           onChange={e => setStoryDescription(e.target.value)}
         />
+
+        <TextField
+          fullWidth
+          disabled={addingStory}
+          InputProps={{
+            inputProps: { min: 0 },
+          }}
+          label="Story Points"
+          margin="dense"
+          sx={{ mt: 2, mb: 2 }}
+          type="number"
+          value={storyPoints === undefined ? "" : storyPoints}
+          onChange={handleStoryPointsChange}
+        />
+
         <Box sx={{ mt: 2 }}>
           <Typography gutterBottom color="text.secondary" variant="body2">
             Tip: Write user stories in the format As a [persona], I want to [do something] so that
@@ -461,6 +493,17 @@ const StoryDetailDialog = ({
             />
           </Box>
 
+          {story.storyPoints !== undefined && (
+            <Box sx={{ minWidth: "120px", mb: 2 }}>
+              <Typography color="text.secondary" variant="caption">
+                Story Points
+              </Typography>
+              <Typography fontWeight="bold" variant="body2">
+                {story.storyPoints}
+              </Typography>
+            </Box>
+          )}
+
           {story.assignee && (
             <Box sx={{ minWidth: "120px", mb: 2 }}>
               <Typography color="text.secondary" variant="caption">
@@ -512,6 +555,7 @@ const EditItemDialog = ({
   const [editStatus, setEditStatus] = useState<IssueStatus>(IssueStatus.TO_DO);
   const [editPriority, setEditPriority] = useState<IssuePriority>(IssuePriority.MEDIUM);
   const [editReleaseId, setEditReleaseId] = useState<string>("");
+  const [editStoryPoints, setEditStoryPoints] = useState<number | undefined>(undefined);
   const [editingError, setEditingError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -523,6 +567,7 @@ const EditItemDialog = ({
       setEditStatus(item.status || IssueStatus.TO_DO);
       setEditPriority(item.priority || IssuePriority.MEDIUM);
       setEditReleaseId(item.releaseId || "");
+      setEditStoryPoints(item.storyPoints);
       setEditingError(null);
     }
   }, [item]);
@@ -551,6 +596,7 @@ const EditItemDialog = ({
         updatedData.status = editStatus;
         updatedData.priority = editPriority;
         updatedData.releaseId = editReleaseId || null;
+        updatedData.storyPoints = editStoryPoints;
       }
 
       await onUpdateItem(item, updatedData);
@@ -559,6 +605,19 @@ const EditItemDialog = ({
       setEditingError((err as Error).message || `Failed to update ${itemType}`);
     } finally {
       setIsEditing(false);
+    }
+  };
+
+  // Helper function to handle numeric input for story points
+  const handleStoryPointsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "") {
+      setEditStoryPoints(undefined);
+    } else {
+      const numValue = parseInt(value, 10);
+      if (!isNaN(numValue) && numValue >= 0) {
+        setEditStoryPoints(numValue);
+      }
     }
   };
 
@@ -640,6 +699,21 @@ const EditItemDialog = ({
                 </MenuItem>
               ))}
             </TextField>
+
+            {/* Story Points field */}
+            <TextField
+              fullWidth
+              disabled={isEditing}
+              InputProps={{
+                inputProps: { min: 0 },
+              }}
+              label="Story Points"
+              margin="dense"
+              sx={{ mb: 2 }}
+              type="number"
+              value={editStoryPoints === undefined ? "" : editStoryPoints}
+              onChange={handleStoryPointsChange}
+            />
 
             {/* Release dropdown */}
             <TextField
@@ -740,18 +814,37 @@ const MemoizedStoryCard = memo(
               <MoreVertIcon fontSize="small" />
             </IconButton>
           </Box>
-          {story.status !== IssueStatus.TO_DO && (
-            <Chip
-              label={story.status}
-              size="small"
-              sx={{
-                mt: 1,
-                fontSize: "0.7rem",
-                bgcolor: getStatusColor(story.status),
-                height: "18px",
-              }}
-            />
-          )}
+
+          <Box
+            sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", mt: 1 }}
+          >
+            {story.status !== IssueStatus.TO_DO && (
+              <Chip
+                label={story.status}
+                size="small"
+                sx={{
+                  fontSize: "0.7rem",
+                  bgcolor: getStatusColor(story.status),
+                  height: "18px",
+                }}
+              />
+            )}
+            {story.storyPoints !== undefined && (
+              <Chip
+                label={story.storyPoints}
+                size="small"
+                sx={{
+                  ml: "auto",
+                  fontSize: "0.7rem",
+                  height: "18px",
+                  fontWeight: "bold",
+                  bgcolor: theme.palette.grey[200],
+                  minWidth: "18px",
+                  borderRadius: "50%",
+                }}
+              />
+            )}
+          </Box>
         </CardContent>
       </Card>
     );

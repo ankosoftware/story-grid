@@ -399,6 +399,7 @@ export const createIssue = async (
     priority?: IssuePriority;
     assignee?: string | null;
     releaseId?: string | null;
+    storyPoints?: number;
     displayOrder?: number;
   }
 ): Promise<string> => {
@@ -466,6 +467,7 @@ export const createIssue = async (
     priority: options?.priority || IssuePriority.MEDIUM,
     assignee: options?.assignee || null,
     releaseId: options?.releaseId || null,
+    storyPoints: options?.storyPoints,
     displayOrder: order,
     createdAt: Timestamp.now(),
     createdBy: userId,

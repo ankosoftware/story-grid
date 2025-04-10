@@ -533,6 +533,7 @@ export const useStoryBoard = (projectId: string) => {
       priority?: IssuePriority;
       assignee?: string;
       releaseId?: string;
+      storyPoints?: number;
     }
   ): Promise<string> => {
     if (!user) {
@@ -548,6 +549,7 @@ export const useStoryBoard = (projectId: string) => {
         priority: options?.priority || IssuePriority.MEDIUM,
         assignee: options?.assignee,
         releaseId: options?.releaseId,
+        storyPoints: options?.storyPoints,
       });
 
       // Create new story object for local state update
@@ -564,6 +566,7 @@ export const useStoryBoard = (projectId: string) => {
         priority: options?.priority || IssuePriority.MEDIUM,
         assignee: options?.assignee,
         releaseId: options?.releaseId,
+        storyPoints: options?.storyPoints,
         displayOrder:
           storiesForEpic.length > 0 ? Math.max(...storiesForEpic.map(s => s.displayOrder)) + 1 : 0,
         createdAt: Timestamp.now(),

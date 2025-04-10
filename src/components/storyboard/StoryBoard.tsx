@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import {
   Box,
   Typography,
@@ -60,6 +60,682 @@ interface StoryMapProps {
   onMoveIssue?: (issueId: string, releaseId: string | null) => Promise<void>;
 }
 
+// Extract dialogs to separate components
+type ActivityDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onAddActivity: (name: string, description?: string) => Promise<string>;
+};
+
+const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogProps) => {
+  const [activityName, setActivityName] = useState("");
+  const [activityDescription, setActivityDescription] = useState("");
+  const [addingActivity, setAddingActivity] = useState(false);
+  const [activityError, setActivityError] = useState<string | null>(null);
+
+  const handleCreateActivity = async () => {
+    if (!activityName.trim()) {
+      setActivityError("Activity name is required");
+      return;
+    }
+    try {
+      setAddingActivity(true);
+      setActivityError(null);
+      await onAddActivity(
+        activityName,
+        activityDescription.trim() ? activityDescription : undefined
+      );
+      onClose();
+    } catch (err) {
+      setActivityError((err as Error).message || "Failed to create activity");
+    } finally {
+      setAddingActivity(false);
+    }
+  };
+
+  return (
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+      <DialogTitle>Add New Activity/Goal</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          fullWidth
+          disabled={addingActivity}
+          error={!!activityError}
+          helperText={activityError}
+          label="Activity Name"
+          margin="dense"
+          sx={{ mb: 2 }}
+          value={activityName}
+          onChange={e => setActivityName(e.target.value)}
+        />
+        <TextField
+          fullWidth
+          multiline
+          disabled={addingActivity}
+          label="Description (optional)"
+          margin="dense"
+          rows={3}
+          value={activityDescription}
+          onChange={e => setActivityDescription(e.target.value)}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button disabled={addingActivity} onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          disabled={addingActivity}
+          startIcon={addingActivity ? <CircularProgress size={20} /> : undefined}
+          variant="contained"
+          onClick={handleCreateActivity}
+        >
+          {addingActivity ? "Creating..." : "Create Activity"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Extract Epic dialog to a separate component
+type EpicDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onAddEpic: (backboneId: string, name: string, description?: string) => Promise<string>;
+  activityId: string | null;
+};
+
+const EpicDialog = ({ open, onClose, onAddEpic, activityId }: EpicDialogProps) => {
+  const [epicName, setEpicName] = useState("");
+  const [epicDescription, setEpicDescription] = useState("");
+  const [addingEpic, setAddingEpic] = useState(false);
+  const [epicError, setEpicError] = useState<string | null>(null);
+
+  const handleCreateEpic = async () => {
+    if (!activityId) {
+      setEpicError("No activity selected");
+      return;
+    }
+    if (!epicName.trim()) {
+      setEpicError("Epic name is required");
+      return;
+    }
+    try {
+      setAddingEpic(true);
+      setEpicError(null);
+      await onAddEpic(activityId, epicName, epicDescription.trim() ? epicDescription : undefined);
+      onClose();
+    } catch (err) {
+      setEpicError((err as Error).message || "Failed to create epic");
+    } finally {
+      setAddingEpic(false);
+    }
+  };
+
+  return (
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+      <DialogTitle>Add New User Task</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          fullWidth
+          disabled={addingEpic}
+          error={!!epicError}
+          helperText={epicError}
+          label="Task Name"
+          margin="dense"
+          sx={{ mb: 2 }}
+          value={epicName}
+          onChange={e => setEpicName(e.target.value)}
+        />
+        <TextField
+          fullWidth
+          multiline
+          disabled={addingEpic}
+          label="Description (optional)"
+          margin="dense"
+          rows={3}
+          value={epicDescription}
+          onChange={e => setEpicDescription(e.target.value)}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button disabled={addingEpic} onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          disabled={addingEpic}
+          startIcon={addingEpic ? <CircularProgress size={20} /> : undefined}
+          variant="contained"
+          onClick={handleCreateEpic}
+        >
+          {addingEpic ? "Creating..." : "Create Task"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Extract Story dialog component
+type StoryDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onAddStory: (
+    epicId: string,
+    name: string,
+    options?: {
+      description?: string;
+      acceptanceCriteria?: string;
+      status?: IssueStatus;
+      priority?: IssuePriority;
+      assignee?: string;
+      releaseId?: string;
+    }
+  ) => Promise<string>;
+  epicId: string | null;
+};
+
+const StoryDialog = ({ open, onClose, onAddStory, epicId }: StoryDialogProps) => {
+  const [storyName, setStoryName] = useState("");
+  const [storyDescription, setStoryDescription] = useState("");
+  const [addingStory, setAddingStory] = useState(false);
+  const [storyError, setStoryError] = useState<string | null>(null);
+
+  const handleCreateStory = async () => {
+    if (!epicId) {
+      setStoryError("No epic selected");
+      return;
+    }
+    if (!storyName.trim()) {
+      setStoryError("Story name is required");
+      return;
+    }
+    try {
+      setAddingStory(true);
+      setStoryError(null);
+      await onAddStory(epicId, storyName, {
+        description: storyDescription.trim() ? storyDescription : undefined,
+      });
+      onClose();
+    } catch (err) {
+      setStoryError((err as Error).message || "Failed to create story");
+    } finally {
+      setAddingStory(false);
+    }
+  };
+
+  return (
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+      <DialogTitle>Add New User Story</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          fullWidth
+          disabled={addingStory}
+          error={!!storyError}
+          helperText={storyError}
+          label="Story Name"
+          margin="dense"
+          sx={{ mb: 2 }}
+          value={storyName}
+          onChange={e => setStoryName(e.target.value)}
+        />
+        <TextField
+          fullWidth
+          multiline
+          disabled={addingStory}
+          label="Description (optional)"
+          margin="dense"
+          rows={3}
+          value={storyDescription}
+          onChange={e => setStoryDescription(e.target.value)}
+        />
+        <Box sx={{ mt: 2 }}>
+          <Typography gutterBottom color="text.secondary" variant="body2">
+            Tip: Write user stories in the format As a [persona], I want to [do something] so that
+            [benefit]
+          </Typography>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button disabled={addingStory} onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          disabled={addingStory}
+          startIcon={addingStory ? <CircularProgress size={20} /> : undefined}
+          variant="contained"
+          onClick={handleCreateStory}
+        >
+          {addingStory ? "Creating..." : "Create Story"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Extract Release dialog component
+type ReleaseDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onAddRelease: (
+    name: string,
+    options?: {
+      description?: string;
+      startDate?: Date;
+      endDate?: Date;
+    }
+  ) => Promise<string>;
+};
+
+const ReleaseDialog = ({ open, onClose, onAddRelease }: ReleaseDialogProps) => {
+  const [releaseName, setReleaseName] = useState("");
+  const [releaseDescription, setReleaseDescription] = useState("");
+  const [addingRelease, setAddingRelease] = useState(false);
+  const [releaseError, setReleaseError] = useState<string | null>(null);
+
+  const handleCreateRelease = async () => {
+    if (!releaseName.trim()) {
+      setReleaseError("Release name is required");
+      return;
+    }
+    try {
+      setAddingRelease(true);
+      setReleaseError(null);
+      await onAddRelease(releaseName, {
+        description: releaseDescription.trim() ? releaseDescription : undefined,
+      });
+      onClose();
+    } catch (err) {
+      setReleaseError((err as Error).message || "Failed to create release");
+    } finally {
+      setAddingRelease(false);
+    }
+  };
+
+  return (
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+      <DialogTitle>Add New Release</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          fullWidth
+          disabled={addingRelease}
+          error={!!releaseError}
+          helperText={releaseError}
+          label="Release Name"
+          margin="dense"
+          sx={{ mb: 2 }}
+          value={releaseName}
+          onChange={e => setReleaseName(e.target.value)}
+        />
+        <TextField
+          fullWidth
+          multiline
+          disabled={addingRelease}
+          label="Description (optional)"
+          margin="dense"
+          rows={3}
+          value={releaseDescription}
+          onChange={e => setReleaseDescription(e.target.value)}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button disabled={addingRelease} onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          disabled={addingRelease}
+          startIcon={addingRelease ? <CircularProgress size={20} /> : undefined}
+          variant="contained"
+          onClick={handleCreateRelease}
+        >
+          {addingRelease ? "Creating..." : "Create Release"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Extract StoryDetail dialog component
+type StoryDetailDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  story: Issue | null;
+  releases: Release[];
+  getStatusColor: (status: IssueStatus) => string;
+  getPriorityColor: (priority: IssuePriority) => string;
+};
+
+const StoryDetailDialog = ({
+  open,
+  onClose,
+  story,
+  releases,
+  getStatusColor,
+  getPriorityColor,
+}: StoryDetailDialogProps) => {
+  if (!story) {
+    return null;
+  }
+
+  return (
+    <Dialog fullWidth maxWidth="md" open={open} onClose={onClose}>
+      <DialogTitle>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Typography variant="h6">{story.name}</Typography>
+          <Chip label={story.status} size="small" sx={{ bgcolor: getStatusColor(story.status) }} />
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Box sx={{ mb: 3 }}>
+          <Typography gutterBottom color="text.secondary" variant="subtitle2">
+            Description
+          </Typography>
+          <Typography variant="body2">{story.description || "No description provided."}</Typography>
+        </Box>
+
+        {story.acceptanceCriteria && (
+          <Box sx={{ mb: 3 }}>
+            <Typography gutterBottom color="text.secondary" variant="subtitle2">
+              Acceptance Criteria
+            </Typography>
+            <Typography variant="body2">{story.acceptanceCriteria}</Typography>
+          </Box>
+        )}
+
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+          <Box sx={{ minWidth: "120px", mb: 2 }}>
+            <Typography color="text.secondary" variant="caption">
+              Priority
+            </Typography>
+            <Chip
+              label={story.priority}
+              size="small"
+              sx={{
+                bgcolor: getPriorityColor(story.priority) + "20",
+                color: getPriorityColor(story.priority),
+                fontWeight: "bold",
+              }}
+            />
+          </Box>
+
+          {story.assignee && (
+            <Box sx={{ minWidth: "120px", mb: 2 }}>
+              <Typography color="text.secondary" variant="caption">
+                Assignee
+              </Typography>
+              <Typography variant="body2">{story.assignee}</Typography>
+            </Box>
+          )}
+
+          {story.releaseId && (
+            <Box sx={{ minWidth: "120px", mb: 2 }}>
+              <Typography color="text.secondary" variant="caption">
+                Release
+              </Typography>
+              <Typography variant="body2">
+                {releases.find(r => r.id === story.releaseId)?.name || "Unknown"}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Extract EditItem dialog component
+type EditItemDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  item: Issue | null;
+  itemType: "activity" | "epic" | "story" | null;
+  releases: Release[];
+};
+
+const EditItemDialog = ({ open, onClose, item, itemType, releases }: EditItemDialogProps) => {
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editingError, setEditingError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Reset form when item changes
+  React.useEffect(() => {
+    if (item) {
+      setEditName(item.name);
+      setEditDescription(item.description || "");
+      setEditingError(null);
+    }
+  }, [item]);
+
+  const handleSaveEdit = async () => {
+    if (!item || !itemType) {
+      return;
+    }
+
+    if (!editName.trim()) {
+      setEditingError(`${itemType} name is required`);
+      return;
+    }
+
+    try {
+      setIsEditing(true);
+      setEditingError(null);
+
+      // Here you would call your update function
+      // For now, we'll just log the edit
+      console.log(`Editing ${itemType}:`, {
+        id: item.id,
+        name: editName,
+        description: editDescription,
+      });
+
+      // TODO: Add actual update functionality
+      // await onUpdateItem(item.id, editName, editDescription);
+
+      onClose();
+    } catch (err) {
+      setEditingError((err as Error).message || `Failed to update ${itemType}`);
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  return (
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+      <DialogTitle>
+        {itemType && `Edit ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`}
+      </DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          fullWidth
+          disabled={isEditing}
+          error={!!editingError}
+          helperText={editingError}
+          label="Name"
+          margin="dense"
+          sx={{ mb: 2 }}
+          value={editName}
+          onChange={e => setEditName(e.target.value)}
+        />
+        <TextField
+          fullWidth
+          multiline
+          disabled={isEditing}
+          label="Description"
+          margin="dense"
+          rows={3}
+          value={editDescription}
+          onChange={e => setEditDescription(e.target.value)}
+        />
+
+        {/* Add additional fields for stories */}
+        {itemType === "story" && item && (
+          <>
+            <Box sx={{ mt: 3, mb: 2 }}>
+              <Typography color="text.secondary" variant="subtitle2">
+                Additional Details
+              </Typography>
+            </Box>
+
+            {/* Status dropdown */}
+            <TextField
+              fullWidth
+              select
+              disabled={isEditing}
+              label="Status"
+              margin="dense"
+              sx={{ mb: 2 }}
+              value={item.status || IssueStatus.TO_DO}
+            >
+              {Object.values(IssueStatus).map(status => (
+                <MenuItem key={status} value={status}>
+                  {status}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            {/* Priority dropdown */}
+            <TextField
+              fullWidth
+              select
+              disabled={isEditing}
+              label="Priority"
+              margin="dense"
+              sx={{ mb: 2 }}
+              value={item.priority || IssuePriority.MEDIUM}
+            >
+              {Object.values(IssuePriority).map(priority => (
+                <MenuItem key={priority} value={priority}>
+                  {priority}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            {/* Release dropdown */}
+            <TextField
+              fullWidth
+              select
+              disabled={isEditing}
+              label="Release"
+              margin="dense"
+              value={item.releaseId || ""}
+            >
+              <MenuItem value="">No Release</MenuItem>
+              {releases.map(release => (
+                <MenuItem key={release.id} value={release.id}>
+                  {release.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button disabled={isEditing} onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          disabled={isEditing}
+          startIcon={isEditing ? <CircularProgress size={20} /> : undefined}
+          variant="contained"
+          onClick={handleSaveEdit}
+        >
+          {isEditing ? "Saving..." : "Save Changes"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Create a memoized story card component
+const MemoizedStoryCard = memo(
+  ({
+    story,
+    getStatusColor,
+    getPriorityColor,
+    handleOpenMoveMenu,
+    handleOpenItemForEdit,
+  }: {
+    story: Issue;
+    getStatusColor: (status: IssueStatus) => string;
+    getPriorityColor: (priority: IssuePriority) => string;
+    handleOpenMoveMenu: (event: React.MouseEvent<HTMLElement>, storyId: string) => void;
+    handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
+  }) => {
+    const theme = useTheme();
+
+    // Card styling based on type
+    const cardStyles = {
+      bgcolor: "white",
+      color: "text.primary",
+      height: "60px",
+      width: "100px",
+      border: "1px solid #e0e0e0",
+      borderLeft: `4px solid ${getPriorityColor(story.priority)}`,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+      mb: 1,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      cursor: "pointer",
+      "&:hover": {
+        boxShadow: 3,
+        transition: "box-shadow 0.2s ease-in-out",
+      },
+    };
+
+    return (
+      <Card sx={cardStyles} onClick={() => handleOpenItemForEdit(story, "story")}>
+        <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <Typography
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              variant="body2"
+            >
+              {story.name}
+            </Typography>
+            <IconButton
+              size="small"
+              sx={{ mt: -0.5, mr: -0.5 }}
+              onClick={e => {
+                e.stopPropagation(); // Prevent card click when clicking the menu
+                handleOpenMoveMenu(e, story.id);
+              }}
+            >
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          {story.status !== IssueStatus.TO_DO && (
+            <Chip
+              label={story.status}
+              size="small"
+              sx={{
+                mt: 1,
+                fontSize: "0.7rem",
+                bgcolor: getStatusColor(story.status),
+                height: "18px",
+              }}
+            />
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+);
+
+// Add displayName to fix the linter warning
+MemoizedStoryCard.displayName = "MemoizedStoryCard";
+
 export default function StoryMap({
   projectId,
   activities,
@@ -81,30 +757,13 @@ export default function StoryMap({
   // Local state for dialogs, menus, etc.
   // --------------------------
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
-  const [activityName, setActivityName] = useState("");
-  const [activityDescription, setActivityDescription] = useState("");
-  const [addingActivity, setAddingActivity] = useState(false);
-  const [activityError, setActivityError] = useState<string | null>(null);
-
   const [epicDialogOpen, setEpicDialogOpen] = useState(false);
-  const [epicName, setEpicName] = useState("");
-  const [epicDescription, setEpicDescription] = useState("");
-  const [addingEpic, setAddingEpic] = useState(false);
-  const [epicError, setEpicError] = useState<string | null>(null);
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
 
   const [storyDialogOpen, setStoryDialogOpen] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
-  const [storyName, setStoryName] = useState("");
-  const [storyDescription, setStoryDescription] = useState("");
-  const [addingStory, setAddingStory] = useState(false);
-  const [storyError, setStoryError] = useState<string | null>(null);
 
   const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
-  const [releaseName, setReleaseName] = useState("");
-  const [releaseDescription, setReleaseDescription] = useState("");
-  const [addingRelease, setAddingRelease] = useState(false);
-  const [releaseError, setReleaseError] = useState<string | null>(null);
 
   // State for move story menu
   const [moveMenuAnchorEl, setMoveMenuAnchorEl] = useState<null | HTMLElement>(null);
@@ -121,256 +780,102 @@ export default function StoryMap({
   const [editingItemType, setEditingItemType] = useState<"activity" | "epic" | "story" | null>(
     null
   );
-  const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editingError, setEditingError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
 
   // --------------------------
-  // Handlers for Move Issue Menu
+  // Memoized handler functions to avoid unnecessary rerenders
   // --------------------------
-  const handleOpenMoveMenu = (event: React.MouseEvent<HTMLElement>, storyId: string) => {
-    event.stopPropagation();
-    setMoveMenuAnchorEl(event.currentTarget);
-    setSelectedStoryId(storyId);
-  };
+  const handleOpenMoveMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>, storyId: string) => {
+      event.stopPropagation();
+      setMoveMenuAnchorEl(event.currentTarget);
+      setSelectedStoryId(storyId);
+    },
+    []
+  );
 
-  const handleCloseMoveMenu = () => {
+  const handleCloseMoveMenu = useCallback(() => {
     setMoveMenuAnchorEl(null);
     setSelectedStoryId(null);
-  };
+  }, []);
 
-  const handleMoveStory = async (releaseId: string | null) => {
-    if (!selectedStoryId || !onMoveIssue) {
-      handleCloseMoveMenu();
-      return;
-    }
-    try {
-      setMovingStory(true);
-      await onMoveIssue(selectedStoryId, releaseId);
-    } catch (error) {
-      console.error("Failed to move story:", error);
-    } finally {
-      setMovingStory(false);
-      handleCloseMoveMenu();
-    }
-  };
+  const handleMoveStory = useCallback(
+    async (releaseId: string | null) => {
+      if (!selectedStoryId || !onMoveIssue) {
+        handleCloseMoveMenu();
+        return;
+      }
+      try {
+        setMovingStory(true);
+        await onMoveIssue(selectedStoryId, releaseId);
+      } catch (error) {
+        console.error("Failed to move story:", error);
+      } finally {
+        setMovingStory(false);
+        handleCloseMoveMenu();
+      }
+    },
+    [selectedStoryId, onMoveIssue, handleCloseMoveMenu]
+  );
 
-  // --------------------------
-  // Handlers for Activity Dialog
-  // --------------------------
-  const handleOpenActivityDialog = () => {
-    setActivityDialogOpen(true);
-    setActivityName("");
-    setActivityDescription("");
-    setActivityError(null);
-  };
-
-  const handleCloseActivityDialog = () => {
-    setActivityDialogOpen(false);
-  };
-
-  const handleCreateActivity = async () => {
-    if (!activityName.trim()) {
-      setActivityError("Activity name is required");
-      return;
-    }
-    try {
-      setAddingActivity(true);
-      setActivityError(null);
-      await onAddActivity(
-        activityName,
-        activityDescription.trim() ? activityDescription : undefined
-      );
-      handleCloseActivityDialog();
-    } catch (err) {
-      setActivityError((err as Error).message || "Failed to create activity");
-    } finally {
-      setAddingActivity(false);
-    }
-  };
-
-  // --------------------------
-  // Handlers for Epic Dialog
-  // --------------------------
-  const handleOpenEpicDialog = (activityId: string) => {
+  // Handler for Epic Dialog
+  const handleOpenEpicDialog = useCallback((activityId: string) => {
     setSelectedActivityId(activityId);
     setEpicDialogOpen(true);
-    setEpicName("");
-    setEpicDescription("");
-    setEpicError(null);
-  };
+  }, []);
 
-  const handleCloseEpicDialog = () => {
+  const handleCloseEpicDialog = useCallback(() => {
     setEpicDialogOpen(false);
     setSelectedActivityId(null);
-  };
+  }, []);
 
-  const handleCreateEpic = async () => {
-    if (!selectedActivityId) {
-      setEpicError("No activity selected");
-      return;
-    }
-    if (!epicName.trim()) {
-      setEpicError("Epic name is required");
-      return;
-    }
-    try {
-      setAddingEpic(true);
-      setEpicError(null);
-      await onAddEpic(
-        selectedActivityId,
-        epicName,
-        epicDescription.trim() ? epicDescription : undefined
-      );
-      handleCloseEpicDialog();
-    } catch (err) {
-      setEpicError((err as Error).message || "Failed to create epic");
-    } finally {
-      setAddingEpic(false);
-    }
-  };
-
-  // --------------------------
-  // Handlers for Story Dialog
-  // --------------------------
-  const handleOpenStoryDialog = (epicId: string) => {
+  // Handler for Story Dialog
+  const handleOpenStoryDialog = useCallback((epicId: string) => {
     setSelectedParentId(epicId);
     setStoryDialogOpen(true);
-    setStoryName("");
-    setStoryDescription("");
-    setStoryError(null);
-  };
+  }, []);
 
-  const handleCloseStoryDialog = () => {
+  const handleCloseStoryDialog = useCallback(() => {
     setStoryDialogOpen(false);
     setSelectedParentId(null);
-  };
+  }, []);
 
-  const handleCreateStory = async () => {
-    if (!selectedParentId) {
-      setStoryError("No epic selected");
-      return;
-    }
-    if (!storyName.trim()) {
-      setStoryError("Story name is required");
-      return;
-    }
-    try {
-      setAddingStory(true);
-      setStoryError(null);
-      await onAddStory(selectedParentId, storyName, {
-        description: storyDescription.trim() ? storyDescription : undefined,
-      });
-      handleCloseStoryDialog();
-    } catch (err) {
-      setStoryError((err as Error).message || "Failed to create story");
-    } finally {
-      setAddingStory(false);
-    }
-  };
-
-  // --------------------------
-  // Handlers for Release Dialog
-  // --------------------------
-  const handleOpenReleaseDialog = () => {
+  // Handler for Release Dialog
+  const handleOpenReleaseDialog = useCallback(() => {
     setReleaseDialogOpen(true);
-    setReleaseName("");
-    setReleaseDescription("");
-    setReleaseError(null);
-  };
+  }, []);
 
-  const handleCloseReleaseDialog = () => {
+  const handleCloseReleaseDialog = useCallback(() => {
     setReleaseDialogOpen(false);
-  };
+  }, []);
 
-  const handleCreateRelease = async () => {
-    if (!releaseName.trim()) {
-      setReleaseError("Release name is required");
-      return;
-    }
-    try {
-      setAddingRelease(true);
-      setReleaseError(null);
-      await onAddRelease(releaseName, {
-        description: releaseDescription.trim() ? releaseDescription : undefined,
-      });
-      handleCloseReleaseDialog();
-    } catch (err) {
-      setReleaseError((err as Error).message || "Failed to create release");
-    } finally {
-      setAddingRelease(false);
-    }
-  };
-
-  // --------------------------
-  // Add handler for opening story detail dialog
-  // --------------------------
-  const handleOpenStoryDetail = (story: Issue) => {
+  // Handler for Story Detail
+  const handleOpenStoryDetail = useCallback((story: Issue) => {
     setSelectedStory(story);
     setStoryDetailDialogOpen(true);
-  };
+  }, []);
 
-  const handleCloseStoryDetail = () => {
+  const handleCloseStoryDetail = useCallback(() => {
     setStoryDetailDialogOpen(false);
     setSelectedStory(null);
-  };
+  }, []);
 
-  // --------------------------
-  // Add handlers for opening items for editing
-  // --------------------------
-  const handleOpenItemForEdit = (item: Issue, type: "activity" | "epic" | "story") => {
+  // Handler for editing items
+  const handleOpenItemForEdit = useCallback((item: Issue, type: "activity" | "epic" | "story") => {
     setEditingItem(item);
     setEditingItemType(type);
-    setEditName(item.name);
-    setEditDescription(item.description || "");
-    setEditingError(null);
     setEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleCloseEditDialog = () => {
+  const handleCloseEditDialog = useCallback(() => {
     setEditDialogOpen(false);
     setEditingItem(null);
     setEditingItemType(null);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingItem || !editingItemType) {
-      return;
-    }
-
-    if (!editName.trim()) {
-      setEditingError(`${editingItemType} name is required`);
-      return;
-    }
-
-    try {
-      setIsEditing(true);
-      setEditingError(null);
-
-      // Here you would call your update function
-      // For now, we'll just log the edit
-      console.log(`Editing ${editingItemType}:`, {
-        id: editingItem.id,
-        name: editName,
-        description: editDescription,
-      });
-
-      // TODO: Add actual update functionality
-      // await onUpdateItem(editingItem.id, editName, editDescription);
-
-      handleCloseEditDialog();
-    } catch (err) {
-      setEditingError((err as Error).message || `Failed to update ${editingItemType}`);
-    } finally {
-      setIsEditing(false);
-    }
-  };
+  }, []);
 
   // --------------------------
-  // Helper functions for color coding
+  // Memoized Helper functions for color coding
   // --------------------------
-  const getStatusColor = (status: IssueStatus) => {
+  const getStatusColor = useCallback((status: IssueStatus) => {
     switch (status) {
       case IssueStatus.TO_DO:
         return "#e0e0e0";
@@ -381,9 +886,9 @@ export default function StoryMap({
       default:
         return "#e0e0e0";
     }
-  };
+  }, []);
 
-  const getPriorityColor = (priority: IssuePriority) => {
+  const getPriorityColor = useCallback((priority: IssuePriority) => {
     switch (priority) {
       case IssuePriority.HIGH:
         return "#f44336";
@@ -394,156 +899,157 @@ export default function StoryMap({
       default:
         return "#ff9800";
     }
-  };
+  }, []);
 
   // --------------------------
-  // Reusable Card Components
+  // Memoized rendering function for Story cards
   // --------------------------
-  const StoryMapCard = ({
-    type,
-    item,
-    onAction,
-    onClick,
-    children,
-    isAddCard = false,
-  }: {
-    type: "activity" | "epic" | "story" | "blank" | "release";
-    item?: Issue;
-    onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
-    onClick?: () => void;
-    children?: React.ReactNode;
-    isAddCard?: boolean;
-  }) => {
-    // Card styling based on type
-    const cardStyles = {
-      activity: {
-        bgcolor: theme.palette.primary.main,
-        color: "white",
-        height: "60px",
-        width: "100px",
-      },
-      epic: {
-        bgcolor: "#00acc1",
-        color: "white",
-        height: "60px",
-        width: "100px",
-      },
-      story: {
-        bgcolor: "white",
-        color: "text.primary",
-        height: "60px",
-        width: "100px",
-        border: "1px solid #e0e0e0",
-        borderLeft: item ? `4px solid ${getPriorityColor(item?.priority)}` : undefined,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-      },
-      blank: {
-        bgcolor: "white",
-        color: "text.secondary",
-        height: "60px",
-        width: "100px",
-        border: "1px dashed #bdbdbd",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      },
-    };
+  const renderStoryCard = useCallback(
+    (story: Issue) => (
+      <MemoizedStoryCard
+        key={story.id}
+        getPriorityColor={getPriorityColor}
+        getStatusColor={getStatusColor}
+        handleOpenItemForEdit={handleOpenItemForEdit}
+        handleOpenMoveMenu={handleOpenMoveMenu}
+        story={story}
+      />
+    ),
+    [getStatusColor, getPriorityColor, handleOpenMoveMenu, handleOpenItemForEdit]
+  );
 
-    if (isAddCard) {
+  const StoryMapCard = useCallback(
+    ({
+      type,
+      item,
+      onAction,
+      onClick,
+      children,
+      isAddCard = false,
+    }: {
+      type: "activity" | "epic" | "story" | "blank" | "release";
+      item?: Issue;
+      onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
+      onClick?: () => void;
+      children?: React.ReactNode;
+      isAddCard?: boolean;
+    }) => {
+      // Card styling based on type
+      const cardStyles = {
+        activity: {
+          bgcolor: theme.palette.primary.main,
+          color: "white",
+          height: "60px",
+          width: "100px",
+        },
+        epic: {
+          bgcolor: "#00acc1",
+          color: "white",
+          height: "60px",
+          width: "100px",
+        },
+        story: {
+          bgcolor: "white",
+          color: "text.primary",
+          height: "60px",
+          width: "100px",
+          border: "1px solid #e0e0e0",
+          borderLeft: item ? `4px solid ${getPriorityColor(item?.priority)}` : undefined,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+        },
+        blank: {
+          bgcolor: "white",
+          color: "text.secondary",
+          height: "60px",
+          width: "100px",
+          border: "1px dashed #bdbdbd",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        release: {
+          bgcolor: theme.palette.background.paper,
+          color: "text.primary",
+          height: "60px",
+          width: "120px",
+          border: `1px solid ${theme.palette.primary.main}`,
+          borderLeft: `4px solid ${theme.palette.primary.main}`,
+        },
+      };
+
+      if (isAddCard) {
+        return (
+          <Card
+            sx={{
+              ...cardStyles.blank,
+              mb: 1,
+              cursor: "pointer",
+              "&:hover": {
+                bgcolor: theme.palette.action.hover,
+                transition: "background-color 0.2s ease-in-out",
+              },
+            }}
+            onClick={onClick}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <AddIcon fontSize="small" />
+              <Typography variant="caption">{`Add ${type}`}</Typography>
+            </Box>
+          </Card>
+        );
+      }
+
       return (
         <Card
           sx={{
-            ...cardStyles.blank,
+            ...(cardStyles[type] || cardStyles.blank),
             mb: 1,
-            cursor: "pointer",
-            "&:hover": {
-              bgcolor: theme.palette.action.hover,
-              transition: "background-color 0.2s ease-in-out",
-            },
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            cursor: onClick ? "pointer" : "default",
+            "&:hover": onClick
+              ? {
+                  boxShadow: 3,
+                  transition: "box-shadow 0.2s ease-in-out",
+                }
+              : {},
           }}
           onClick={onClick}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <AddIcon fontSize="small" />
-            <Typography variant="caption">{`Add ${type}`}</Typography>
-          </Box>
+          <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
+            >
+              <Typography
+                sx={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                variant={type === "activity" ? "subtitle1" : "body2"}
+              >
+                {item?.name}
+              </Typography>
+              {onAction && item && (
+                <IconButton
+                  size="small"
+                  sx={{ mt: -0.5, mr: -0.5 }}
+                  onClick={e => {
+                    e.stopPropagation(); // Prevent card click when clicking the menu
+                    onAction(e, item.id);
+                  }}
+                >
+                  <MoreVertIcon fontSize="small" />
+                </IconButton>
+              )}
+            </Box>
+            {children}
+          </CardContent>
         </Card>
       );
-    }
-
-    return (
-      <Card
-        sx={{
-          ...(cardStyles[type] || cardStyles.blank),
-          mb: 1,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          cursor: onClick ? "pointer" : "default",
-          "&:hover": onClick
-            ? {
-                boxShadow: 3,
-                transition: "box-shadow 0.2s ease-in-out",
-              }
-            : {},
-        }}
-        onClick={onClick}
-      >
-        <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <Typography
-              sx={{
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              variant={type === "activity" ? "subtitle1" : "body2"}
-            >
-              {item?.name}
-            </Typography>
-            {onAction && item && (
-              <IconButton
-                size="small"
-                sx={{ mt: -0.5, mr: -0.5 }}
-                onClick={e => {
-                  e.stopPropagation(); // Prevent card click when clicking the menu
-                  onAction(e, item.id);
-                }}
-              >
-                <MoreVertIcon fontSize="small" />
-              </IconButton>
-            )}
-          </Box>
-          {children}
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // --------------------------
-  // Rendering functions for Story cards
-  // --------------------------
-  const renderStoryCard = (story: Issue) => (
-    <StoryMapCard
-      key={story.id}
-      item={story}
-      type="story"
-      onAction={handleOpenMoveMenu}
-      onClick={() => handleOpenItemForEdit(story, "story")}
-    >
-      {story.status !== IssueStatus.TO_DO && (
-        <Chip
-          label={story.status}
-          size="small"
-          sx={{
-            mt: 1,
-            fontSize: "0.7rem",
-            bgcolor: getStatusColor(story.status),
-            height: "18px",
-          }}
-        />
-      )}
-    </StoryMapCard>
+    },
+    [theme, getPriorityColor]
   );
 
   if (loading) {
@@ -570,7 +1076,11 @@ export default function StoryMap({
           Story Map
         </Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          <Button startIcon={<AddIcon />} variant="contained" onClick={handleOpenActivityDialog}>
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            onClick={() => setActivityDialogOpen(true)}
+          >
             Add Activity
           </Button>
           <Button startIcon={<AddIcon />} variant="outlined" onClick={handleOpenReleaseDialog}>
@@ -654,7 +1164,11 @@ export default function StoryMap({
                 pt: 1,
               }}
             >
-              <StoryMapCard isAddCard={true} type="activity" onClick={handleOpenActivityDialog} />
+              <StoryMapCard
+                isAddCard={true}
+                type="activity"
+                onClick={() => setActivityDialogOpen(true)}
+              />
             </Box>
           </Box>
 
@@ -798,363 +1312,49 @@ export default function StoryMap({
         ))}
       </Menu>
 
-      {/* Add Activity Dialog */}
-      <Dialog fullWidth maxWidth="sm" open={activityDialogOpen} onClose={handleCloseActivityDialog}>
-        <DialogTitle>Add New Activity/Goal</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            disabled={addingActivity}
-            error={!!activityError}
-            helperText={activityError}
-            label="Activity Name"
-            margin="dense"
-            sx={{ mb: 2 }}
-            value={activityName}
-            onChange={e => setActivityName(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            multiline
-            disabled={addingActivity}
-            label="Description (optional)"
-            margin="dense"
-            rows={3}
-            value={activityDescription}
-            onChange={e => setActivityDescription(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={addingActivity} onClick={handleCloseActivityDialog}>
-            Cancel
-          </Button>
-          <Button
-            disabled={addingActivity}
-            startIcon={addingActivity ? <CircularProgress size={20} /> : undefined}
-            variant="contained"
-            onClick={handleCreateActivity}
-          >
-            {addingActivity ? "Creating..." : "Create Activity"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Dialog Components */}
+      <ActivityDialog
+        open={activityDialogOpen}
+        onAddActivity={onAddActivity}
+        onClose={() => setActivityDialogOpen(false)}
+      />
 
-      {/* Add Epic Dialog */}
-      <Dialog fullWidth maxWidth="sm" open={epicDialogOpen} onClose={handleCloseEpicDialog}>
-        <DialogTitle>Add New User Task</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            disabled={addingEpic}
-            error={!!epicError}
-            helperText={epicError}
-            label="Task Name"
-            margin="dense"
-            sx={{ mb: 2 }}
-            value={epicName}
-            onChange={e => setEpicName(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            multiline
-            disabled={addingEpic}
-            label="Description (optional)"
-            margin="dense"
-            rows={3}
-            value={epicDescription}
-            onChange={e => setEpicDescription(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={addingEpic} onClick={handleCloseEpicDialog}>
-            Cancel
-          </Button>
-          <Button
-            disabled={addingEpic}
-            startIcon={addingEpic ? <CircularProgress size={20} /> : undefined}
-            variant="contained"
-            onClick={handleCreateEpic}
-          >
-            {addingEpic ? "Creating..." : "Create Task"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EpicDialog
+        activityId={selectedActivityId}
+        open={epicDialogOpen}
+        onAddEpic={onAddEpic}
+        onClose={handleCloseEpicDialog}
+      />
 
-      {/* Add Story Dialog */}
-      <Dialog fullWidth maxWidth="sm" open={storyDialogOpen} onClose={handleCloseStoryDialog}>
-        <DialogTitle>Add New User Story</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            disabled={addingStory}
-            error={!!storyError}
-            helperText={storyError}
-            label="Story Name"
-            margin="dense"
-            sx={{ mb: 2 }}
-            value={storyName}
-            onChange={e => setStoryName(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            multiline
-            disabled={addingStory}
-            label="Description (optional)"
-            margin="dense"
-            rows={3}
-            value={storyDescription}
-            onChange={e => setStoryDescription(e.target.value)}
-          />
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom color="text.secondary" variant="body2">
-              Tip: Write user stories in the format As a [persona], I want to [do something] so that
-              [benefit]
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={addingStory} onClick={handleCloseStoryDialog}>
-            Cancel
-          </Button>
-          <Button
-            disabled={addingStory}
-            startIcon={addingStory ? <CircularProgress size={20} /> : undefined}
-            variant="contained"
-            onClick={handleCreateStory}
-          >
-            {addingStory ? "Creating..." : "Create Story"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <StoryDialog
+        epicId={selectedParentId}
+        open={storyDialogOpen}
+        onAddStory={onAddStory}
+        onClose={handleCloseStoryDialog}
+      />
 
-      {/* Add Release Dialog */}
-      <Dialog fullWidth maxWidth="sm" open={releaseDialogOpen} onClose={handleCloseReleaseDialog}>
-        <DialogTitle>Add New Release</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            disabled={addingRelease}
-            error={!!releaseError}
-            helperText={releaseError}
-            label="Release Name"
-            margin="dense"
-            sx={{ mb: 2 }}
-            value={releaseName}
-            onChange={e => setReleaseName(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            multiline
-            disabled={addingRelease}
-            label="Description (optional)"
-            margin="dense"
-            rows={3}
-            value={releaseDescription}
-            onChange={e => setReleaseDescription(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={addingRelease} onClick={handleCloseReleaseDialog}>
-            Cancel
-          </Button>
-          <Button
-            disabled={addingRelease}
-            startIcon={addingRelease ? <CircularProgress size={20} /> : undefined}
-            variant="contained"
-            onClick={handleCreateRelease}
-          >
-            {addingRelease ? "Creating..." : "Create Release"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ReleaseDialog
+        open={releaseDialogOpen}
+        onAddRelease={onAddRelease}
+        onClose={handleCloseReleaseDialog}
+      />
 
-      {/* Story Detail Dialog */}
-      <Dialog fullWidth maxWidth="md" open={storyDetailDialogOpen} onClose={handleCloseStoryDetail}>
-        {selectedStory && (
-          <>
-            <DialogTitle>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="h6">{selectedStory.name}</Typography>
-                <Chip
-                  label={selectedStory.status}
-                  size="small"
-                  sx={{ bgcolor: getStatusColor(selectedStory.status) }}
-                />
-              </Box>
-            </DialogTitle>
-            <DialogContent dividers>
-              <Box sx={{ mb: 3 }}>
-                <Typography gutterBottom color="text.secondary" variant="subtitle2">
-                  Description
-                </Typography>
-                <Typography variant="body2">
-                  {selectedStory.description || "No description provided."}
-                </Typography>
-              </Box>
+      <StoryDetailDialog
+        getPriorityColor={getPriorityColor}
+        getStatusColor={getStatusColor}
+        open={storyDetailDialogOpen}
+        releases={releases}
+        story={selectedStory}
+        onClose={handleCloseStoryDetail}
+      />
 
-              {selectedStory.acceptanceCriteria && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography gutterBottom color="text.secondary" variant="subtitle2">
-                    Acceptance Criteria
-                  </Typography>
-                  <Typography variant="body2">{selectedStory.acceptanceCriteria}</Typography>
-                </Box>
-              )}
-
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-                <Box sx={{ minWidth: "120px", mb: 2 }}>
-                  <Typography color="text.secondary" variant="caption">
-                    Priority
-                  </Typography>
-                  <Chip
-                    label={selectedStory.priority}
-                    size="small"
-                    sx={{
-                      bgcolor: getPriorityColor(selectedStory.priority) + "20",
-                      color: getPriorityColor(selectedStory.priority),
-                      fontWeight: "bold",
-                    }}
-                  />
-                </Box>
-
-                {selectedStory.assignee && (
-                  <Box sx={{ minWidth: "120px", mb: 2 }}>
-                    <Typography color="text.secondary" variant="caption">
-                      Assignee
-                    </Typography>
-                    <Typography variant="body2">{selectedStory.assignee}</Typography>
-                  </Box>
-                )}
-
-                {selectedStory.releaseId && (
-                  <Box sx={{ minWidth: "120px", mb: 2 }}>
-                    <Typography color="text.secondary" variant="caption">
-                      Release
-                    </Typography>
-                    <Typography variant="body2">
-                      {releases.find(r => r.id === selectedStory.releaseId)?.name || "Unknown"}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseStoryDetail}>Close</Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog fullWidth maxWidth="sm" open={editDialogOpen} onClose={handleCloseEditDialog}>
-        <DialogTitle>
-          {editingItemType &&
-            `Edit ${editingItemType.charAt(0).toUpperCase() + editingItemType.slice(1)}`}
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            disabled={isEditing}
-            error={!!editingError}
-            helperText={editingError}
-            label="Name"
-            margin="dense"
-            sx={{ mb: 2 }}
-            value={editName}
-            onChange={e => setEditName(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            multiline
-            disabled={isEditing}
-            label="Description"
-            margin="dense"
-            rows={3}
-            value={editDescription}
-            onChange={e => setEditDescription(e.target.value)}
-          />
-
-          {/* Add additional fields for stories */}
-          {editingItemType === "story" && editingItem && (
-            <>
-              <Box sx={{ mt: 3, mb: 2 }}>
-                <Typography color="text.secondary" variant="subtitle2">
-                  Additional Details
-                </Typography>
-              </Box>
-
-              {/* Status dropdown */}
-              <TextField
-                fullWidth
-                select
-                disabled={isEditing}
-                label="Status"
-                margin="dense"
-                sx={{ mb: 2 }}
-                value={editingItem.status || IssueStatus.TO_DO}
-              >
-                {Object.values(IssueStatus).map(status => (
-                  <MenuItem key={status} value={status}>
-                    {status}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              {/* Priority dropdown */}
-              <TextField
-                fullWidth
-                select
-                disabled={isEditing}
-                label="Priority"
-                margin="dense"
-                sx={{ mb: 2 }}
-                value={editingItem.priority || IssuePriority.MEDIUM}
-              >
-                {Object.values(IssuePriority).map(priority => (
-                  <MenuItem key={priority} value={priority}>
-                    {priority}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              {/* Release dropdown */}
-              <TextField
-                fullWidth
-                select
-                disabled={isEditing}
-                label="Release"
-                margin="dense"
-                value={editingItem.releaseId || ""}
-              >
-                <MenuItem value="">No Release</MenuItem>
-                {releases.map(release => (
-                  <MenuItem key={release.id} value={release.id}>
-                    {release.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={isEditing} onClick={handleCloseEditDialog}>
-            Cancel
-          </Button>
-          <Button
-            disabled={isEditing}
-            startIcon={isEditing ? <CircularProgress size={20} /> : undefined}
-            variant="contained"
-            onClick={handleSaveEdit}
-          >
-            {isEditing ? "Saving..." : "Save Changes"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EditItemDialog
+        item={editingItem}
+        itemType={editingItemType}
+        open={editDialogOpen}
+        releases={releases}
+        onClose={handleCloseEditDialog}
+      />
     </Box>
   );
 }

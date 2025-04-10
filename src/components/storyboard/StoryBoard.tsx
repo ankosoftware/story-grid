@@ -1215,7 +1215,11 @@ const DraggableStoryCard = memo(
     getPriorityColor: (priority: IssuePriority) => string;
     handleOpenMoveMenu: (event: React.MouseEvent<HTMLElement>, storyId: string) => void;
     handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
-    handleMoveStoryToEpic: (storyId: string, newParentId: string) => Promise<void>;
+    handleMoveStoryToEpic: (
+      storyId: string,
+      newParentId: string,
+      releaseId: string | null
+    ) => Promise<void>;
     index: number;
   }) => {
     // Setup drag source
@@ -1232,15 +1236,20 @@ const DraggableStoryCard = memo(
           isDragging: monitor.isDragging(),
         }),
         end: (item, monitor) => {
-          const dropResult = monitor.getDropResult<{ id: string; type: string }>();
+          const dropResult = monitor.getDropResult<{
+            id: string;
+            type: string;
+            releaseId: string | null;
+          }>();
+
           if (
             item &&
             dropResult &&
             dropResult.type === "epic" &&
-            dropResult.id !== story.parentId
+            (dropResult.id !== story.parentId || dropResult.releaseId !== story.releaseId)
           ) {
             // Only move if dropped on a different parent
-            handleMoveStoryToEpic(story.id, dropResult.id);
+            handleMoveStoryToEpic(story.id, dropResult.id, dropResult.releaseId);
           }
         },
       }),
@@ -1289,12 +1298,12 @@ DraggableStoryCard.displayName = "DraggableStoryCard";
 const DraggableEpicCard = memo(
   ({
     epic,
-    handleOpenItemForEdit,
     handleMoveEpicToActivity,
+    handleOpenItemForEdit,
   }: {
     epic: Issue;
-    handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
     handleMoveEpicToActivity: (epicId: string, newParentId: string) => Promise<void>;
+    handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
   }) => {
     // Setup drag source
     const [{ isDragging }, drag, preview] = useDrag(
@@ -1304,21 +1313,18 @@ const DraggableEpicCard = memo(
           type: ItemTypes.EPIC,
           id: epic.id,
           parentId: epic.parentId || null,
-          originalIndex: epic.displayOrder,
+          originalIndex: epic.displayOrder || 0,
         },
         collect: monitor => ({
           isDragging: monitor.isDragging(),
         }),
         end: (item, monitor) => {
           const dropResult = monitor.getDropResult<{ id: string; type: string }>();
-          if (
-            item &&
-            dropResult &&
-            dropResult.type === "activity" &&
-            dropResult.id !== epic.parentId
-          ) {
-            // Only move if dropped on a different parent
-            handleMoveEpicToActivity(epic.id, dropResult.id);
+          if (item && dropResult) {
+            if (dropResult.type === "activity" && dropResult.id !== epic.parentId) {
+              // Move to a different activity
+              handleMoveEpicToActivity(epic.id, dropResult.id);
+            }
           }
         },
       }),
@@ -1337,10 +1343,12 @@ const DraggableEpicCard = memo(
       <Box
         ref={previewRef}
         sx={{
-          opacity: isDragging ? 0.4 : 1,
+          opacity: isDragging ? 0.6 : 1,
           cursor: "move",
-          flex: 1,
-          minWidth: 0,
+          transform: isDragging ? "scale(1.05)" : "scale(1)",
+          transition: "transform 0.2s ease, opacity 0.2s ease",
+          zIndex: isDragging ? 1000 : 1,
+          display: isDragging ? "none" : "block", // Hide the original while dragging
         }}
       >
         <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
@@ -1349,47 +1357,15 @@ const DraggableEpicCard = memo(
               fontSize: "0.9rem",
               color: "white",
               mr: 0.5,
-              visibility: isDragging ? "hidden" : "visible",
+              cursor: "grab",
+              "&:active": { cursor: "grabbing" },
             }}
           />
-          <Card
-            sx={{
-              bgcolor: "#00acc1",
-              color: "white",
-              height: "50px",
-              width: "100%",
-              borderRadius: 1,
-              mb: 0.5,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-start",
-              cursor: "pointer",
-              "&:hover": {
-                boxShadow: 3,
-                transition: "box-shadow 0.2s ease-in-out",
-              },
-            }}
+          <StoryMapCard
+            item={epic}
+            type="epic"
             onClick={() => handleOpenItemForEdit(epic, "epic")}
-          >
-            <CardContent sx={{ p: 0.5, pt: 0.5, "&:last-child": { pb: 0.5 } }}>
-              <Box
-                sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
-              >
-                <Typography
-                  sx={{
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    fontSize: "0.8rem",
-                    lineHeight: 1.2,
-                  }}
-                  variant="body2"
-                >
-                  {epic.name}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          />
         </Box>
       </Box>
     );
@@ -1437,11 +1413,19 @@ DroppableActivityContainer.displayName = "DroppableActivityContainer";
 
 // Create a droppable container for epics
 const DroppableEpicContainer = memo(
-  ({ epic, children }: { epic: Issue; children: React.ReactNode }) => {
+  ({
+    epic,
+    releaseId,
+    children,
+  }: {
+    epic: Issue;
+    releaseId: string | null;
+    children: React.ReactNode;
+  }) => {
     const [{ isOver, canDrop }, drop] = useDrop(
       () => ({
         accept: [ItemTypes.STORY],
-        drop: () => ({ id: epic.id, type: "epic" }),
+        drop: () => ({ id: epic.id, type: "epic", releaseId }),
         collect: monitor => ({
           isOver: monitor.isOver(),
           canDrop: monitor.canDrop(),
@@ -1695,7 +1679,7 @@ const StoryMapCard = memo(
         borderRadius: 1,
       },
       placeholder: {
-        height: "50px",
+        height: "0px",
         width: "100px",
       },
     };
@@ -1723,7 +1707,7 @@ const StoryMapCard = memo(
     }
 
     if (type === "placeholder") {
-      return <div style={{ height: "50px", width: "100px" }}></div>;
+      return <div style={{ height: "0px", width: "100px" }}></div>;
     }
 
     // Determine justifyContent based on card type
@@ -1898,7 +1882,7 @@ export default function StoryMap({
 
   // Add drag and drop handlers for stories and epics
   const handleMoveStoryToEpic = useCallback(
-    async (storyId: string, newParentId: string) => {
+    async (storyId: string, newParentId: string, releaseId: string | null) => {
       try {
         setMovingStory(true);
         // Find the story in our local state
@@ -1931,7 +1915,7 @@ export default function StoryMap({
         // Update the story's parent ID while preserving its releaseId
         await updateIssue(storyId, {
           parentId: newParentId,
-          releaseId: story.releaseId, // Preserve the existing releaseId
+          releaseId: releaseId,
         });
 
         // Show success message
@@ -2257,23 +2241,6 @@ export default function StoryMap({
                               handleMoveEpicToActivity={handleMoveEpicToActivity}
                               handleOpenItemForEdit={handleOpenItemForEdit}
                             />
-                            <DroppableEpicContainer epic={epic}>
-                              {/* Stories Column - Vertical under each epic */}
-                              <Box sx={{ mb: 2 }}>
-                                {issues[epic.id] && issues[epic.id].length > 0 ? (
-                                  issues[epic.id]
-                                    .filter(story => story.releaseId === null)
-                                    .map((story, index) => renderStoryCard(story, index))
-                                ) : (
-                                  <></>
-                                )}
-                                <StoryMapCard
-                                  isAddCard={true}
-                                  type="story"
-                                  onClick={() => handleOpenStoryDialog(epic.id)}
-                                />
-                              </Box>
-                            </DroppableEpicContainer>
                           </Box>
                         ))}
 
@@ -2338,7 +2305,7 @@ export default function StoryMap({
                             {/* Add placeholder for epic */}
                             <StoryMapCard type="placeholder" />
                             {/* Stories Column - Vertical under each epic */}
-                            <DroppableEpicContainer epic={epic}>
+                            <DroppableEpicContainer epic={epic} releaseId={release.id}>
                               <Box sx={{ mb: 2 }}>
                                 {issues[epic.id] && issues[epic.id].length > 0 ? (
                                   issues[epic.id]
@@ -2387,7 +2354,7 @@ export default function StoryMap({
                           {/* Add placeholder for epic */}
                           <StoryMapCard type="placeholder" />
                           {/* Stories Column - Vertical under each epic */}
-                          <DroppableEpicContainer epic={epic}>
+                          <DroppableEpicContainer epic={epic} releaseId={null}>
                             <Box sx={{ mb: 2 }}>
                               {issues[epic.id] && issues[epic.id].length > 0 ? (
                                 issues[epic.id]

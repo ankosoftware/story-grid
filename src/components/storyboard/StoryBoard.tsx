@@ -1319,6 +1319,10 @@ export default function StoryMap({
         </Box>
         {releases.map(release => (
           <Box key={release.id} sx={{ minWidth: activities.length * 250 }}>
+            {/* Release Header */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1, p: 1, bgcolor: "#f0f0f0" }}>
+              <Typography variant="h6">{release.name}</Typography>
+            </Box>
             <Box
               sx={{
                 display: "flex",
@@ -1340,7 +1344,9 @@ export default function StoryMap({
                           {/* Stories Column - Vertical under each epic */}
                           <Box sx={{ mb: 2 }}>
                             {issues[epic.id] && issues[epic.id].length > 0 ? (
-                              issues[epic.id].map(story => renderStoryCard(story))
+                              issues[epic.id]
+                                .filter(story => story.releaseId === release.id)
+                                .map(story => renderStoryCard(story))
                             ) : (
                               <></>
                             )}
@@ -1362,6 +1368,52 @@ export default function StoryMap({
             </Box>
           </Box>
         ))}
+        {/* Unassigned Stories */}
+        <Box sx={{ minWidth: activities.length * 250 }}>
+          <Box
+            sx={{
+              display: "flex",
+              mb: 2,
+            }}
+          >
+            {activities.map(activity => (
+              <Box key={activity.id} sx={{ mx: 1 }}>
+                {/* Add placeholder for activity */}
+                <StoryMapCard type="placeholder" />
+
+                {/* Epics Row - Horizontal */}
+                <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
+                  {epics[activity.id] &&
+                    epics[activity.id].map(epic => (
+                      <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
+                        {/* Add placeholder for epic */}
+                        <StoryMapCard type="placeholder" />
+                        {/* Stories Column - Vertical under each epic */}
+                        <Box sx={{ mb: 2 }}>
+                          {issues[epic.id] && issues[epic.id].length > 0 ? (
+                            issues[epic.id]
+                              .filter(story => !story.releaseId)
+                              .map(story => renderStoryCard(story))
+                          ) : (
+                            <></>
+                          )}
+                          <StoryMapCard
+                            isAddCard={true}
+                            type="story"
+                            onClick={() => handleOpenStoryDialog(epic.id)}
+                          />
+                        </Box>
+                      </Box>
+                    ))}
+
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <StoryMapCard type="placeholder" />
+                  </Box>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        </Box>
       </Paper>
 
       {/* Move Story Menu */}

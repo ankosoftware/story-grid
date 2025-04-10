@@ -214,8 +214,68 @@ export const useStoryBoard = (projectId: string) => {
       return updatedIssues;
     });
 
-    // Handle different issue types
-    if (newIssue.type === IssueType.BACKBONE) {
+    // Handle moving between epics for stories
+    if (newIssue.type === IssueType.STORY) {
+      const currentState = allIssues.find(i => i.id === newIssue.id);
+
+      // If parentId has changed, remove from old epic
+      if (currentState && currentState.parentId !== newIssue.parentId) {
+        setIssues(prev => {
+          const newIssues = { ...prev };
+
+          // Remove from old parent
+          if (currentState.parentId && newIssues[currentState.parentId]) {
+            newIssues[currentState.parentId] = newIssues[currentState.parentId].filter(
+              s => s.id !== newIssue.id
+            );
+          }
+
+          // Add to new parent
+          if (newIssue.parentId) {
+            if (!newIssues[newIssue.parentId]) {
+              newIssues[newIssue.parentId] = [];
+            }
+
+            const existingIndex = newIssues[newIssue.parentId].findIndex(s => s.id === newIssue.id);
+
+            if (existingIndex >= 0) {
+              newIssues[newIssue.parentId][existingIndex] = newIssue;
+            } else {
+              newIssues[newIssue.parentId].push(newIssue);
+              // Sort by displayOrder
+              newIssues[newIssue.parentId].sort((a, b) => a.displayOrder - b.displayOrder);
+            }
+          }
+
+          return newIssues;
+        });
+      } else {
+        // Handle normal story update
+        setIssues(prev => {
+          const newIssues = { ...prev };
+          const parentId = newIssue.parentId as string;
+
+          if (!newIssues[parentId]) {
+            newIssues[parentId] = [];
+          }
+
+          const existingIndex = newIssues[parentId].findIndex(s => s.id === newIssue.id);
+
+          if (existingIndex >= 0) {
+            newIssues[parentId][existingIndex] = newIssue;
+          } else {
+            newIssues[parentId].push(newIssue);
+            // Sort by displayOrder
+            newIssues[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
+          }
+
+          return newIssues;
+        });
+      }
+
+      // Handle release-related updates
+      updateIssueInReleases(newIssue);
+    } else if (newIssue.type === IssueType.BACKBONE) {
       // It's a backbone
       setActivities(prev => {
         const updatedActivities = [...prev];
@@ -236,56 +296,61 @@ export const useStoryBoard = (projectId: string) => {
         return; // Epic should have a parent
       }
 
-      // It's an epic under an activity
-      setEpics(prev => {
-        const newEpics = { ...prev };
-        const parentId = newIssue.parentId as string;
+      const currentState = allIssues.find(i => i.id === newIssue.id);
 
-        if (!newEpics[parentId]) {
-          newEpics[parentId] = [];
-        }
+      // If parentId has changed, remove from old activity
+      if (currentState && currentState.parentId !== newIssue.parentId) {
+        setEpics(prev => {
+          const newEpics = { ...prev };
 
-        const existingIndex = newEpics[parentId].findIndex(e => e.id === newIssue.id);
+          // Remove from old parent
+          if (currentState.parentId && newEpics[currentState.parentId]) {
+            newEpics[currentState.parentId] = newEpics[currentState.parentId].filter(
+              e => e.id !== newIssue.id
+            );
+          }
 
-        if (existingIndex >= 0) {
-          newEpics[parentId][existingIndex] = newIssue;
-        } else {
-          newEpics[parentId].push(newIssue);
-          // Sort by displayOrder
-          newEpics[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
-        }
+          // Add to new parent
+          const parentId = newIssue.parentId as string;
+          if (!newEpics[parentId]) {
+            newEpics[parentId] = [];
+          }
 
-        return newEpics;
-      });
-    } else if (newIssue.type === IssueType.STORY) {
-      if (!newIssue.parentId) {
-        return; // Story should have a parent
+          const existingIndex = newEpics[parentId].findIndex(e => e.id === newIssue.id);
+
+          if (existingIndex >= 0) {
+            newEpics[parentId][existingIndex] = newIssue;
+          } else {
+            newEpics[parentId].push(newIssue);
+            // Sort by displayOrder
+            newEpics[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
+          }
+
+          return newEpics;
+        });
+      } else {
+        // Handle normal epic update
+        setEpics(prev => {
+          const newEpics = { ...prev };
+          const parentId = newIssue.parentId as string;
+
+          if (!newEpics[parentId]) {
+            newEpics[parentId] = [];
+          }
+
+          const existingIndex = newEpics[parentId].findIndex(e => e.id === newIssue.id);
+
+          if (existingIndex >= 0) {
+            newEpics[parentId][existingIndex] = newIssue;
+          } else {
+            newEpics[parentId].push(newIssue);
+            // Sort by displayOrder
+            newEpics[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
+          }
+
+          return newEpics;
+        });
       }
-
-      // Update stories by epic
-      setIssues(prev => {
-        const newIssues = { ...prev };
-        const parentId = newIssue.parentId as string;
-
-        if (!newIssues[parentId]) {
-          newIssues[parentId] = [];
-        }
-
-        const existingIndex = newIssues[parentId].findIndex(s => s.id === newIssue.id);
-
-        if (existingIndex >= 0) {
-          newIssues[parentId][existingIndex] = newIssue;
-        } else {
-          newIssues[parentId].push(newIssue);
-          // Sort by displayOrder
-          newIssues[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
-        }
-
-        return newIssues;
-      });
-
-      // Handle release-related updates
-      updateIssueInReleases(newIssue);
     }
   };
 

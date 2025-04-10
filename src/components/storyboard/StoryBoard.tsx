@@ -1934,8 +1934,6 @@ export default function StoryMap({
           releaseId: story.releaseId, // Preserve the existing releaseId
         });
 
-        
-
         // Show success message
         setSnackbarMessage(
           `Moved story "${story.name}" to epic "${targetEpic?.name || "Unknown epic"}"`

@@ -32,6 +32,7 @@ import { updateIssue, updateRelease, updateReleaseOrder } from "@/lib/firebase/f
 import { Timestamp } from "firebase/firestore";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { ArrowCircleUp, ArrowDownward, ArrowDropDown, ArrowUpward } from "@mui/icons-material";
 
 // Define drag item types
 const ItemTypes = {
@@ -1348,19 +1349,10 @@ const DraggableEpicCard = memo(
           transform: isDragging ? "scale(1.05)" : "scale(1)",
           transition: "transform 0.2s ease, opacity 0.2s ease",
           zIndex: isDragging ? 1000 : 1,
-          display: isDragging ? "none" : "block", // Hide the original while dragging
+          display: isDragging ? "block" : "block", // Hide the original while dragging
         }}
       >
         <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
-          <DragHandleIcon
-            sx={{
-              fontSize: "0.9rem",
-              color: "white",
-              mr: 0.5,
-              cursor: "grab",
-              "&:active": { cursor: "grabbing" },
-            }}
-          />
           <StoryMapCard
             item={epic}
             type="epic"
@@ -1466,12 +1458,14 @@ const MemoizedReleaseCard = memo(
     handleMoveRelease,
     isFirst,
     isLast,
+    allowReorder = true,
   }: {
     release: Release;
     handleOpenReleaseForEdit: (release: Release) => void;
     handleMoveRelease?: (releaseId: string, direction: "up" | "down") => Promise<void>;
     isFirst?: boolean;
     isLast?: boolean;
+    allowReorder?: boolean;
   }) => {
     const theme = useTheme();
 
@@ -1509,36 +1503,38 @@ const MemoizedReleaseCard = memo(
           },
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", mr: 1 }}>
-          <IconButton
-            disabled={isFirst}
-            size="small"
-            sx={{
-              opacity: isFirst ? 0.3 : 1,
-              color: theme.palette.text.secondary,
-              p: 0.5,
-            }}
-            onClick={e => handleMove("up", e)}
-          >
-            <Box component="span" sx={{ transform: "rotate(-90deg)", display: "flex" }}>
-              <DragIndicatorIcon sx={{ fontSize: "1rem" }} />
-            </Box>
-          </IconButton>
-          <IconButton
-            disabled={isLast}
-            size="small"
-            sx={{
-              opacity: isLast ? 0.3 : 1,
-              color: theme.palette.text.secondary,
-              p: 0.5,
-            }}
-            onClick={e => handleMove("down", e)}
-          >
-            <Box component="span" sx={{ transform: "rotate(90deg)", display: "flex" }}>
-              <DragIndicatorIcon sx={{ fontSize: "1rem" }} />
-            </Box>
-          </IconButton>
-        </Box>
+        {allowReorder && (
+          <Box sx={{ display: "flex", alignItems: "center", mr: 1 }}>
+            <IconButton
+              disabled={isFirst}
+              size="small"
+              sx={{
+                opacity: isFirst ? 0.3 : 1,
+                color: theme.palette.text.secondary,
+                p: 0.5,
+              }}
+              onClick={e => handleMove("up", e)}
+            >
+              <Box component="span" sx={{ display: "flex" }}>
+                <ArrowUpward sx={{ fontSize: "1rem" }} />
+              </Box>
+            </IconButton>
+            <IconButton
+              disabled={isLast}
+              size="small"
+              sx={{
+                opacity: isLast ? 0.3 : 1,
+                color: theme.palette.text.secondary,
+                p: 0.5,
+              }}
+              onClick={e => handleMove("down", e)}
+            >
+              <Box component="span" sx={{ display: "flex" }}>
+                <ArrowDownward sx={{ fontSize: "1rem" }} />
+              </Box>
+            </IconButton>
+          </Box>
+        )}
 
         <Box
           sx={{
@@ -1579,16 +1575,6 @@ const MemoizedReleaseCard = memo(
               />
             )}
           </Box>
-
-          {release.description && (
-            <Typography
-              color="text.secondary"
-              sx={{ mt: 0.25, fontSize: "0.7rem" }}
-              variant="body2"
-            >
-              {release.description}
-            </Typography>
-          )}
         </Box>
 
         <Box>
@@ -2277,7 +2263,7 @@ export default function StoryMap({
           {releases.map((release, index) => (
             <Box key={release.id} sx={{ minWidth: activities.length * 250 }}>
               {/* Release Header */}
-              <Box sx={{ display: "flex" }}>
+              <Box sx={{ display: "flex", width: "100%" }}>
                 <MemoizedReleaseCard
                   handleMoveRelease={handleMoveRelease}
                   handleOpenReleaseForEdit={handleOpenReleaseForEdit}
@@ -2293,12 +2279,12 @@ export default function StoryMap({
                 }}
               >
                 {activities.map(activity => (
-                  <Box key={activity.id} sx={{ mx: 1 }}>
+                  <Box key={activity.id} sx={{ mx: 0 }}>
                     {/* Add placeholder for activity */}
                     <StoryMapCard type="placeholder" />
 
                     {/* Epics Row - Horizontal */}
-                    <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
+                    <Box sx={{ display: "flex", flexDirection: "row", gap: 1, mb: 1 }}>
                       {epics[activity.id] &&
                         epics[activity.id].map(epic => (
                           <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>
@@ -2306,7 +2292,7 @@ export default function StoryMap({
                             <StoryMapCard type="placeholder" />
                             {/* Stories Column - Vertical under each epic */}
                             <DroppableEpicContainer epic={epic} releaseId={release.id}>
-                              <Box sx={{ mb: 2 }}>
+                              <Box sx={{ mb: 1 }}>
                                 {issues[epic.id] && issues[epic.id].length > 0 ? (
                                   issues[epic.id]
                                     .filter(story => story.releaseId === release.id)
@@ -2335,6 +2321,24 @@ export default function StoryMap({
           ))}
           {/* Unassigned Stories */}
           <Box sx={{ minWidth: activities.length * 250 }}>
+            <Box sx={{ display: "flex" }}>
+              <MemoizedReleaseCard
+                allowReorder={false}
+                handleMoveRelease={handleMoveRelease}
+                handleOpenReleaseForEdit={handleOpenReleaseForEdit}
+                isFirst={false}
+                isLast={false}
+                release={{
+                  id: "unassigned",
+                  name: "Unassigned",
+                  description: "Unassigned stories",
+                  startDate: null,
+                  endDate: null,
+                  displayOrder: 99999,
+                  projectId: projectId,
+                }}
+              />
+            </Box>
             <Box
               sx={{
                 display: "flex",

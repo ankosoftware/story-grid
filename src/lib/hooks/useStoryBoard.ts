@@ -6,9 +6,12 @@ import {
   createIssue,
   createRelease,
   updateIssue,
+  issuesCollection,
+  releasesCollection,
 } from "../firebase/firestore";
 import { Issue, Release, IssueStatus, IssuePriority, IssueType } from "../firebase/models/types";
 import { useAuth } from "../auth/AuthProvider";
+import { onSnapshot, query, where, orderBy, Timestamp } from "firebase/firestore";
 
 /**
  * Custom hook to manage the story board for a specific project
@@ -67,6 +70,129 @@ export const useStoryBoard = (projectId: string) => {
     fetchStoryBoardData();
   }, [projectId]);
 
+  // Set up real-time listener for issue changes
+  useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+
+    const issuesQuery = query(issuesCollection, where("projectId", "==", projectId));
+
+    console.log("Setting up real-time listener for issues in project:", projectId);
+
+    // Subscribe to changes in issues collection
+    const unsubscribeIssues = onSnapshot(
+      issuesQuery,
+      snapshot => {
+        // Process changes
+        snapshot.docChanges().forEach(change => {
+          const issueData = change.doc.data() as Issue;
+
+          if (change.type === "modified") {
+            console.log("Issue modified:", issueData.id);
+
+            // Update the issue in our local state
+            updateLocalIssueState(issueData);
+          } else if (change.type === "added") {
+            // If this is a new issue that wasn't in our initial fetch
+            const isExisting = allIssues.some(issue => issue.id === issueData.id);
+            if (!isExisting) {
+              console.log("New issue added:", issueData.id);
+              updateLocalIssueState(issueData);
+            }
+          } else if (change.type === "removed") {
+            console.log("Issue removed:", issueData.id);
+            // Remove the issue from all relevant state
+            removeIssueFromState(issueData.id);
+          }
+        });
+      },
+      err => {
+        console.error("Error in issues snapshot listener:", err);
+        setError(err as Error);
+      }
+    );
+
+    // Subscribe to changes in releases collection
+    const releasesQuery = query(
+      releasesCollection,
+      where("projectId", "==", projectId),
+      orderBy("displayOrder", "asc")
+    );
+
+    const unsubscribeReleases = onSnapshot(
+      releasesQuery,
+      snapshot => {
+        // If there are changes, update the releases state
+        if (!snapshot.empty) {
+          const updatedReleases: Release[] = [];
+          snapshot.forEach(doc => {
+            updatedReleases.push(doc.data() as Release);
+          });
+
+          // Update releases state
+          setReleases(updatedReleases);
+        }
+      },
+      err => {
+        console.error("Error in releases snapshot listener:", err);
+      }
+    );
+
+    // Cleanup function to unsubscribe when component unmounts
+    return () => {
+      console.log("Cleaning up issue and release listeners");
+      unsubscribeIssues();
+      unsubscribeReleases();
+    };
+  }, [projectId, allIssues]);
+
+  /**
+   * Helper function to remove an issue from all state variables
+   */
+  const removeIssueFromState = (issueId: string) => {
+    // Remove from allIssues
+    setAllIssues(prev => prev.filter(issue => issue.id !== issueId));
+
+    // Remove from activities if it exists there
+    setActivities(prev => prev.filter(activity => activity.id !== issueId));
+
+    // Remove from epics
+    setEpics(prev => {
+      const newEpics = { ...prev };
+
+      Object.keys(newEpics).forEach(activityId => {
+        newEpics[activityId] = newEpics[activityId].filter(epic => epic.id !== issueId);
+      });
+
+      return newEpics;
+    });
+
+    // Remove from issues
+    setIssues(prev => {
+      const newIssues = { ...prev };
+
+      Object.keys(newIssues).forEach(epicId => {
+        newIssues[epicId] = newIssues[epicId].filter(issue => issue.id !== issueId);
+      });
+
+      return newIssues;
+    });
+
+    // Remove from issuesByRelease
+    setIssuesByRelease(prev => {
+      const newIssuesByRelease = { ...prev };
+
+      Object.keys(newIssuesByRelease).forEach(releaseId => {
+        newIssuesByRelease[releaseId] = newIssuesByRelease[releaseId].filter(
+          issue => issue.id !== issueId
+        );
+      });
+
+      return newIssuesByRelease;
+    });
+  };
+
   /**
    * Helper function to update local state after creating/updating an issue
    * Avoids unnecessary Firebase reads
@@ -107,45 +233,35 @@ export const useStoryBoard = (projectId: string) => {
       });
     } else if (newIssue.type === IssueType.EPIC) {
       if (!newIssue.parentId) {
-        // It's an activity (top-level epic)
-        setActivities(prev => {
-          const updatedActivities = [...prev];
-          const existingIndex = updatedActivities.findIndex(a => a.id === newIssue.id);
-
-          if (existingIndex >= 0) {
-            updatedActivities[existingIndex] = newIssue;
-          } else {
-            updatedActivities.push(newIssue);
-            // Sort by displayOrder
-            updatedActivities.sort((a, b) => a.displayOrder - b.displayOrder);
-          }
-
-          return updatedActivities;
-        });
-      } else {
-        // It's an epic under an activity
-        setEpics(prev => {
-          const newEpics = { ...prev };
-          const parentId = newIssue.parentId as string;
-
-          if (!newEpics[parentId]) {
-            newEpics[parentId] = [];
-          }
-
-          const existingIndex = newEpics[parentId].findIndex(e => e.id === newIssue.id);
-
-          if (existingIndex >= 0) {
-            newEpics[parentId][existingIndex] = newIssue;
-          } else {
-            newEpics[parentId].push(newIssue);
-            // Sort by displayOrder
-            newEpics[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
-          }
-
-          return newEpics;
-        });
+        return; // Epic should have a parent
       }
-    } else if (newIssue.type === IssueType.STORY && newIssue.parentId) {
+
+      // It's an epic under an activity
+      setEpics(prev => {
+        const newEpics = { ...prev };
+        const parentId = newIssue.parentId as string;
+
+        if (!newEpics[parentId]) {
+          newEpics[parentId] = [];
+        }
+
+        const existingIndex = newEpics[parentId].findIndex(e => e.id === newIssue.id);
+
+        if (existingIndex >= 0) {
+          newEpics[parentId][existingIndex] = newIssue;
+        } else {
+          newEpics[parentId].push(newIssue);
+          // Sort by displayOrder
+          newEpics[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
+        }
+
+        return newEpics;
+      });
+    } else if (newIssue.type === IssueType.STORY) {
+      if (!newIssue.parentId) {
+        return; // Story should have a parent
+      }
+
       // Update stories by epic
       setIssues(prev => {
         const newIssues = { ...prev };
@@ -168,27 +284,92 @@ export const useStoryBoard = (projectId: string) => {
         return newIssues;
       });
 
-      // Also update issues by release if needed
-      if (newIssue.releaseId) {
-        setIssuesByRelease(prev => {
-          const newIssuesByRelease = { ...prev };
-          const releaseId = newIssue.releaseId as string;
+      // Handle release-related updates
+      updateIssueInReleases(newIssue);
+    }
+  };
 
-          if (!newIssuesByRelease[releaseId]) {
-            newIssuesByRelease[releaseId] = [];
+  /**
+   * Helper function to update issue in releases
+   * - Removes from old release if necessary
+   * - Adds to new release if necessary
+   */
+  const updateIssueInReleases = (issue: Issue) => {
+    // First get the current state of the issue
+    const currentState = allIssues.find(i => i.id === issue.id);
+
+    // If we found the issue in our current state and the releaseId has changed
+    if (currentState && currentState.releaseId !== issue.releaseId) {
+      setIssuesByRelease(prev => {
+        const newIssuesByRelease = { ...prev };
+
+        // Remove from old release if it was in one
+        if (currentState.releaseId) {
+          const oldReleaseId = currentState.releaseId;
+          if (newIssuesByRelease[oldReleaseId]) {
+            newIssuesByRelease[oldReleaseId] = newIssuesByRelease[oldReleaseId].filter(
+              i => i.id !== issue.id
+            );
+          }
+        }
+
+        // Add to new release if it has one
+        if (issue.releaseId) {
+          const newReleaseId = issue.releaseId;
+          if (!newIssuesByRelease[newReleaseId]) {
+            newIssuesByRelease[newReleaseId] = [];
           }
 
-          const existingIndex = newIssuesByRelease[releaseId].findIndex(i => i.id === newIssue.id);
+          // Check if it's already in the new release
+          const existingIndex = newIssuesByRelease[newReleaseId].findIndex(i => i.id === issue.id);
 
           if (existingIndex >= 0) {
-            newIssuesByRelease[releaseId][existingIndex] = newIssue;
+            newIssuesByRelease[newReleaseId][existingIndex] = issue;
           } else {
-            newIssuesByRelease[releaseId].push(newIssue);
+            newIssuesByRelease[newReleaseId].push(issue);
           }
+        }
 
-          return newIssuesByRelease;
-        });
-      }
+        return newIssuesByRelease;
+      });
+    }
+    // If this is a new issue being added to a release
+    else if (issue.releaseId && (!currentState || !currentState.releaseId)) {
+      setIssuesByRelease(prev => {
+        const newIssuesByRelease = { ...prev };
+        const releaseId = issue.releaseId as string;
+
+        if (!newIssuesByRelease[releaseId]) {
+          newIssuesByRelease[releaseId] = [];
+        }
+
+        const existingIndex = newIssuesByRelease[releaseId].findIndex(i => i.id === issue.id);
+
+        if (existingIndex >= 0) {
+          newIssuesByRelease[releaseId][existingIndex] = issue;
+        } else {
+          newIssuesByRelease[releaseId].push(issue);
+        }
+
+        return newIssuesByRelease;
+      });
+    }
+    // If the issue is in the same release but has other updates
+    else if (issue.releaseId && currentState?.releaseId === issue.releaseId) {
+      setIssuesByRelease(prev => {
+        const newIssuesByRelease = { ...prev };
+        const releaseId = issue.releaseId as string;
+
+        if (newIssuesByRelease[releaseId]) {
+          const existingIndex = newIssuesByRelease[releaseId].findIndex(i => i.id === issue.id);
+
+          if (existingIndex >= 0) {
+            newIssuesByRelease[releaseId][existingIndex] = issue;
+          }
+        }
+
+        return newIssuesByRelease;
+      });
     }
   };
 
@@ -222,7 +403,7 @@ export const useStoryBoard = (projectId: string) => {
         priority: IssuePriority.MEDIUM,
         displayOrder:
           activities.length > 0 ? Math.max(...activities.map(a => a.displayOrder)) + 1 : 0,
-        createdAt: new Date(),
+        createdAt: Timestamp.now(),
         createdBy: user.uid,
       };
 
@@ -266,7 +447,7 @@ export const useStoryBoard = (projectId: string) => {
         priority: IssuePriority.MEDIUM,
         displayOrder:
           activities.length > 0 ? Math.max(...activities.map(a => a.displayOrder)) + 1 : 0,
-        createdAt: new Date(),
+        createdAt: Timestamp.now(),
         createdBy: user.uid,
       };
 
@@ -320,7 +501,7 @@ export const useStoryBoard = (projectId: string) => {
           epicsForActivity.length > 0
             ? Math.max(...epicsForActivity.map(e => e.displayOrder)) + 1
             : 0,
-        createdAt: new Date(),
+        createdAt: Timestamp.now(),
         createdBy: user.uid,
       };
 
@@ -385,7 +566,7 @@ export const useStoryBoard = (projectId: string) => {
         releaseId: options?.releaseId,
         displayOrder:
           storiesForEpic.length > 0 ? Math.max(...storiesForEpic.map(s => s.displayOrder)) + 1 : 0,
-        createdAt: new Date(),
+        createdAt: Timestamp.now(),
         createdBy: user.uid,
       };
 
@@ -421,27 +602,8 @@ export const useStoryBoard = (projectId: string) => {
     try {
       const releaseId = await createRelease(projectId, name, user.uid, options);
 
-      // Create new release for local state
-      const newRelease: Release = {
-        id: releaseId,
-        projectId,
-        name,
-        description: options?.description || "",
-        startDate: options?.startDate,
-        endDate: options?.endDate,
-        displayOrder: releases.length > 0 ? Math.max(...releases.map(r => r.displayOrder)) + 1 : 0,
-        createdAt: new Date(),
-        createdBy: user.uid,
-      };
-
-      // Update releases state
-      setReleases(prev => [...prev, newRelease]);
-
-      // Initialize empty array for this release in issuesByRelease
-      setIssuesByRelease(prev => ({
-        ...prev,
-        [releaseId]: [],
-      }));
+      // The real-time listener will handle updating the UI
+      // We no longer need to manually update the releases state here
 
       return releaseId;
     } catch (err) {
@@ -472,29 +634,13 @@ export const useStoryBoard = (projectId: string) => {
       // Create an updated issue with the new releaseId
       const updatedIssue: Issue = {
         ...issue,
-        releaseId: releaseId || undefined,
+        releaseId: releaseId || null,
       };
 
       // Update in Firebase
       await updateIssue(issueId, { releaseId: releaseId || null });
 
-      // Update local state
-      updateLocalIssueState(updatedIssue);
-
-      // Additionally, we need to handle the issue's removal from its previous release
-      if (issue.releaseId && issue.releaseId !== releaseId) {
-        setIssuesByRelease(prev => {
-          const newState = { ...prev };
-
-          if (newState[issue.releaseId as string]) {
-            newState[issue.releaseId as string] = newState[issue.releaseId as string].filter(
-              i => i.id !== issueId
-            );
-          }
-
-          return newState;
-        });
-      }
+      // Local state will be updated via the real-time listener
     } catch (err) {
       console.error("Error moving issue:", err);
       throw err;

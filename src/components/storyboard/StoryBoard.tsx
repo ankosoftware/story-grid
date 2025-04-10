@@ -817,11 +817,9 @@ export default function StoryMap({
       // Call the Firestore updateIssue function
       await updateIssue(issue.id, updatedData);
 
-      // You might want to refresh the data here or update local state
-      // This depends on how your app is structured
-
-      // For now, we'll just show a success message
-      console.log(`Updated ${issue.type.toLowerCase()}: ${issue.id}`);
+      // No need to update local state manually anymore
+      // The real-time listener in useStoryBoard will handle that
+      console.log(`Updated ${issue.type.toLowerCase()}: ${issue.id}`, updatedData);
     } catch (error) {
       console.error("Error updating issue:", error);
       throw error;
@@ -1405,6 +1403,36 @@ export default function StoryMap({
         onClose={handleCloseEditDialog}
         onUpdateItem={handleUpdateIssue}
       />
+
+      {process.env.NODE_ENV === "development" && (
+        <Box sx={{ position: "fixed", bottom: 16, right: 16, zIndex: 1000 }}>
+          <Button
+            color="secondary"
+            size="small"
+            variant="contained"
+            onClick={async () => {
+              if (activities.length > 0) {
+                const testActivity = activities[0];
+                console.log("Testing realtime update for:", testActivity.id);
+                try {
+                  // Add a timestamp to the name to make the change visible
+                  const updateData = {
+                    name: `${testActivity.name} (updated at ${new Date().toLocaleTimeString()})`,
+                  };
+                  await updateIssue(testActivity.id, updateData);
+                  console.log("Update sent to Firebase, waiting for realtime update...");
+                } catch (error) {
+                  console.error("Test update failed:", error);
+                }
+              } else {
+                console.log("No activities to test with");
+              }
+            }}
+          >
+            Test Realtime Update
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 }

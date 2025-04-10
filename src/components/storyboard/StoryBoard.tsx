@@ -1208,6 +1208,7 @@ const DraggableStoryCard = memo(
     handleOpenMoveMenu,
     handleOpenItemForEdit,
     handleMoveStoryToEpic,
+    index,
   }: {
     story: Issue;
     getStatusColor: (status: IssueStatus) => string;
@@ -1215,6 +1216,7 @@ const DraggableStoryCard = memo(
     handleOpenMoveMenu: (event: React.MouseEvent<HTMLElement>, storyId: string) => void;
     handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
     handleMoveStoryToEpic: (storyId: string, newParentId: string) => Promise<void>;
+    index: number;
   }) => {
     // Setup drag source
     const [{ isDragging }, drag, preview] = useDrag(
@@ -1224,7 +1226,7 @@ const DraggableStoryCard = memo(
           type: ItemTypes.STORY,
           id: story.id,
           parentId: story.parentId || null,
-          originalIndex: story.displayOrder,
+          originalIndex: story.displayOrder || index,
         },
         collect: monitor => ({
           isDragging: monitor.isDragging(),
@@ -1242,7 +1244,7 @@ const DraggableStoryCard = memo(
           }
         },
       }),
-      [story.id, story.parentId, story.displayOrder, handleMoveStoryToEpic]
+      [story.id, story.parentId, story.displayOrder, index, handleMoveStoryToEpic]
     );
 
     // Use refs properly for react-dnd
@@ -1262,6 +1264,7 @@ const DraggableStoryCard = memo(
           transform: isDragging ? "scale(1.05)" : "scale(1)",
           transition: "transform 0.2s ease, opacity 0.2s ease",
           zIndex: isDragging ? 1000 : 1,
+          display: isDragging ? "none" : "block", // Hide the original while dragging
         }}
       >
         <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
@@ -2166,7 +2169,7 @@ export default function StoryMap({
   // Memoized rendering function for Story cards
   // --------------------------
   const renderStoryCard = useCallback(
-    (story: Issue) => (
+    (story: Issue, index: number) => (
       <DraggableStoryCard
         key={story.id}
         getPriorityColor={getPriorityColor}
@@ -2174,6 +2177,7 @@ export default function StoryMap({
         handleMoveStoryToEpic={handleMoveStoryToEpic}
         handleOpenItemForEdit={handleOpenItemForEdit}
         handleOpenMoveMenu={handleOpenMoveMenu}
+        index={index}
         story={story}
       />
     ),
@@ -2267,7 +2271,7 @@ export default function StoryMap({
                                 {issues[epic.id] && issues[epic.id].length > 0 ? (
                                   issues[epic.id]
                                     .filter(story => story.releaseId === null)
-                                    .map(story => renderStoryCard(story))
+                                    .map((story, index) => renderStoryCard(story, index))
                                 ) : (
                                   <></>
                                 )}
@@ -2347,7 +2351,7 @@ export default function StoryMap({
                                 {issues[epic.id] && issues[epic.id].length > 0 ? (
                                   issues[epic.id]
                                     .filter(story => story.releaseId === release.id)
-                                    .map(story => renderStoryCard(story))
+                                    .map((story, index) => renderStoryCard(story, index))
                                 ) : (
                                   <></>
                                 )}
@@ -2396,7 +2400,7 @@ export default function StoryMap({
                               {issues[epic.id] && issues[epic.id].length > 0 ? (
                                 issues[epic.id]
                                   .filter(story => !story.releaseId)
-                                  .map(story => renderStoryCard(story))
+                                  .map((story, index) => renderStoryCard(story, index))
                               ) : (
                                 <></>
                               )}

@@ -289,9 +289,10 @@ export const useStoryBoard = (projectId: string) => {
           updatedActivities[existingIndex] = newIssue;
         } else {
           updatedActivities.push(newIssue);
-          // Sort by displayOrder
-          updatedActivities.sort((a, b) => a.displayOrder - b.displayOrder);
         }
+
+        // Always sort by displayOrder after any change (not just for new items)
+        updatedActivities.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
         return updatedActivities;
       });
@@ -326,9 +327,10 @@ export const useStoryBoard = (projectId: string) => {
             newEpics[parentId][existingIndex] = newIssue;
           } else {
             newEpics[parentId].push(newIssue);
-            // Sort by displayOrder
-            newEpics[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
           }
+
+          // Always sort by displayOrder after any change
+          newEpics[parentId].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
           return newEpics;
         });
@@ -348,9 +350,10 @@ export const useStoryBoard = (projectId: string) => {
             newEpics[parentId][existingIndex] = newIssue;
           } else {
             newEpics[parentId].push(newIssue);
-            // Sort by displayOrder
-            newEpics[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
           }
+
+          // Always sort by displayOrder after any change (not just for new items)
+          newEpics[parentId].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
           return newEpics;
         });

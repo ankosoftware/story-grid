@@ -163,13 +163,21 @@ export const DroppableActivityContainer = memo(
           if (clientOffset.x <= cardRect.left + cardRect.width / 2) {
             newIndicatorIndex = i;
 
-            // Calculate new display order
+            // Calculate new display order - FIXED CALCULATION
             if (i === 0) {
-              // If it's the first card, insert before it
-              newDisplayOrder = Math.max(1, orderedEpics[i].displayOrder - 1);
+              // If it's the first card, use a value smaller than the first card
+              newDisplayOrder = Math.max(1, orderedEpics[0].displayOrder - 1);
             } else {
-              // Place between the two cards
-              newDisplayOrder = orderedEpics[i - 1].displayOrder + 1;
+              // Place between the current and previous card
+              const prevOrder = orderedEpics[i - 1].displayOrder;
+              const currentOrder = orderedEpics[i].displayOrder;
+              newDisplayOrder = prevOrder + Math.floor((currentOrder - prevOrder) / 2);
+
+              // If orders are consecutive, place exactly between them
+              if (currentOrder - prevOrder <= 1) {
+                // Shift everything from this position
+                newDisplayOrder = prevOrder + 1;
+              }
             }
             break;
           }

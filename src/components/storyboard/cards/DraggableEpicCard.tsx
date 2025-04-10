@@ -58,13 +58,15 @@ export const DraggableEpicCard = memo(
     return (
       <Box
         ref={previewRef}
+        data-display-order={epic.displayOrder}
+        data-epic-id={epic.id}
         sx={{
           opacity: isDragging ? 0.6 : 1,
           cursor: "move",
           transform: isDragging ? "scale(1.05)" : "scale(1)",
           transition: "transform 0.2s ease, opacity 0.2s ease",
           zIndex: isDragging ? 1000 : 1,
-          display: isDragging ? "block" : "block", 
+          display: isDragging ? "block" : "block",
         }}
       >
         <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
@@ -92,4 +94,4 @@ export const DraggableEpicCard = memo(
 );
 
 // Add displayName to fix the linter warning
-DraggableEpicCard.displayName = "DraggableEpicCard"; 
+DraggableEpicCard.displayName = "DraggableEpicCard";

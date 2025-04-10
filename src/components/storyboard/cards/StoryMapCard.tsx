@@ -38,7 +38,7 @@ export const StoryMapCard = memo(
         borderRadius: 1,
       },
       epic: {
-        bgcolor: "#00acc1",
+        bgcolor: "#07abb1",
         color: "white",
         height: "50px",
         width: "100px",
@@ -136,11 +136,20 @@ export const StoryMapCard = memo(
         }}
         onClick={onClick}
       >
-        <CardContent sx={{ p: 0.5, pt: paddingTop, "&:last-child": { pb: 0.5 } }}>
+        <CardContent
+          sx={{
+            p: 0.5,
+            pt: paddingTop,
+            "&:last-child": { pb: 0.5 },
+            position: "relative",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <Typography
               sx={{
-                whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 fontSize: type === "activity" ? "0.8rem" : "0.75rem",
@@ -197,7 +206,18 @@ export const StoryMapCard = memo(
               )}
             </Box>
           </Box>
-          {children}
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 0.5,
+              right: 0.5,
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "flex-end",
+            }}
+          >
+            {children}
+          </Box>
         </CardContent>
       </Card>
     );

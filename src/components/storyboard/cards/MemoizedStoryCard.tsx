@@ -59,7 +59,6 @@ export const MemoizedStoryCard = memo(
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <Typography
               sx={{
-                whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 fontSize: "0.75rem",
@@ -118,9 +117,9 @@ export const MemoizedStoryCard = memo(
           <Box
             sx={{
               display: "flex",
-              justifyContent: "space-between",
+              position: "relative",
               alignItems: "flex-end",
-              mt: 0.5,
+              mt: 0.1,
             }}
           >
             {story.status !== IssueStatus.TO_DO && (
@@ -140,7 +139,9 @@ export const MemoizedStoryCard = memo(
                 label={story.storyPoints}
                 size="small"
                 sx={{
-                  ml: "auto",
+                  position: "absolute",
+                  right: 0,
+                  bottom: 0,
                   fontSize: "0.6rem",
                   height: "16px",
                   width: "16px",

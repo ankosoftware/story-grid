@@ -59,4 +59,4 @@ export const createUnassignedReleaseObject = (projectId: string): Partial<Releas
   endDate: null,
   displayOrder: 99999,
   projectId: projectId,
-}); 
+});

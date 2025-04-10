@@ -23,7 +23,7 @@ export const getPriorityColor = (priority?: IssuePriority): string => {
   if (!priority) {
     return "#ff9800"; // Default to medium
   }
-  
+
   switch (priority) {
     case IssuePriority.HIGH:
       return "#f44336";
@@ -34,4 +34,4 @@ export const getPriorityColor = (priority?: IssuePriority): string => {
     default:
       return "#ff9800";
   }
-}; 
+};

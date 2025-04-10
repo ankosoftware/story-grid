@@ -89,19 +89,17 @@ export const DraggableEpicCard = memo(
             onCommentClick={handleOpenComments ? (e, item) => handleOpenComments(item) : undefined}
           >
             {storyPoints !== undefined && storyPoints > 0 && (
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
-                <Chip
-                  label={storyPoints}
-                  size="small"
-                  sx={{
-                    fontSize: "0.6rem",
-                    height: "16px",
-                    fontWeight: "bold",
-                    bgcolor: theme.palette.grey[200],
-                    borderRadius: "8px",
-                  }}
-                />
-              </Box>
+              <Chip
+                label={storyPoints}
+                size="small"
+                sx={{
+                  fontSize: "0.6rem",
+                  height: "16px",
+                  fontWeight: "bold",
+                  bgcolor: theme.palette.grey[200],
+                  borderRadius: "8px",
+                }}
+              />
             )}
           </StoryMapCard>
         </Box>

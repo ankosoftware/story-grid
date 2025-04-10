@@ -38,6 +38,7 @@ export const DraggableStoryCard = memo(
           id: story.id,
           parentId: story.parentId || null,
           originalIndex: story.displayOrder || index,
+          originalReleaseId: story.releaseId || null,
         },
         collect: monitor => ({
           isDragging: monitor.isDragging(),
@@ -60,7 +61,7 @@ export const DraggableStoryCard = memo(
           }
         },
       }),
-      [story.id, story.parentId, story.displayOrder, index, handleMoveStoryToEpic]
+      [story.id, story.parentId, story.releaseId, story.displayOrder, index, handleMoveStoryToEpic]
     );
 
     // Use refs properly for react-dnd
@@ -74,6 +75,8 @@ export const DraggableStoryCard = memo(
     return (
       <Box
         ref={previewRef}
+        data-story-id={story.id}
+        data-display-order={story.displayOrder || index}
         sx={{
           opacity: isDragging ? 0.6 : 1,
           cursor: "move",
@@ -98,4 +101,4 @@ export const DraggableStoryCard = memo(
 );
 
 // Add displayName to fix the linter warning
-DraggableStoryCard.displayName = "DraggableStoryCard"; 
+DraggableStoryCard.displayName = "DraggableStoryCard";

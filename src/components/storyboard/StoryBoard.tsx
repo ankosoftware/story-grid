@@ -117,11 +117,20 @@ export default function StoryMap({
     try {
       setUpdatingIssue(true);
 
+      // Check if this is a display order update
+      const isDisplayOrderUpdate = updatedData.displayOrder !== undefined;
+
+      // For display order updates during dragging, we might want to throttle updates
+      // to prevent excessive Firestore calls
+      if (isDisplayOrderUpdate) {
+        console.log(
+          `Updated display order for ${issue.type.toLowerCase()}: ${issue.id} to ${updatedData.displayOrder}`
+        );
+      }
+
       // Call the Firestore updateIssue function
       await updateIssue(issue.id, updatedData);
 
-      // No need to update local state manually anymore
-      // The real-time listener in useStoryBoard will handle that
       console.log(`Updated ${issue.type.toLowerCase()}: ${issue.id}`, updatedData);
     } catch (error) {
       console.error("Error updating issue:", error);

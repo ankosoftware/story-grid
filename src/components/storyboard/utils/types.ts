@@ -12,6 +12,7 @@ export interface DragItem {
   id: string;
   parentId: string | null;
   originalIndex: number;
+  originalReleaseId?: string | null;
 }
 
 // Define props for the main story map component

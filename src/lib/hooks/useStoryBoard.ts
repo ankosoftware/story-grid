@@ -242,15 +242,18 @@ export const useStoryBoard = (projectId: string) => {
               newIssues[newIssue.parentId][existingIndex] = newIssue;
             } else {
               newIssues[newIssue.parentId].push(newIssue);
-              // Sort by displayOrder
-              newIssues[newIssue.parentId].sort((a, b) => a.displayOrder - b.displayOrder);
             }
+
+            // Always sort by displayOrder after any change
+            newIssues[newIssue.parentId].sort(
+              (a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)
+            );
           }
 
           return newIssues;
         });
       } else {
-        // Handle normal story update
+        // Handle normal story update (including display order changes)
         setIssues(prev => {
           const newIssues = { ...prev };
           const parentId = newIssue.parentId as string;
@@ -265,9 +268,10 @@ export const useStoryBoard = (projectId: string) => {
             newIssues[parentId][existingIndex] = newIssue;
           } else {
             newIssues[parentId].push(newIssue);
-            // Sort by displayOrder
-            newIssues[parentId].sort((a, b) => a.displayOrder - b.displayOrder);
           }
+
+          // Always sort by displayOrder after any change
+          newIssues[parentId].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
           return newIssues;
         });

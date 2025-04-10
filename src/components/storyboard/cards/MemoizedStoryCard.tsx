@@ -1,13 +1,5 @@
 import React, { memo } from "react";
-import {
-  Card,
-  CardContent,
-  Box,
-  Typography,
-  IconButton,
-  Chip,
-  useTheme,
-} from "@mui/material";
+import { Card, CardContent, Box, Typography, IconButton, Chip, useTheme } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Issue, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
 
@@ -65,7 +57,7 @@ export const MemoizedStoryCard = memo(
               }}
               variant="body2"
             >
-              {story.name}
+              {story?.displayOrder} {story.name}
             </Typography>
             <IconButton
               size="small"
@@ -123,4 +115,4 @@ export const MemoizedStoryCard = memo(
 );
 
 // Add displayName to fix the linter warning
-MemoizedStoryCard.displayName = "MemoizedStoryCard"; 
+MemoizedStoryCard.displayName = "MemoizedStoryCard";

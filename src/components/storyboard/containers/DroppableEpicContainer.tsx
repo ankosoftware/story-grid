@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState, useEffect } from "react";
+import React, { memo, useRef, useState } from "react";
 import { Box } from "@mui/material";
 import { useDrop } from "react-dnd";
 import { Issue } from "@/lib/firebase/models/types";
@@ -16,25 +16,10 @@ export const DroppableEpicContainer = memo(
     // Add state to track drop indicator position
     const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
     const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
-    const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
     const [pendingDisplayOrder, setPendingDisplayOrder] = useState<number | null>(null);
 
     // Create a ref for the container element
     const dropRef = useRef<HTMLDivElement>(null);
-
-    // Effect to handle pending display order updates
-    useEffect(() => {
-      if (pendingDisplayOrder !== null && draggedItemId) {
-        const now = Date.now();
-        // Only update once every 100ms to prevent excessive updates
-        if (now - lastUpdateTime > 100) {
-          console.log("Updating issue display order", draggedItemId, pendingDisplayOrder);
-          updateIssue(draggedItemId, { displayOrder: pendingDisplayOrder });
-          setLastUpdateTime(now);
-          setPendingDisplayOrder(null);
-        }
-      }
-    }, [pendingDisplayOrder, draggedItemId, lastUpdateTime]);
 
     const [{ isOver, canDrop }, drop] = useDrop(
       {
@@ -48,13 +33,27 @@ export const DroppableEpicContainer = memo(
         }) => {
           // Reset indicator when dropped
           setDropIndicatorIndex(null);
-          setDraggedItemId(null);
+          console.log("Dropping item", item, pendingDisplayOrder);
 
-          // Ensure any pending updates are processed
-          if (pendingDisplayOrder !== null && item.id) {
-            updateIssue(item.id, { displayOrder: pendingDisplayOrder });
-            setPendingDisplayOrder(null);
+          // Store the current pendingDisplayOrder in a local variable to ensure we use its value
+          const displayOrderToUse = pendingDisplayOrder;
+
+          // Only update the display order when the item is dropped
+          if (displayOrderToUse !== null && item.id) {
+            console.log("Updating issue display order on drop", item.id, displayOrderToUse);
+
+            updateIssue(item.id, {
+              displayOrder: displayOrderToUse,
+              // If the parent or release has changed, that's handled elsewhere
+              // This ensures display order is always updated
+            });
+          } else {
+            console.warn("Missing display order on drop for item:", item.id);
           }
+
+          // Clear states after drop
+          setPendingDisplayOrder(null);
+          setDraggedItemId(null);
 
           // When a story is dropped, return information about where it was dropped
           return { id: epic.id, type: "epic", releaseId };
@@ -99,9 +98,7 @@ export const DroppableEpicContainer = memo(
             if (storyCards.length === 0) {
               setDropIndicatorIndex(0);
               // If this is the first card in the epic, use a low display order (0)
-              if (item.parentId === epic.id && releaseId === item.originalReleaseId) {
-                setPendingDisplayOrder(0);
-              }
+              setPendingDisplayOrder(0);
               return;
             }
 
@@ -116,27 +113,23 @@ export const DroppableEpicContainer = memo(
                 setDropIndicatorIndex(i);
                 placedIndicator = true;
 
-                // Calculate new display order if within same epic and release
-                if (item.parentId === epic.id && releaseId === item.originalReleaseId) {
-                  let newDisplayOrder;
-                  if (i === 0) {
-                    // First position: use lower than the first card's order
-                    const firstOrder = parseFloat(card.getAttribute("data-display-order") || "0");
-                    newDisplayOrder = firstOrder - 1;
-                  } else {
-                    // Middle position: between previous and current card
-                    const prevCard = storyCards[i - 1];
-                    const prevOrder = parseFloat(
-                      prevCard.getAttribute("data-display-order") || "0"
-                    );
-                    const currOrder = parseFloat(card.getAttribute("data-display-order") || "0");
-                    newDisplayOrder = (prevOrder + currOrder) / 2;
-                  }
+                // Calculate new display order
+                let newDisplayOrder;
+                if (i === 0) {
+                  // First position: use lower than the first card's order
+                  const firstOrder = parseFloat(card.getAttribute("data-display-order") || "0");
+                  newDisplayOrder = Math.max(0, firstOrder - 1);
+                } else {
+                  // Middle position: between previous and current card
+                  const prevCard = storyCards[i - 1];
+                  const prevOrder = parseFloat(prevCard.getAttribute("data-display-order") || "0");
+                  const currOrder = parseFloat(card.getAttribute("data-display-order") || "0");
+                  newDisplayOrder = (prevOrder + currOrder) / 2;
+                }
 
-                  // Set pending display order update
-                  if (newDisplayOrder !== undefined) {
-                    setPendingDisplayOrder(newDisplayOrder);
-                  }
+                // Set pending display order update (but don't update yet)
+                if (newDisplayOrder !== undefined) {
+                  setPendingDisplayOrder(newDisplayOrder);
                 }
                 break;
               }
@@ -146,13 +139,10 @@ export const DroppableEpicContainer = memo(
             if (!placedIndicator) {
               setDropIndicatorIndex(storyCards.length);
 
-              // Calculate new display order if within same epic and release
-              if (item.parentId === epic.id && releaseId === item.originalReleaseId) {
-                // Last position: use higher than the last card's order
-                const lastCard = storyCards[storyCards.length - 1];
-                const lastOrder = parseFloat(lastCard.getAttribute("data-display-order") || "0");
-                setPendingDisplayOrder(lastOrder + 1);
-              }
+              // Last position: use higher than the last card's order
+              const lastCard = storyCards[storyCards.length - 1];
+              const lastOrder = parseFloat(lastCard.getAttribute("data-display-order") || "0");
+              setPendingDisplayOrder(lastOrder + 1);
             }
           } else {
             // If not hovering over a story or different type, clear indicator
@@ -164,7 +154,7 @@ export const DroppableEpicContainer = memo(
           canDrop: monitor.canDrop(),
         }),
       },
-      [epic.id, releaseId, draggedItemId, pendingDisplayOrder, lastUpdateTime]
+      [epic.id, releaseId, pendingDisplayOrder]
     );
 
     // Apply the drop ref to our container ref

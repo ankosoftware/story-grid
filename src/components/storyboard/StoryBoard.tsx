@@ -26,6 +26,7 @@ import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Issue, Release, IssueStatus, IssuePriority, IssueType } from "@/lib/firebase/models/types";
+import { updateIssue } from "@/lib/firebase/firestore";
 
 interface StoryMapProps {
   projectId: string;
@@ -495,11 +496,22 @@ type EditItemDialogProps = {
   item: Issue | null;
   itemType: "activity" | "epic" | "story" | null;
   releases: Release[];
+  onUpdateItem?: (item: Issue, updatedData: Partial<Issue>) => Promise<void>;
 };
 
-const EditItemDialog = ({ open, onClose, item, itemType, releases }: EditItemDialogProps) => {
+const EditItemDialog = ({
+  open,
+  onClose,
+  item,
+  itemType,
+  releases,
+  onUpdateItem,
+}: EditItemDialogProps) => {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editStatus, setEditStatus] = useState<IssueStatus>(IssueStatus.TO_DO);
+  const [editPriority, setEditPriority] = useState<IssuePriority>(IssuePriority.MEDIUM);
+  const [editReleaseId, setEditReleaseId] = useState<string>("");
   const [editingError, setEditingError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -508,12 +520,15 @@ const EditItemDialog = ({ open, onClose, item, itemType, releases }: EditItemDia
     if (item) {
       setEditName(item.name);
       setEditDescription(item.description || "");
+      setEditStatus(item.status || IssueStatus.TO_DO);
+      setEditPriority(item.priority || IssuePriority.MEDIUM);
+      setEditReleaseId(item.releaseId || "");
       setEditingError(null);
     }
   }, [item]);
 
   const handleSaveEdit = async () => {
-    if (!item || !itemType) {
+    if (!item || !itemType || !onUpdateItem) {
       return;
     }
 
@@ -526,17 +541,19 @@ const EditItemDialog = ({ open, onClose, item, itemType, releases }: EditItemDia
       setIsEditing(true);
       setEditingError(null);
 
-      // Here you would call your update function
-      // For now, we'll just log the edit
-      console.log(`Editing ${itemType}:`, {
-        id: item.id,
+      const updatedData: Partial<Issue> = {
         name: editName,
         description: editDescription,
-      });
+      };
 
-      // TODO: Add actual update functionality
-      // await onUpdateItem(item.id, editName, editDescription);
+      // Add additional fields for stories
+      if (itemType === "story") {
+        updatedData.status = editStatus;
+        updatedData.priority = editPriority;
+        updatedData.releaseId = editReleaseId || null;
+      }
 
+      await onUpdateItem(item, updatedData);
       onClose();
     } catch (err) {
       setEditingError((err as Error).message || `Failed to update ${itemType}`);
@@ -551,6 +568,11 @@ const EditItemDialog = ({ open, onClose, item, itemType, releases }: EditItemDia
         {itemType && `Edit ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`}
       </DialogTitle>
       <DialogContent>
+        {editingError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {editingError}
+          </Alert>
+        )}
         <TextField
           autoFocus
           fullWidth
@@ -591,7 +613,8 @@ const EditItemDialog = ({ open, onClose, item, itemType, releases }: EditItemDia
               label="Status"
               margin="dense"
               sx={{ mb: 2 }}
-              value={item.status || IssueStatus.TO_DO}
+              value={editStatus}
+              onChange={e => setEditStatus(e.target.value as IssueStatus)}
             >
               {Object.values(IssueStatus).map(status => (
                 <MenuItem key={status} value={status}>
@@ -608,7 +631,8 @@ const EditItemDialog = ({ open, onClose, item, itemType, releases }: EditItemDia
               label="Priority"
               margin="dense"
               sx={{ mb: 2 }}
-              value={item.priority || IssuePriority.MEDIUM}
+              value={editPriority}
+              onChange={e => setEditPriority(e.target.value as IssuePriority)}
             >
               {Object.values(IssuePriority).map(priority => (
                 <MenuItem key={priority} value={priority}>
@@ -624,7 +648,8 @@ const EditItemDialog = ({ open, onClose, item, itemType, releases }: EditItemDia
               disabled={isEditing}
               label="Release"
               margin="dense"
-              value={item.releaseId || ""}
+              value={editReleaseId}
+              onChange={e => setEditReleaseId(e.target.value)}
             >
               <MenuItem value="">No Release</MenuItem>
               {releases.map(release => (
@@ -780,6 +805,30 @@ export default function StoryMap({
   const [editingItemType, setEditingItemType] = useState<"activity" | "epic" | "story" | null>(
     null
   );
+
+  // Add state for updating issues
+  const [updatingIssue, setUpdatingIssue] = useState(false);
+
+  // Add handler for updating issues
+  const handleUpdateIssue = useCallback(async (issue: Issue, updatedData: Partial<Issue>) => {
+    try {
+      setUpdatingIssue(true);
+
+      // Call the Firestore updateIssue function
+      await updateIssue(issue.id, updatedData);
+
+      // You might want to refresh the data here or update local state
+      // This depends on how your app is structured
+
+      // For now, we'll just show a success message
+      console.log(`Updated ${issue.type.toLowerCase()}: ${issue.id}`);
+    } catch (error) {
+      console.error("Error updating issue:", error);
+      throw error;
+    } finally {
+      setUpdatingIssue(false);
+    }
+  }, []);
 
   // --------------------------
   // Memoized handler functions to avoid unnecessary rerenders
@@ -1354,6 +1403,7 @@ export default function StoryMap({
         open={editDialogOpen}
         releases={releases}
         onClose={handleCloseEditDialog}
+        onUpdateItem={handleUpdateIssue}
       />
     </Box>
   );

@@ -33,7 +33,12 @@ export const DroppableEpicContainer = memo(
         }) => {
           // Reset indicator when dropped
           setDropIndicatorIndex(null);
-          console.log("Dropping item", item, pendingDisplayOrder);
+          console.log("Dropping item", item, "at display order:", pendingDisplayOrder);
+
+          if (pendingDisplayOrder === null) {
+            console.warn("Missing pendingDisplayOrder during drop");
+            return { id: epic.id, type: "epic", releaseId };
+          }
 
           // Get the container element
           const containerElement = dropRef.current;
@@ -42,34 +47,47 @@ export const DroppableEpicContainer = memo(
             return { id: epic.id, type: "epic", releaseId };
           }
 
-          // Find all story cards in the container, including the one being dropped
-          const allStoryCards = Array.from(
+          // Find all story cards in the container
+          const storyElements = Array.from(
             containerElement.querySelectorAll("[data-story-id]")
           ) as HTMLElement[];
 
-          // Create an array of story IDs in their visual order
-          const storyIds = allStoryCards.map(card => card.getAttribute("data-story-id") || "");
+          // Create an array of story objects with their IDs and current visual positions
+          const stories = storyElements
+            .map(element => ({
+              id: element.getAttribute("data-story-id") || "",
+              currentOrder: parseInt(element.getAttribute("data-display-order") || "0", 10),
+            }))
+            .filter(story => story.id !== "" && story.id !== item.id); // Filter out empty IDs and the dragged item
 
-          // Add the dropped item at the position indicated by dropIndicatorIndex
-          if (dropIndicatorIndex !== null && !storyIds.includes(item.id)) {
-            storyIds.splice(dropIndicatorIndex, 0, item.id);
-          }
+          // Sort stories by their current order
+          stories.sort((a, b) => a.currentOrder - b.currentOrder);
 
-          // Filter out empty IDs
-          const validStoryIds = storyIds.filter(id => id !== "");
+          // Create a batch of updates for efficient reordering
+          const batchUpdates = [];
 
-          // Calculate new display orders for all stories
-          const BASE_ORDER = 100000;
-          const STEP = 100000;
+          // Add the dropped item at its new position
+          batchUpdates.push({
+            id: item.id,
+            displayOrder: pendingDisplayOrder,
+          });
 
-          // Create a batch of updates for all stories
-          const batchUpdates = validStoryIds.map((id, index) => ({
-            id,
-            displayOrder: (index + 1) * STEP,
-          }));
+          // Adjust orders of other items if needed
+          stories.forEach(story => {
+            let newOrder = story.currentOrder;
+
+            // If story was before the drop position and needs to be shifted up
+            if (story.currentOrder >= pendingDisplayOrder) {
+              newOrder = story.currentOrder + 1;
+              batchUpdates.push({
+                id: story.id,
+                displayOrder: newOrder,
+              });
+            }
+          });
 
           // Log the batch update
-          console.log(`Resequencing ${batchUpdates.length} items in a batch operation`);
+          console.log(`Resequencing ${batchUpdates.length} items: ${JSON.stringify(batchUpdates)}`);
 
           // Use the batch update function
           batchUpdateIssueOrders(batchUpdates).catch(error =>
@@ -123,10 +141,16 @@ export const DroppableEpicContainer = memo(
             // If no cards (or only the dragged card), place at beginning
             if (storyCards.length === 0) {
               setDropIndicatorIndex(0);
-              // Use a standard starting value for an empty container
-              setPendingDisplayOrder(100000);
+              setPendingDisplayOrder(1);
               return;
             }
+
+            // Sort the cards by their display order if available
+            storyCards.sort((a, b) => {
+              const aOrder = parseInt(a.getAttribute("data-display-order") || "0", 10);
+              const bOrder = parseInt(b.getAttribute("data-display-order") || "0", 10);
+              return aOrder - bOrder;
+            });
 
             // Determine where to place card based on cursor position
             let placedIndicator = false;
@@ -139,9 +163,23 @@ export const DroppableEpicContainer = memo(
                 setDropIndicatorIndex(i);
                 placedIndicator = true;
 
-                // Calculate new display order based on position
-                const newDisplayOrder = (i + 1) * 100000;
-                setPendingDisplayOrder(newDisplayOrder);
+                // Get the current display order of the card
+                const cardOrder = parseInt(card.getAttribute("data-display-order") || "0", 10);
+
+                // If it's the first card, insert before it
+                if (i === 0) {
+                  setPendingDisplayOrder(Math.max(1, cardOrder - 1));
+                } else {
+                  // Get the previous card's order
+                  const prevCard = storyCards[i - 1] as HTMLElement;
+                  const prevOrder = parseInt(
+                    prevCard.getAttribute("data-display-order") || "0",
+                    10
+                  );
+
+                  // Place between the two cards
+                  setPendingDisplayOrder(prevOrder + 1);
+                }
                 break;
               }
             }
@@ -150,9 +188,12 @@ export const DroppableEpicContainer = memo(
             if (!placedIndicator) {
               setDropIndicatorIndex(storyCards.length);
 
-              // Calculate position-based display order for the end position
-              const newDisplayOrder = (storyCards.length + 1) * 100000;
-              setPendingDisplayOrder(newDisplayOrder);
+              // Get the order of the last card
+              const lastCard = storyCards[storyCards.length - 1] as HTMLElement;
+              const lastOrder = parseInt(lastCard.getAttribute("data-display-order") || "0", 10);
+
+              // Place after the last card
+              setPendingDisplayOrder(lastOrder + 1);
             }
           } else {
             // If not hovering over a story or different type, clear indicator

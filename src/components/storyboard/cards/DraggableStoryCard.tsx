@@ -50,13 +50,16 @@ export const DraggableStoryCard = memo(
             releaseId: string | null;
           }>();
 
+          if (!dropResult) {
+            // Drag canceled, do nothing
+            return;
+          }
+
           if (
-            item &&
-            dropResult &&
             dropResult.type === "epic" &&
             (dropResult.id !== story.parentId || dropResult.releaseId !== story.releaseId)
           ) {
-            // Only move if dropped on a different parent or release
+            // Only call handleMoveStoryToEpic if we're moving to a different epic or release
             handleMoveStoryToEpic(story.id, dropResult.id, dropResult.releaseId);
           }
         },
@@ -75,8 +78,8 @@ export const DraggableStoryCard = memo(
     return (
       <Box
         ref={previewRef}
-        data-story-id={story.id}
         data-display-order={story.displayOrder || index}
+        data-story-id={story.id}
         sx={{
           opacity: isDragging ? 0.6 : 1,
           cursor: "move",

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -13,6 +13,9 @@ import {
   useTheme,
   useMediaQuery,
   Chip,
+  Checkbox,
+  FormControlLabel,
+  Tooltip,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { DndProvider } from "react-dnd";
@@ -112,6 +115,18 @@ export default function StoryMap({
   // Add snackbar state
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+
+  // Add state for sticky activities row with localStorage
+  const [stickyActivitiesRow, setStickyActivitiesRow] = useState(() => {
+    // Initialize from localStorage if available
+    const saved = localStorage.getItem("stickyActivitiesRow");
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  // Save sticky preference when it changes
+  useEffect(() => {
+    localStorage.setItem("stickyActivitiesRow", JSON.stringify(stickyActivitiesRow));
+  }, [stickyActivitiesRow]);
 
   // Add handler for updating issues
   const handleUpdateIssue = useCallback(async (issue: Issue, updatedData: Partial<Issue>) => {
@@ -457,7 +472,7 @@ export default function StoryMap({
           <Typography component="h2" variant="h5">
             Story Map
           </Typography>
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
             <Button
               startIcon={<AddIcon />}
               variant="contained"
@@ -465,6 +480,19 @@ export default function StoryMap({
             >
               Add Activity
             </Button>
+            <Tooltip title="Keep activities and epics visible while scrolling">
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={stickyActivitiesRow}
+                    size="small"
+                    onChange={e => setStickyActivitiesRow(e.target.checked)}
+                  />
+                }
+                label="Sticky Headers"
+                sx={{ mx: 1 }}
+              />
+            </Tooltip>
             <Button startIcon={<AddIcon />} variant="outlined" onClick={handleOpenReleaseDialog}>
               Add Release
             </Button>
@@ -477,10 +505,39 @@ export default function StoryMap({
             p: 2,
             border: `1px solid ${theme.palette.divider}`,
             overflowX: "auto",
+            position: "relative",
+            maxHeight: stickyActivitiesRow ? "calc(100vh - 200px)" : "auto",
+            ...(stickyActivitiesRow && {
+              overflowY: "auto",
+              scrollbarWidth: "thin", // For Firefox
+              "&::-webkit-scrollbar": {
+                // For Chrome/Safari/Edge
+                width: "8px",
+                height: "8px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: theme.palette.grey[400],
+                borderRadius: "4px",
+              },
+            }),
           }}
         >
-          <Box sx={{ minWidth: activities.length * 250 }}>
-            {/* Activities Row */}
+          {/* Activities Row */}
+          <Box
+            sx={{
+              minWidth: activities.length * 250,
+              ...(stickyActivitiesRow && {
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
+                backgroundColor: theme.palette.background.paper,
+                paddingTop: 1,
+                paddingBottom: 1,
+                boxShadow: `0 2px 4px ${theme.palette.divider}`,
+                transition: "box-shadow 0.3s ease", // Add smooth transition for box-shadow
+              }),
+            }}
+          >
             <Box
               sx={{
                 display: "flex",
@@ -499,7 +556,21 @@ export default function StoryMap({
                     </StoryMapCard>
 
                     {/* Epics Row - Horizontal */}
-                    <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: 2,
+                        mb: 2,
+                        ...(stickyActivitiesRow && {
+                          position: "sticky",
+                          top: theme.spacing(7), // Adjust this value based on the height of the activity cards
+                          zIndex: 9,
+                          backgroundColor: theme.palette.background.paper,
+                          paddingTop: 1,
+                        }),
+                      }}
+                    >
                       {epics[activity.id] &&
                         epics[activity.id].map(epic => (
                           <Box key={epic.id} sx={{ flex: 1, minWidth: 0 }}>

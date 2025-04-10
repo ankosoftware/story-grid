@@ -125,7 +125,7 @@ export interface Issue {
   assignee?: string | null; // User ID of the assignee
   releaseId?: string | null; // ID of the release it belongs to
   displayOrder: number; // Position in the display order
-  storyPoints?: number; // Estimate of complexity/effort in story points
+  storyPoints?: number | null; // Estimate of complexity/effort in story points
   createdAt: Timestamp;
   createdBy: string; // User ID
   updatedAt?: Timestamp;

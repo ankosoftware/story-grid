@@ -69,7 +69,7 @@ type ActivityDialogProps = {
   onAddActivity: (name: string, description?: string) => Promise<string>;
 };
 
-const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogProps) => {
+export const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogProps) => {
   const [activityName, setActivityName] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
   const [addingActivity, setAddingActivity] = useState(false);

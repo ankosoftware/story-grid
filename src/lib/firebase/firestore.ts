@@ -399,7 +399,7 @@ export const createIssue = async (
     priority?: IssuePriority;
     assignee?: string | null;
     releaseId?: string | null;
-    storyPoints?: number;
+    storyPoints?: number | null;
     displayOrder?: number;
   }
 ): Promise<string> => {
@@ -467,7 +467,7 @@ export const createIssue = async (
     priority: options?.priority || IssuePriority.MEDIUM,
     assignee: options?.assignee || null,
     releaseId: options?.releaseId || null,
-    storyPoints: options?.storyPoints,
+    storyPoints: options?.storyPoints || null,
     displayOrder: order,
     createdAt: Timestamp.now(),
     createdBy: userId,
@@ -781,6 +781,7 @@ export const updateIssue = async (
   // Add updatedAt timestamp
   const dataWithTimestamp = {
     ...updateData,
+    storyPoints: updateData.storyPoints || null,
     updatedAt: Timestamp.now(),
   };
 

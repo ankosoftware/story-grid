@@ -1295,17 +1295,21 @@ const DraggableStoryCard = memo(
 // Add displayName to fix the linter warning
 DraggableStoryCard.displayName = "DraggableStoryCard";
 
-// Create a draggable epic card component
+// Create a memoized epic card component with story points
 const DraggableEpicCard = memo(
   ({
     epic,
     handleMoveEpicToActivity,
     handleOpenItemForEdit,
+    storyPoints,
   }: {
     epic: Issue;
     handleMoveEpicToActivity: (epicId: string, newParentId: string) => Promise<void>;
     handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
+    storyPoints?: number;
   }) => {
+    const theme = useTheme();
+
     // Setup drag source
     const [{ isDragging }, drag, preview] = useDrag(
       () => ({
@@ -1353,11 +1357,23 @@ const DraggableEpicCard = memo(
         }}
       >
         <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
-          <StoryMapCard
-            item={epic}
-            type="epic"
-            onClick={() => handleOpenItemForEdit(epic, "epic")}
-          />
+          <StoryMapCard item={epic} type="epic" onClick={() => handleOpenItemForEdit(epic, "epic")}>
+            {storyPoints !== undefined && storyPoints > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
+                <Chip
+                  label={storyPoints}
+                  size="small"
+                  sx={{
+                    fontSize: "0.6rem",
+                    height: "16px",
+                    fontWeight: "bold",
+                    bgcolor: theme.palette.grey[200],
+                    borderRadius: "8px",
+                  }}
+                />
+              </Box>
+            )}
+          </StoryMapCard>
         </Box>
       </Box>
     );
@@ -1459,6 +1475,7 @@ const MemoizedReleaseCard = memo(
     isFirst,
     isLast,
     allowReorder = true,
+    totalStoryPoints,
   }: {
     release: Release;
     handleOpenReleaseForEdit: (release: Release) => void;
@@ -1466,6 +1483,7 @@ const MemoizedReleaseCard = memo(
     isFirst?: boolean;
     isLast?: boolean;
     allowReorder?: boolean;
+    totalStoryPoints?: number;
   }) => {
     const theme = useTheme();
 
@@ -1570,6 +1588,20 @@ const MemoizedReleaseCard = memo(
                   bgcolor: theme.palette.grey[100],
                   height: "16px",
                   fontSize: "0.6rem",
+                  borderRadius: "8px",
+                }}
+              />
+            )}
+            {totalStoryPoints !== undefined && totalStoryPoints > 0 && (
+              <Chip
+                label={`${totalStoryPoints} pts`}
+                size="small"
+                sx={{
+                  bgcolor: theme.palette.primary.light,
+                  color: theme.palette.primary.contrastText,
+                  height: "16px",
+                  fontSize: "0.6rem",
+                  fontWeight: "bold",
                   borderRadius: "8px",
                 }}
               />
@@ -2152,6 +2184,39 @@ export default function StoryMap({
     ]
   );
 
+  // Calculate story points for epics
+  const calculateEpicStoryPoints = useCallback(
+    (epicId: string): number => {
+      if (!issues[epicId]) {
+        return 0;
+      }
+
+      return issues[epicId].reduce((total, story) => {
+        return total + (story.storyPoints || 0);
+      }, 0);
+    },
+    [issues]
+  );
+
+  // Calculate story points for releases
+  const calculateReleaseStoryPoints = useCallback(
+    (releaseId: string): number => {
+      let total = 0;
+
+      // Sum up story points for all stories in this release
+      Object.keys(issues).forEach(epicId => {
+        issues[epicId].forEach(story => {
+          if (story.releaseId === releaseId && story.storyPoints) {
+            total += story.storyPoints;
+          }
+        });
+      });
+
+      return total;
+    },
+    [issues]
+  );
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -2226,6 +2291,7 @@ export default function StoryMap({
                               epic={epic}
                               handleMoveEpicToActivity={handleMoveEpicToActivity}
                               handleOpenItemForEdit={handleOpenItemForEdit}
+                              storyPoints={calculateEpicStoryPoints(epic.id)}
                             />
                           </Box>
                         ))}
@@ -2270,6 +2336,7 @@ export default function StoryMap({
                   isFirst={index === 0}
                   isLast={index === releases.length - 1}
                   release={release}
+                  totalStoryPoints={calculateReleaseStoryPoints(release.id)}
                 />
               </Box>
               <Box
@@ -2337,6 +2404,7 @@ export default function StoryMap({
                   displayOrder: 99999,
                   projectId: projectId,
                 }}
+                totalStoryPoints={calculateReleaseStoryPoints("unassigned")}
               />
             </Box>
             <Box

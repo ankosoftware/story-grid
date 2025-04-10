@@ -420,7 +420,7 @@ export default function StoryMap({
       }
 
       return issues[epicId].reduce((total, story) => {
-        if (releaseId && story.releaseId === releaseId) {
+        if (story.releaseId === releaseId || !releaseId) {
           return total + (story.storyPoints || 0);
         }
         return total;
@@ -546,13 +546,15 @@ export default function StoryMap({
               {activities.map(activity => (
                 <Box key={activity.id} sx={{ mx: 1 }}>
                   <DroppableActivityContainer activity={activity}>
-                    <StoryMapCard
-                      item={activity}
-                      type="activity"
-                      onClick={() => handleOpenItemForEdit(activity, "activity")}
-                    >
-                      {/* Activity card has no additional content */}
-                    </StoryMapCard>
+                    <Box sx={{ px: 1, mb: 1 }}>
+                      <StoryMapCard
+                        item={activity}
+                        type="activity"
+                        onClick={() => handleOpenItemForEdit(activity, "activity")}
+                      >
+                        {/* Activity card has no additional content */}
+                      </StoryMapCard>
+                    </Box>
 
                     {/* Epics Row - Horizontal */}
                     <Box
@@ -560,7 +562,7 @@ export default function StoryMap({
                         display: "flex",
                         flexDirection: "row",
                         gap: 2,
-                        mb: 2,
+                        mb: 1,
                         height: "100%",
                         ...(stickyActivitiesRow && {
                           position: "sticky",

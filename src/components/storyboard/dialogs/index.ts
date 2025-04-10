@@ -7,3 +7,4 @@ export { EpicDetailDialog } from "./EpicDetailDialog";
 export { EditItemDialog } from "./EditItemDialog";
 export { ReleaseDetailDialog } from "./ReleaseDetailDialog";
 export { CommentsDialog } from "./CommentsDialog";
+export { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";

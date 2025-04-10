@@ -12,6 +12,7 @@ interface MemoizedStoryCardProps {
   handleOpenMoveMenu: (event: React.MouseEvent<HTMLElement>, storyId: string) => void;
   handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
   handleOpenComments?: (item: Issue) => void;
+  onClick?: () => void;
 }
 
 export const MemoizedStoryCard = memo(
@@ -22,6 +23,7 @@ export const MemoizedStoryCard = memo(
     handleOpenMoveMenu,
     handleOpenItemForEdit,
     handleOpenComments,
+    onClick,
   }: MemoizedStoryCardProps) => {
     const theme = useTheme();
 
@@ -54,8 +56,16 @@ export const MemoizedStoryCard = memo(
       }
     };
 
+    const handleCardClick = () => {
+      if (onClick) {
+        onClick();
+      } else {
+        handleOpenItemForEdit(story, "story");
+      }
+    };
+
     return (
-      <Card sx={cardStyles} onClick={() => handleOpenItemForEdit(story, "story")}>
+      <Card sx={cardStyles} onClick={handleCardClick}>
         <CardContent sx={{ p: 0.5, "&:last-child": { pb: 0.5 } }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <Typography
@@ -118,13 +128,18 @@ export const MemoizedStoryCard = memo(
               )}
               <IconButton
                 size="small"
-                sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
+                sx={{
+                  p: 0.3,
+                  "& svg": {
+                    fontSize: "1rem",
+                  },
+                }}
                 onClick={e => {
                   e.stopPropagation();
                   handleOpenMoveMenu(e, story.id);
                 }}
               >
-                <MoreVertIcon sx={{ fontSize: "1rem" }} />
+                <MoreVertIcon fontSize="small" />
               </IconButton>
             </Box>
           </Box>

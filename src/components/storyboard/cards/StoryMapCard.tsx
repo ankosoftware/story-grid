@@ -198,23 +198,33 @@ export const StoryMapCard = memo(
                     }}
                   >
                     {item.openCommentCount && item.openCommentCount > 0 ? (
-                      <ErrorIcon sx={{ fontSize: "0.9rem" }} />
+                      <ErrorIcon fontSize="small" />
                     ) : (
-                      <ChatIcon sx={{ fontSize: "0.9rem" }} />
+                      <ChatIcon fontSize="small" />
                     )}
                   </Badge>
                 </IconButton>
               )}
+
+              {/* Add context menu button */}
               {onAction && item && (
                 <IconButton
                   size="small"
-                  sx={{ mt: -0.5, mr: -0.5, p: 0.5 }}
+                  sx={{
+                    p: 0.3,
+                    "& svg": {
+                      color: type === "activity" || type === "epic" ? "white" : "inherit",
+                      fontSize: "1rem",
+                    },
+                  }}
                   onClick={e => {
                     e.stopPropagation();
-                    onAction(e, item.id);
+                    if (onAction) {
+                      onAction(e, item.id);
+                    }
                   }}
                 >
-                  <MoreVertIcon sx={{ fontSize: "0.9rem" }} />
+                  <MoreVertIcon fontSize="small" />
                 </IconButton>
               )}
             </Box>

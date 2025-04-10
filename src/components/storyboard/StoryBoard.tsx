@@ -21,7 +21,14 @@ import AddIcon from "@mui/icons-material/Add";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Issue, Release, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
-import { updateIssue, updateRelease, updateReleaseOrder } from "@/lib/firebase/firestore";
+import {
+  updateIssue,
+  updateRelease,
+  updateReleaseOrder,
+  deleteActivity,
+  deleteEpic,
+  deleteStory,
+} from "@/lib/firebase/firestore";
 
 // Import utility functions and types
 import {
@@ -42,6 +49,7 @@ import {
   ReleaseDetailDialog,
   CommentsDialog,
   EpicDetailDialog,
+  DeleteConfirmationDialog,
 } from "./dialogs";
 
 // Import card components
@@ -132,6 +140,22 @@ export default function StoryMap({
   // Add state for Epic Detail dialog
   const [epicDetailDialogOpen, setEpicDetailDialogOpen] = useState(false);
   const [selectedEpic, setSelectedEpic] = useState<Issue | null>(null);
+
+  // Add state for deletion
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [deletingItemType, setDeletingItemType] = useState<"activity" | "epic" | "story" | null>(
+    null
+  );
+  const [deletingItemName, setDeletingItemName] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Add state for context menus
+  const [contextMenuAnchorEl, setContextMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [contextMenuItemId, setContextMenuItemId] = useState<string | null>(null);
+  const [contextMenuItemType, setContextMenuItemType] = useState<
+    "activity" | "epic" | "story" | null
+  >(null);
 
   // Save sticky preference when it changes
   useEffect(() => {
@@ -425,6 +449,102 @@ export default function StoryMap({
     setSelectedIssueForComments(null);
   }, []);
 
+  // Add handler for opening context menu
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>, id: string, type: "activity" | "epic" | "story") => {
+      event.preventDefault();
+      event.stopPropagation();
+      // Set anchor element and item info
+      setContextMenuAnchorEl(event.currentTarget);
+      setContextMenuItemId(id);
+      setContextMenuItemType(type);
+    },
+    []
+  );
+
+  // Add handler for closing context menu
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenuAnchorEl(null);
+    setContextMenuItemId(null);
+    setContextMenuItemType(null);
+  }, []);
+
+  // Add handler for delete action
+  const handleDeleteAction = useCallback(() => {
+    // First close the context menu
+    handleCloseContextMenu();
+
+    // Find the name of the item to delete
+    let itemName = "item";
+
+    if (contextMenuItemType === "activity") {
+      const activity = activities.find(a => a.id === contextMenuItemId);
+      if (activity) {
+        itemName = activity.name;
+      }
+    } else if (contextMenuItemType === "epic") {
+      for (const activityId in epics) {
+        const epic = epics[activityId].find(e => e.id === contextMenuItemId);
+        if (epic) {
+          itemName = epic.name;
+          break;
+        }
+      }
+    } else if (contextMenuItemType === "story") {
+      for (const epicId in issues) {
+        const story = issues[epicId].find(s => s.id === contextMenuItemId);
+        if (story) {
+          itemName = story.name;
+          break;
+        }
+      }
+    }
+
+    // Open the delete confirmation dialog
+    setDeletingItemId(contextMenuItemId);
+    setDeletingItemType(contextMenuItemType);
+    setDeletingItemName(itemName);
+    setDeleteDialogOpen(true);
+  }, [contextMenuItemId, contextMenuItemType, activities, epics, issues]);
+
+  // Add handler for confirming delete
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deletingItemId || !deletingItemType) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+
+      // Execute the appropriate delete function based on item type
+      switch (deletingItemType) {
+        case "activity":
+          await deleteActivity(deletingItemId);
+          break;
+        case "epic":
+          await deleteEpic(deletingItemId);
+          break;
+        case "story":
+          await deleteStory(deletingItemId);
+          break;
+      }
+
+      // Show success message
+      setSnackbarMessage(`Successfully deleted ${deletingItemType}: ${deletingItemName}`);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error(`Error deleting ${deletingItemType}:`, error);
+      setSnackbarMessage(`Failed to delete ${deletingItemType}: ${(error as Error).message}`);
+      setSnackbarOpen(true);
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setDeletingItemId(null);
+      setDeletingItemType(null);
+      setDeletingItemName("");
+    }
+  }, [deletingItemId, deletingItemType, deletingItemName]);
+
   // --------------------------
   // Memoized rendering function for Story cards
   // --------------------------
@@ -440,9 +560,16 @@ export default function StoryMap({
         handleOpenMoveMenu={handleOpenMoveMenu}
         index={index}
         story={story}
+        onAction={e => handleContextMenu(e, story.id, "story")}
       />
     ),
-    [handleMoveStoryToEpic, handleOpenItemForEdit, handleOpenMoveMenu, handleOpenComments]
+    [
+      handleMoveStoryToEpic,
+      handleOpenItemForEdit,
+      handleOpenMoveMenu,
+      handleOpenComments,
+      handleContextMenu,
+    ]
   );
 
   // Calculate story points for epics
@@ -503,6 +630,7 @@ export default function StoryMap({
           handleOpenEpicDetail={handleOpenEpicDetail}
           handleOpenItemForEdit={handleOpenItemForEdit}
           storyPoints={calculateEpicStoryPoints(epic.id)}
+          onAction={e => handleContextMenu(e, epic.id, "epic")}
         />
       </Box>
     ),
@@ -513,6 +641,7 @@ export default function StoryMap({
       handleOpenEpicDetail,
       calculateEpicStoryPoints,
       theme.palette.divider,
+      handleContextMenu,
     ]
   );
 
@@ -618,6 +747,7 @@ export default function StoryMap({
                       <StoryMapCard
                         item={activity}
                         type="activity"
+                        onAction={e => handleContextMenu(e, activity.id, "activity")}
                         onClick={() => handleOpenItemForEdit(activity, "activity")}
                         onCommentClick={(e, item) => handleOpenComments(item)}
                       >
@@ -924,6 +1054,95 @@ export default function StoryMap({
           issue={selectedIssueForComments}
           open={commentsDialogOpen}
           onClose={handleCloseCommentsDialog}
+        />
+
+        {/* Add context menu */}
+        <Menu
+          anchorEl={contextMenuAnchorEl}
+          open={Boolean(contextMenuAnchorEl)}
+          onClose={handleCloseContextMenu}
+        >
+          {contextMenuItemType === "activity" && (
+            <MenuItem
+              onClick={() => {
+                handleCloseContextMenu();
+                // Existing edit functionality here
+                const activity = activities.find(a => a.id === contextMenuItemId);
+                if (activity) {
+                  setEditingItem(activity);
+                  setEditingItemType("activity");
+                  setEditDialogOpen(true);
+                }
+              }}
+            >
+              Edit Activity
+            </MenuItem>
+          )}
+
+          {contextMenuItemType === "epic" && (
+            <MenuItem
+              onClick={() => {
+                handleCloseContextMenu();
+                // Existing edit functionality here
+                let epicToEdit: Issue | undefined;
+
+                for (const activityId in epics) {
+                  epicToEdit = epics[activityId].find(e => e.id === contextMenuItemId);
+                  if (epicToEdit) {
+                    break;
+                  }
+                }
+
+                if (epicToEdit) {
+                  setEditingItem(epicToEdit);
+                  setEditingItemType("epic");
+                  setEditDialogOpen(true);
+                }
+              }}
+            >
+              Edit Epic
+            </MenuItem>
+          )}
+
+          {contextMenuItemType === "story" && (
+            <MenuItem
+              onClick={() => {
+                handleCloseContextMenu();
+                // Existing edit functionality here
+                let storyToEdit: Issue | undefined;
+
+                for (const epicId in issues) {
+                  storyToEdit = issues[epicId].find(s => s.id === contextMenuItemId);
+                  if (storyToEdit) {
+                    break;
+                  }
+                }
+
+                if (storyToEdit) {
+                  setEditingItem(storyToEdit);
+                  setEditingItemType("story");
+                  setEditDialogOpen(true);
+                }
+              }}
+            >
+              Edit Story
+            </MenuItem>
+          )}
+
+          {/* Add delete option for all item types */}
+          <MenuItem sx={{ color: "error.main" }} onClick={handleDeleteAction}>
+            Delete {contextMenuItemType}
+          </MenuItem>
+        </Menu>
+
+        {/* Add delete confirmation dialog */}
+        <DeleteConfirmationDialog
+          isDeleting={isDeleting}
+          itemName={deletingItemName}
+          itemType={deletingItemType || "story"}
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={handleConfirmDelete}
         />
 
         {/* Snackbar for feedback messages */}

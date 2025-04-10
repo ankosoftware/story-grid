@@ -1226,3 +1226,195 @@ export const toggleCommentStatus = async (commentId: string): Promise<void> => {
   // Commit the batch
   await batch.commit();
 };
+
+/**
+ * Delete an activity/backbone with cascade deletion of all child epics and stories
+ *
+ * @param activityId - The ID of the activity to delete
+ * @returns Promise that resolves when the deletion is complete
+ */
+export const deleteActivity = async (activityId: string): Promise<void> => {
+  try {
+    // Get the activity to be deleted
+    const activityRef = getIssueRef(activityId);
+    const activitySnap = await getDoc(activityRef);
+
+    if (!activitySnap.exists()) {
+      throw new Error("Activity not found");
+    }
+
+    const activity = activitySnap.data();
+
+    // Verify this is an activity
+    if (activity.type !== IssueType.BACKBONE) {
+      throw new Error("The specified ID is not an activity");
+    }
+
+    // Get all child epics
+    const epics = await getIssuesByParent(activityId);
+
+    // Batch delete
+    const batch = writeBatch(db);
+
+    // Delete all child epics and their stories
+    for (const epic of epics) {
+      // Get all stories under this epic
+      const stories = await getIssuesByParent(epic.id);
+
+      // Delete all stories
+      for (const story of stories) {
+        // Get comments for this story
+        const storyCommentsQuery = query(commentsCollection, where("issueId", "==", story.id));
+        const storyCommentsSnapshot = await getDocs(storyCommentsQuery);
+
+        // Delete all comments for the story
+        storyCommentsSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+
+        // Delete the story
+        batch.delete(getIssueRef(story.id));
+      }
+
+      // Get comments for this epic
+      const epicCommentsQuery = query(commentsCollection, where("issueId", "==", epic.id));
+      const epicCommentsSnapshot = await getDocs(epicCommentsQuery);
+
+      // Delete all comments for the epic
+      epicCommentsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // Delete the epic
+      batch.delete(getIssueRef(epic.id));
+    }
+
+    // Get comments for the activity
+    const activityCommentsQuery = query(commentsCollection, where("issueId", "==", activityId));
+    const activityCommentsSnapshot = await getDocs(activityCommentsQuery);
+
+    // Delete all comments for the activity
+    activityCommentsSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    // Delete the activity
+    batch.delete(activityRef);
+
+    // Commit the batch
+    await batch.commit();
+  } catch (error) {
+    console.error("Error deleting activity:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete an epic with cascade deletion of all child stories
+ *
+ * @param epicId - The ID of the epic to delete
+ * @returns Promise that resolves when the deletion is complete
+ */
+export const deleteEpic = async (epicId: string): Promise<void> => {
+  try {
+    // Get the epic to be deleted
+    const epicRef = getIssueRef(epicId);
+    const epicSnap = await getDoc(epicRef);
+
+    if (!epicSnap.exists()) {
+      throw new Error("Epic not found");
+    }
+
+    const epic = epicSnap.data();
+
+    // Verify this is an epic
+    if (epic.type !== IssueType.EPIC) {
+      throw new Error("The specified ID is not an epic");
+    }
+
+    // Get all child stories
+    const stories = await getIssuesByParent(epicId);
+
+    // Batch delete
+    const batch = writeBatch(db);
+
+    // Delete all stories
+    for (const story of stories) {
+      // Get comments for this story
+      const storyCommentsQuery = query(commentsCollection, where("issueId", "==", story.id));
+      const storyCommentsSnapshot = await getDocs(storyCommentsQuery);
+
+      // Delete all comments for the story
+      storyCommentsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // Delete the story
+      batch.delete(getIssueRef(story.id));
+    }
+
+    // Get comments for this epic
+    const epicCommentsQuery = query(commentsCollection, where("issueId", "==", epicId));
+    const epicCommentsSnapshot = await getDocs(epicCommentsQuery);
+
+    // Delete all comments for the epic
+    epicCommentsSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    // Delete the epic
+    batch.delete(epicRef);
+
+    // Commit the batch
+    await batch.commit();
+  } catch (error) {
+    console.error("Error deleting epic:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a story
+ *
+ * @param storyId - The ID of the story to delete
+ * @returns Promise that resolves when the deletion is complete
+ */
+export const deleteStory = async (storyId: string): Promise<void> => {
+  try {
+    // Get the story to be deleted
+    const storyRef = getIssueRef(storyId);
+    const storySnap = await getDoc(storyRef);
+
+    if (!storySnap.exists()) {
+      throw new Error("Story not found");
+    }
+
+    const story = storySnap.data();
+
+    // Verify this is a story
+    if (story.type !== IssueType.STORY) {
+      throw new Error("The specified ID is not a story");
+    }
+
+    // Batch delete
+    const batch = writeBatch(db);
+
+    // Get comments for this story
+    const storyCommentsQuery = query(commentsCollection, where("issueId", "==", storyId));
+    const storyCommentsSnapshot = await getDocs(storyCommentsQuery);
+
+    // Delete all comments for the story
+    storyCommentsSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    // Delete the story
+    batch.delete(storyRef);
+
+    // Commit the batch
+    await batch.commit();
+  } catch (error) {
+    console.error("Error deleting story:", error);
+    throw error;
+  }
+};

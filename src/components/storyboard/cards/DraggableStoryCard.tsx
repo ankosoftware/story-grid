@@ -18,6 +18,8 @@ interface DraggableStoryCardProps {
     releaseId: string | null
   ) => Promise<void>;
   index: number;
+  onClick?: () => void;
+  onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
 }
 
 export const DraggableStoryCard = memo(
@@ -30,6 +32,8 @@ export const DraggableStoryCard = memo(
     handleOpenComments,
     handleMoveStoryToEpic,
     index,
+    onClick,
+    onAction,
   }: DraggableStoryCardProps) => {
     // Setup drag source
     const [{ isDragging }, drag, preview] = useDrag(
@@ -77,6 +81,23 @@ export const DraggableStoryCard = memo(
     drag(dragRef);
     preview(previewRef);
 
+    const handleCardClick = () => {
+      if (onClick) {
+        onClick();
+      } else {
+        handleOpenItemForEdit(story, "story");
+      }
+    };
+
+    // Choose which function to use for menu opening - context menu or move menu
+    const handleMenu = (e: React.MouseEvent<HTMLElement>, storyId: string) => {
+      if (onAction) {
+        onAction(e, storyId);
+      } else {
+        handleOpenMoveMenu(e, storyId);
+      }
+    };
+
     return (
       <Box
         ref={previewRef}
@@ -97,8 +118,9 @@ export const DraggableStoryCard = memo(
             getStatusColor={getStatusColor}
             handleOpenComments={handleOpenComments}
             handleOpenItemForEdit={handleOpenItemForEdit}
-            handleOpenMoveMenu={handleOpenMoveMenu}
+            handleOpenMoveMenu={handleMenu}
             story={story}
+            onClick={handleCardClick}
           />
         </Box>
       </Box>

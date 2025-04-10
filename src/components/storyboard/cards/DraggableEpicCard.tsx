@@ -7,11 +7,13 @@ import { StoryMapCard } from "./StoryMapCard";
 
 interface DraggableEpicCardProps {
   epic: Issue;
-  handleMoveEpicToActivity: (epicId: string, newParentId: string) => Promise<void>;
-  handleOpenItemForEdit: (item: Issue, type: "activity" | "epic" | "story") => void;
+  handleMoveEpicToActivity?: (epicId: string, newParentId: string) => Promise<void>;
+  handleOpenItemForEdit?: (item: Issue, type: "activity" | "epic" | "story") => void;
   handleOpenComments?: (item: Issue) => void;
   handleOpenEpicDetail?: (epic: Issue) => void;
   storyPoints?: number;
+  onClick?: () => void;
+  onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
 }
 
 export const DraggableEpicCard = memo(
@@ -22,6 +24,8 @@ export const DraggableEpicCard = memo(
     handleOpenComments,
     handleOpenEpicDetail,
     storyPoints,
+    onClick,
+    onAction,
   }: DraggableEpicCardProps) => {
     const theme = useTheme();
 
@@ -41,7 +45,7 @@ export const DraggableEpicCard = memo(
         end: (item, monitor) => {
           const dropResult = monitor.getDropResult<{ id: string; type: string }>();
           if (item && dropResult) {
-            if (dropResult.type === "activity" && dropResult.id !== epic.parentId) {
+            if (dropResult.type === "activity" && dropResult.id !== epic.parentId && handleMoveEpicToActivity) {
               // Move to a different activity
               handleMoveEpicToActivity(epic.id, dropResult.id);
             }
@@ -60,9 +64,11 @@ export const DraggableEpicCard = memo(
     preview(previewRef);
 
     const handleCardClick = () => {
-      if (handleOpenEpicDetail) {
+      if (onClick) {
+        onClick();
+      } else if (handleOpenEpicDetail) {
         handleOpenEpicDetail(epic);
-      } else {
+      } else if (handleOpenItemForEdit) {
         handleOpenItemForEdit(epic, "epic");
       }
     };
@@ -86,6 +92,7 @@ export const DraggableEpicCard = memo(
             item={epic}
             type="epic"
             onClick={handleCardClick}
+            onAction={onAction}
             onCommentClick={handleOpenComments ? (e, item) => handleOpenComments(item) : undefined}
           >
             {storyPoints !== undefined && storyPoints > 0 && (

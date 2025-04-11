@@ -25,17 +25,17 @@ const Footer: React.FC = () => {
             flexWrap: "wrap",
           }}
         >
-          <Typography variant="body2" color="text.secondary">
+          <Typography color="text.secondary" variant="body2">
             © {currentYear} Anko Storyboard App. All rights reserved.
           </Typography>
           <Box sx={{ display: "flex", gap: 3 }}>
-            <Link href="#" color="text.secondary" underline="hover">
+            <Link color="text.secondary" href="#" underline="hover">
               Privacy Policy
             </Link>
-            <Link href="#" color="text.secondary" underline="hover">
+            <Link color="text.secondary" href="#" underline="hover">
               Terms of Service
             </Link>
-            <Link href="#" color="text.secondary" underline="hover">
+            <Link color="text.secondary" href="#" underline="hover">
               Contact Us
             </Link>
           </Box>

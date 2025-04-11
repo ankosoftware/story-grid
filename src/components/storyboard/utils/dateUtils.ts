@@ -29,4 +29,4 @@ export const formatDate = (timestamp: unknown): string => {
     return "";
   }
   return date.toLocaleDateString();
-}; 
+};

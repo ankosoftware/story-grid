@@ -125,11 +125,7 @@ export const StoryDetailDialog = ({
       </DialogActions>
 
       {/* Comments Dialog */}
-      <CommentsDialog 
-        open={commentsOpen} 
-        onClose={handleCloseComments} 
-        issue={story} 
-      />
+      <CommentsDialog issue={story} open={commentsOpen} onClose={handleCloseComments} />
     </Dialog>
   );
 };

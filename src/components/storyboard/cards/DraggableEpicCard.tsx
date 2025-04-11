@@ -45,14 +45,18 @@ export const DraggableEpicCard = memo(
         end: (item, monitor) => {
           const dropResult = monitor.getDropResult<{ id: string; type: string }>();
           if (item && dropResult) {
-            if (dropResult.type === "activity" && dropResult.id !== epic.parentId && handleMoveEpicToActivity) {
+            if (
+              dropResult.type === "activity" &&
+              dropResult.id !== epic.parentId &&
+              handleMoveEpicToActivity
+            ) {
               // Move to a different activity
               handleMoveEpicToActivity(epic.id, dropResult.id);
             }
           }
         },
       }),
-      [epic.id, epic.parentId, epic.displayOrder, handleMoveEpicToActivity]
+      [epic.id, epic.parentId, epic.displayOrder, handleMoveEpicToActivity],
     );
 
     // Use refs properly for react-dnd
@@ -91,8 +95,8 @@ export const DraggableEpicCard = memo(
           <StoryMapCard
             item={epic}
             type="epic"
-            onClick={handleCardClick}
             onAction={onAction}
+            onClick={handleCardClick}
             onCommentClick={handleOpenComments ? (e, item) => handleOpenComments(item) : undefined}
           >
             {storyPoints !== undefined && storyPoints > 0 && (
@@ -112,7 +116,7 @@ export const DraggableEpicCard = memo(
         </Box>
       </Box>
     );
-  }
+  },
 );
 
 // Add displayName to fix the linter warning

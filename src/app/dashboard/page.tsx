@@ -45,7 +45,7 @@ export default function DashboardRedirectPage() {
     >
       <Box sx={{ textAlign: "center" }}>
         <CircularProgress size={40} />
-        <Typography variant="h6" sx={{ mt: 2 }}>
+        <Typography sx={{ mt: 2 }} variant="h6">
           Redirecting to your workspace...
         </Typography>
       </Box>

@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
     <Container maxWidth="sm">
       <Box sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <Paper elevation={3} sx={{ p: 4, width: "100%", borderRadius: 2 }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom>
+          <Typography gutterBottom align="center" component="h1" variant="h4">
             Reset Password
           </Typography>
 
@@ -62,29 +62,29 @@ export default function ForgotPasswordPage() {
             </Alert>
           )}
 
-          <Typography variant="body1" sx={{ mb: 2 }}>
+          <Typography sx={{ mb: 2 }} variant="body1">
             Enter your email address and we&apos;ll send you a link to reset your password.
           </Typography>
 
-          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+          <Box noValidate component="form" sx={{ mt: 1 }} onSubmit={handleSubmit}>
             <TextField
-              margin="normal"
-              required
+              autoFocus
               fullWidth
+              required
+              autoComplete="email"
               id="email"
               label="Email Address"
+              margin="normal"
               name="email"
-              autoComplete="email"
-              autoFocus
               value={email}
               onChange={e => setEmail(e.target.value)}
             />
             <Button
-              type="submit"
               fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
               disabled={loading}
+              sx={{ mt: 3, mb: 2 }}
+              type="submit"
+              variant="contained"
             >
               {loading ? "Sending..." : "Reset Password"}
             </Button>

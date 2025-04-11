@@ -244,15 +244,11 @@ export const EditItemDialog = ({
       </DialogContent>
       <DialogActions>
         {item && (
-          <Button 
-            disabled={isEditing} 
-            startIcon={<CommentIcon />} 
-            onClick={handleOpenComments}
-          >
-            Comments {item.commentCount ? `(${item.commentCount})` : ''}
+          <Button disabled={isEditing} startIcon={<CommentIcon />} onClick={handleOpenComments}>
+            Comments {item.commentCount ? `(${item.commentCount})` : ""}
           </Button>
         )}
-        <Box sx={{ flex: '1 0 0' }} />
+        <Box sx={{ flex: "1 0 0" }} />
         <Button disabled={isEditing} onClick={onClose}>
           Cancel
         </Button>
@@ -267,11 +263,7 @@ export const EditItemDialog = ({
       </DialogActions>
 
       {/* Comments Dialog */}
-      <CommentsDialog 
-        open={commentsOpen} 
-        onClose={handleCloseComments} 
-        issue={item} 
-      />
+      <CommentsDialog issue={item} open={commentsOpen} onClose={handleCloseComments} />
     </Dialog>
   );
 };

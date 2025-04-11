@@ -73,11 +73,7 @@ export const EpicDetailDialog = ({
       </DialogActions>
 
       {/* Comments Dialog */}
-      <CommentsDialog 
-        open={commentsOpen} 
-        onClose={handleCloseComments} 
-        issue={epic} 
-      />
+      <CommentsDialog issue={epic} open={commentsOpen} onClose={handleCloseComments} />
     </Dialog>
   );
-}; 
+};

@@ -37,7 +37,9 @@ export default function TenantDashboardPage() {
   // Ensure we're using the correct tenant based on the URL
   useEffect(() => {
     // Skip if we're still loading initial tenant data
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
 
     // If the URL tenant ID doesn't match the current tenant, switch to it
     if (tenant?.id !== tenantId && tenants.some(t => t.id === tenantId)) {
@@ -105,7 +107,7 @@ export default function TenantDashboardPage() {
       >
         <Box sx={{ textAlign: "center" }}>
           <CircularProgress size={40} />
-          <Typography variant="h6" sx={{ mt: 2 }}>
+          <Typography sx={{ mt: 2 }} variant="h6">
             Loading workspace...
           </Typography>
         </Box>
@@ -128,16 +130,16 @@ export default function TenantDashboardPage() {
                 }}
               >
                 <Box>
-                  <Typography variant="h4" component="h1" gutterBottom>
+                  <Typography gutterBottom component="h1" variant="h4">
                     Dashboard
                   </Typography>
                   {tenant && (
                     <Button
-                      variant="text"
                       color="primary"
                       startIcon={<BusinessIcon />}
-                      onClick={handleMenuOpen}
                       sx={{ textTransform: "none" }}
+                      variant="text"
+                      onClick={handleMenuOpen}
                     >
                       <Typography variant="subtitle1">
                         Workspace: <strong>{tenant.name}</strong>
@@ -146,25 +148,25 @@ export default function TenantDashboardPage() {
                   )}
                   <Menu
                     anchorEl={anchorEl}
-                    open={open}
-                    onClose={handleMenuClose}
                     MenuListProps={{
                       "aria-labelledby": "tenant-button",
                     }}
+                    open={open}
                     PaperProps={{
                       elevation: 3,
                       sx: { minWidth: 250 },
                     }}
+                    onClose={handleMenuClose}
                   >
-                    <Typography variant="subtitle2" sx={{ px: 2, py: 1, fontWeight: "bold" }}>
+                    <Typography sx={{ px: 2, py: 1, fontWeight: "bold" }} variant="subtitle2">
                       Switch Workspace
                     </Typography>
                     <Divider />
                     {tenants.map(t => (
                       <MenuItem
                         key={t.id}
-                        onClick={() => handleSwitchTenant(t.id)}
                         selected={tenant?.id === t.id}
+                        onClick={() => handleSwitchTenant(t.id)}
                       >
                         <ListItemIcon>
                           <Avatar
@@ -189,37 +191,37 @@ export default function TenantDashboardPage() {
                     </MenuItem>
                   </Menu>
                 </Box>
-                <Button variant="outlined" color="primary" onClick={handleLogout}>
+                <Button color="primary" variant="outlined" onClick={handleLogout}>
                   Log Out
                 </Button>
               </Box>
 
-              <Typography variant="body1" gutterBottom>
+              <Typography gutterBottom variant="body1">
                 Welcome to your Storyboard Mapping App Dashboard!
               </Typography>
 
-              <Typography variant="body2" color="text.secondary">
+              <Typography color="text.secondary" variant="body2">
                 You are signed in as: {user?.email} in workspace: {tenant.name}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography color="text.secondary" variant="body2">
                 Workspace ID: {tenant.id}
               </Typography>
             </Paper>
           </Grid>
 
           {/* Add more dashboard content here */}
-          <Grid item xs={12} md={6} lg={4}>
+          <Grid item lg={4} md={6} xs={12}>
             <Paper sx={{ p: 3, borderRadius: 2, height: "100%" }}>
-              <Typography variant="h6" gutterBottom>
+              <Typography gutterBottom variant="h6">
                 Recent Projects
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography color="text.secondary" variant="body2">
                 No projects yet. Create your first project to get started.
               </Typography>
               <Button
-                variant="contained"
                 color="primary"
                 sx={{ mt: 2 }}
+                variant="contained"
                 onClick={() => router.push(`/${tenant.id}/projects/new`)}
               >
                 Create Project
@@ -227,26 +229,26 @@ export default function TenantDashboardPage() {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6} lg={4}>
+          <Grid item lg={4} md={6} xs={12}>
             <Paper sx={{ p: 3, borderRadius: 2, height: "100%" }}>
-              <Typography variant="h6" gutterBottom>
+              <Typography gutterBottom variant="h6">
                 Activity
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography color="text.secondary" variant="body2">
                 No recent activity to display.
               </Typography>
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6} lg={4}>
+          <Grid item lg={4} md={6} xs={12}>
             <Paper sx={{ p: 3, borderRadius: 2, height: "100%" }}>
-              <Typography variant="h6" gutterBottom>
+              <Typography gutterBottom variant="h6">
                 Team Members
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography color="text.secondary" variant="body2">
                 No team members yet. Invite team members to collaborate.
               </Typography>
-              <Button variant="outlined" color="primary" sx={{ mt: 2 }}>
+              <Button color="primary" sx={{ mt: 2 }} variant="outlined">
                 Invite Members
               </Button>
             </Paper>

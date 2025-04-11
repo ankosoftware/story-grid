@@ -51,33 +51,33 @@ export const DeleteConfirmationDialog = ({
   };
 
   return (
-    <Dialog open={open} onClose={!isDeleting ? onClose : undefined} maxWidth="sm" fullWidth>
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={!isDeleting ? onClose : undefined}>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <WarningIcon color="warning" />
         Confirm Deletion
       </DialogTitle>
       <DialogContent>
-        <Typography variant="body1" gutterBottom>
+        <Typography gutterBottom variant="body1">
           Are you sure you want to delete the {itemType} "{itemName}"?
         </Typography>
-        <Typography variant="body2" color="error">
+        <Typography color="error" variant="body2">
           {getWarningMessage()} This action cannot be undone.
         </Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={isDeleting}>
+        <Button disabled={isDeleting} onClick={onClose}>
           Cancel
         </Button>
-        <Button 
-          onClick={handleConfirm} 
-          color="error" 
-          variant="contained" 
+        <Button
+          color="error"
           disabled={isDeleting}
-          startIcon={isDeleting ? <CircularProgress size={20} color="inherit" /> : null}
+          startIcon={isDeleting ? <CircularProgress color="inherit" size={20} /> : null}
+          variant="contained"
+          onClick={handleConfirm}
         >
           {isDeleting ? "Deleting..." : "Delete"}
         </Button>
       </DialogActions>
     </Dialog>
   );
-}; 
+};

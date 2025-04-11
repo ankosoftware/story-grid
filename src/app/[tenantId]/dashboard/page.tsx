@@ -119,7 +119,7 @@ export default function TenantDashboardPage() {
     <ProtectedRoute>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Paper sx={{ p: 3, borderRadius: 2 }}>
               <Box
                 sx={{
@@ -210,7 +210,7 @@ export default function TenantDashboardPage() {
           </Grid>
 
           {/* Add more dashboard content here */}
-          <Grid item lg={4} md={6} xs={12}>
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
             <Paper sx={{ p: 3, borderRadius: 2, height: "100%" }}>
               <Typography gutterBottom variant="h6">
                 Recent Projects
@@ -229,7 +229,7 @@ export default function TenantDashboardPage() {
             </Paper>
           </Grid>
 
-          <Grid item lg={4} md={6} xs={12}>
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
             <Paper sx={{ p: 3, borderRadius: 2, height: "100%" }}>
               <Typography gutterBottom variant="h6">
                 Activity
@@ -240,7 +240,7 @@ export default function TenantDashboardPage() {
             </Paper>
           </Grid>
 
-          <Grid item lg={4} md={6} xs={12}>
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
             <Paper sx={{ p: 3, borderRadius: 2, height: "100%" }}>
               <Typography gutterBottom variant="h6">
                 Team Members

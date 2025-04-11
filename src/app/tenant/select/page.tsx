@@ -67,7 +67,7 @@ export default function TenantSelectPage() {
       {tenants.length === 0 ? (
         <Box sx={{ textAlign: "center", my: 5 }}>
           <Typography gutterBottom variant="h6">
-            You don't have any workspaces yet
+            You don&apos;t have any workspaces yet
           </Typography>
           <Button
             color="primary"
@@ -83,7 +83,7 @@ export default function TenantSelectPage() {
         <>
           <Grid container spacing={3}>
             {tenants.map(tenant => (
-              <Grid key={tenant.id} item md={4} sm={6} xs={12}>
+              <Grid key={tenant.id} size={{ md: 4, sm: 6, xs: 12 }}>
                 <Card
                   sx={{
                     height: "100%",

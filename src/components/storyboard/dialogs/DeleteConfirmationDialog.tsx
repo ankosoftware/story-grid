@@ -58,7 +58,7 @@ export const DeleteConfirmationDialog = ({
       </DialogTitle>
       <DialogContent>
         <Typography gutterBottom variant="body1">
-          Are you sure you want to delete the {itemType} "{itemName}"?
+          Are you sure you want to delete the {itemType} &quot;{itemName}&quot;?
         </Typography>
         <Typography color="error" variant="body2">
           {getWarningMessage()} This action cannot be undone.

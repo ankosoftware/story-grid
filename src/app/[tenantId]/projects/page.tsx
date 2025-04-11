@@ -160,7 +160,7 @@ export default function ProjectsPage() {
       ) : (
         <Grid container spacing={3}>
           {projects.map(project => (
-            <Grid key={project.id} item md={4} sm={6} xs={12}>
+            <Grid key={project.id} size={{ xs: 12, sm: 6, md: 4 }}>
               <Paper
                 sx={{
                   p: 3,

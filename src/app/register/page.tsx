@@ -13,6 +13,7 @@ import {
   Alert,
   AlertTitle,
   Grid,
+  styled,
 } from "@mui/material";
 import { useAuth } from "@/lib/auth/AuthProvider";
 
@@ -60,6 +61,14 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  const Item = styled(Paper)(({ theme }) => ({
+    backgroundColor: theme.palette.mode === "dark" ? "#1A2027" : "#fff",
+    ...theme.typography.body2,
+    padding: theme.spacing(1),
+    textAlign: "center",
+    color: theme.palette.text.secondary,
+  }));
 
   return (
     <Container maxWidth="sm">
@@ -122,10 +131,12 @@ export default function RegisterPage() {
               {loading ? "Creating Account..." : "Create Account"}
             </Button>
             <Grid container justifyContent="flex-end">
-              <Grid item>
-                <Link href="/login" style={{ textDecoration: "none" }}>
-                  Already have an account? Sign in
-                </Link>
+              <Grid size={12}>
+                <Item>
+                  <Link href="/login" style={{ textDecoration: "none" }}>
+                    Already have an account? Sign in
+                  </Link>
+                </Item>
               </Grid>
             </Grid>
           </Box>

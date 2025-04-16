@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,10 +8,10 @@ import {
   Button,
   Box,
   Chip,
+  Divider,
 } from "@mui/material";
-import CommentIcon from "@mui/icons-material/Comment";
 import { Issue, Release, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
-import { CommentsDialog } from "./CommentsDialog";
+import { CommentsSection } from "../components/CommentsSection";
 
 export interface StoryDetailDialogProps {
   open: boolean;
@@ -30,19 +30,9 @@ export const StoryDetailDialog = ({
   getStatusColor,
   getPriorityColor,
 }: StoryDetailDialogProps) => {
-  const [commentsOpen, setCommentsOpen] = useState(false);
-
   if (!story) {
     return null;
   }
-
-  const handleOpenComments = () => {
-    setCommentsOpen(true);
-  };
-
-  const handleCloseComments = () => {
-    setCommentsOpen(false);
-  };
 
   return (
     <Dialog fullWidth maxWidth="md" open={open} onClose={onClose}>
@@ -116,16 +106,15 @@ export const StoryDetailDialog = ({
             </Box>
           )}
         </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Integrated Comments Section */}
+        <CommentsSection issue={story} />
       </DialogContent>
       <DialogActions>
-        <Button startIcon={<CommentIcon />} onClick={handleOpenComments}>
-          Comments
-        </Button>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
-
-      {/* Comments Dialog */}
-      <CommentsDialog issue={story} open={commentsOpen} onClose={handleCloseComments} />
     </Dialog>
   );
 };

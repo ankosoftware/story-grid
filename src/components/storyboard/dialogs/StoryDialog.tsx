@@ -152,9 +152,13 @@ export const StoryDialog = ({
         />
 
         <Box sx={{ mt: 2 }}>
-          <Typography gutterBottom color="text.secondary" variant="body2">
+          <Typography color="text.secondary" variant="body2">
             Tip: Write user stories in the format As a [persona], I want to [do something] so that
             [benefit]
+          </Typography>
+
+          <Typography sx={{ mt: 2 }} variant="caption" color="text.secondary">
+            Note: You can add comments to this story after creation.
           </Typography>
         </Box>
       </DialogContent>

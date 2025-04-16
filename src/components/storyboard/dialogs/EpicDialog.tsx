@@ -7,6 +7,8 @@ import {
   TextField,
   Button,
   CircularProgress,
+  Box,
+  Typography,
 } from "@mui/material";
 
 export interface EpicDialogProps {
@@ -94,6 +96,12 @@ export const EpicDialog = ({ open, onClose, onAddEpic, activityId }: EpicDialogP
             }
           }}
         />
+
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="caption" color="text.secondary">
+            Note: You can add comments to this task after creation.
+          </Typography>
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button disabled={addingEpic} onClick={onClose}>

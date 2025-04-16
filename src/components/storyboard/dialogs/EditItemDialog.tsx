@@ -11,10 +11,10 @@ import {
   MenuItem,
   Box,
   Typography,
+  Divider,
 } from "@mui/material";
-import CommentIcon from "@mui/icons-material/Comment";
 import { Issue, Release, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
-import { CommentsDialog } from "./CommentsDialog";
+import { CommentsSection } from "../components/CommentsSection";
 
 export interface EditItemDialogProps {
   open: boolean;
@@ -41,7 +41,6 @@ export const EditItemDialog = ({
   const [editStoryPoints, setEditStoryPoints] = useState<number | null>(null);
   const [editingError, setEditingError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
 
   // Reset form when item changes
   useEffect(() => {
@@ -113,17 +112,8 @@ export const EditItemDialog = ({
     }
   };
 
-  // Add handlers for the comments dialog
-  const handleOpenComments = () => {
-    setCommentsOpen(true);
-  };
-
-  const handleCloseComments = () => {
-    setCommentsOpen(false);
-  };
-
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullWidth maxWidth="md" open={open} onClose={onClose}>
       <DialogTitle>
         {itemType && `Edit ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`}
       </DialogTitle>
@@ -241,14 +231,16 @@ export const EditItemDialog = ({
             </TextField>
           </>
         )}
+
+        {item && (
+          <>
+            <Divider sx={{ my: 3 }} />
+            {/* Integrated Comments Section */}
+            <CommentsSection issue={item} />
+          </>
+        )}
       </DialogContent>
       <DialogActions>
-        {item && (
-          <Button disabled={isEditing} startIcon={<CommentIcon />} onClick={handleOpenComments}>
-            Comments {item.commentCount ? `(${item.commentCount})` : ""}
-          </Button>
-        )}
-        <Box sx={{ flex: "1 0 0" }} />
         <Button disabled={isEditing} onClick={onClose}>
           Cancel
         </Button>
@@ -261,9 +253,6 @@ export const EditItemDialog = ({
           {isEditing ? "Saving..." : "Save Changes"}
         </Button>
       </DialogActions>
-
-      {/* Comments Dialog */}
-      <CommentsDialog issue={item} open={commentsOpen} onClose={handleCloseComments} />
     </Dialog>
   );
 };

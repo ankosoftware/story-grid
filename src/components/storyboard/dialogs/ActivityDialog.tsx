@@ -7,6 +7,8 @@ import {
   TextField,
   Button,
   CircularProgress,
+  Box,
+  Typography,
 } from "@mui/material";
 
 export interface ActivityDialogProps {
@@ -93,6 +95,12 @@ export const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogP
             }
           }}
         />
+
+        <Box sx={{ mt: 2 }}>
+          <Typography color="text.secondary" variant="caption">
+            Note: You can add comments to this activity after creation.
+          </Typography>
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button disabled={addingActivity} onClick={onClose}>

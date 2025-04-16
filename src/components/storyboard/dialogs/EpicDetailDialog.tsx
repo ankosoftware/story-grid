@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,10 +8,10 @@ import {
   Button,
   Box,
   Chip,
+  Divider,
 } from "@mui/material";
-import CommentIcon from "@mui/icons-material/Comment";
 import { Issue, IssueStatus } from "@/lib/firebase/models/types";
-import { CommentsDialog } from "./CommentsDialog";
+import { CommentsSection } from "../components/CommentsSection";
 
 export interface EpicDetailDialogProps {
   open: boolean;
@@ -26,19 +26,9 @@ export const EpicDetailDialog = ({
   epic,
   getStatusColor,
 }: EpicDetailDialogProps) => {
-  const [commentsOpen, setCommentsOpen] = useState(false);
-
   if (!epic) {
     return null;
   }
-
-  const handleOpenComments = () => {
-    setCommentsOpen(true);
-  };
-
-  const handleCloseComments = () => {
-    setCommentsOpen(false);
-  };
 
   return (
     <Dialog fullWidth maxWidth="md" open={open} onClose={onClose}>
@@ -64,16 +54,15 @@ export const EpicDetailDialog = ({
             <Typography variant="body2">{epic.assignee}</Typography>
           </Box>
         )}
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Integrated Comments Section */}
+        <CommentsSection issue={epic} />
       </DialogContent>
       <DialogActions>
-        <Button startIcon={<CommentIcon />} onClick={handleOpenComments}>
-          Comments
-        </Button>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
-
-      {/* Comments Dialog */}
-      <CommentsDialog issue={epic} open={commentsOpen} onClose={handleCloseComments} />
     </Dialog>
   );
 };

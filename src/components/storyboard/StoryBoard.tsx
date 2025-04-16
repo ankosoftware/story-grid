@@ -16,8 +16,11 @@ import {
   Checkbox,
   FormControlLabel,
   Tooltip,
+  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Issue, Release, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
@@ -36,6 +39,7 @@ import {
   getPriorityColor,
   createUnassignedReleaseObject,
   StoryMapProps,
+  exportStoryboardToCSV,
 } from "./utils";
 
 // Import dialog components
@@ -161,6 +165,9 @@ export default function StoryMap({
   const [contextMenuItemType, setContextMenuItemType] = useState<
     "activity" | "epic" | "story" | null
   >(null);
+
+  // Add state for the export menu
+  const [exportMenuAnchorEl, setExportMenuAnchorEl] = useState<null | HTMLElement>(null);
 
   // Save sticky preference when it changes
   useEffect(() => {
@@ -569,6 +576,28 @@ export default function StoryMap({
     []
   );
 
+  // Handle opening and closing export menu
+  const handleOpenExportMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setExportMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseExportMenu = () => {
+    setExportMenuAnchorEl(null);
+  };
+
+  // Function to handle exporting CSV
+  const handleExportCSV = () => {
+    // Close the menu
+    handleCloseExportMenu();
+
+    // Use the exported function
+    exportStoryboardToCSV(activities, epics, issues, releases);
+
+    // Show success message
+    setSnackbarMessage("CSV exported successfully!");
+    setSnackbarOpen(true);
+  };
+
   // --------------------------
   // Memoized rendering function for Story cards
   // --------------------------
@@ -714,11 +743,33 @@ export default function StoryMap({
                 sx={{ mx: 1 }}
               />
             </Tooltip>
-            <Button startIcon={<AddIcon />} variant="outlined" onClick={handleOpenReleaseDialog}>
-              Add Release
-            </Button>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Button startIcon={<AddIcon />} variant="outlined" onClick={handleOpenReleaseDialog}>
+                Add Release
+              </Button>
+              <IconButton
+                aria-label="Export options"
+                size="small"
+                sx={{ ml: 0.5 }}
+                onClick={handleOpenExportMenu}
+              >
+                <MoreVertIcon />
+              </IconButton>
+            </Box>
           </Box>
         </Box>
+
+        {/* Export Menu */}
+        <Menu
+          anchorEl={exportMenuAnchorEl}
+          open={Boolean(exportMenuAnchorEl)}
+          onClose={handleCloseExportMenu}
+        >
+          <MenuItem onClick={handleExportCSV}>
+            <CloudDownloadIcon fontSize="small" sx={{ mr: 1 }} />
+            Export as CSV
+          </MenuItem>
+        </Menu>
 
         {/* Main Story Map Structure */}
         <Box

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Container,
@@ -25,6 +25,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams?.get("returnUrl") || "/dashboard";
   const { signIn, signInWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +36,7 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      router.push("/dashboard"); // Redirect to dashboard after successful login
+      router.push(returnUrl); // Redirect to return URL after successful login
     } catch (err: any) {
       console.error("Login error:", err);
       const errorMessage = err.message || "Failed to sign in. Please try again.";
@@ -50,7 +52,7 @@ export default function LoginPage() {
 
     try {
       await signInWithGoogle();
-      router.push("/dashboard");
+      router.push(returnUrl);
     } catch (err: any) {
       console.error("Google login error:", err);
       const errorMessage = err.message || "Failed to sign in with Google. Please try again.";
@@ -60,6 +62,9 @@ export default function LoginPage() {
     }
   };
 
+  // Show invitation message if coming from an invitation link
+  const isFromInvitation = returnUrl.startsWith("/invite/");
+
   return (
     <Container maxWidth="sm">
       <Box sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -67,6 +72,13 @@ export default function LoginPage() {
           <Typography gutterBottom align="center" component="h1" variant="h4">
             Sign In
           </Typography>
+
+          {isFromInvitation && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <AlertTitle>Workspace Invitation</AlertTitle>
+              Please sign in to accept your workspace invitation
+            </Alert>
+          )}
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -114,6 +126,7 @@ export default function LoginPage() {
 
             <Button
               fullWidth
+              color="primary"
               disabled={googleLoading}
               startIcon={<GoogleIcon />}
               sx={{ mb: 2 }}
@@ -128,7 +141,7 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
               <Link href="/register" style={{ textDecoration: "none" }}>
-                {"Don't have an account? Sign Up"}
+                Create an account
               </Link>
             </Stack>
           </Box>

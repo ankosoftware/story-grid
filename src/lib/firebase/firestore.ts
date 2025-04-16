@@ -28,7 +28,15 @@ import {
   IssuePriority,
   IssueType,
   IssueComment,
+  Invitation,
 } from "./models/types";
+import { customAlphabet } from "nanoid";
+
+// Generate a secure token using a custom alphabet (avoid similar looking characters)
+const generateToken = customAlphabet(
+  "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz",
+  24
+);
 
 // Collection references
 export const tenantsCollection = collection(db, "tenants") as CollectionReference<Tenant>;
@@ -37,6 +45,10 @@ export const projectsCollection = collection(db, "projects") as CollectionRefere
 export const issuesCollection = collection(db, "issues") as CollectionReference<Issue>;
 export const releasesCollection = collection(db, "releases") as CollectionReference<Release>;
 export const commentsCollection = collection(db, "comments") as CollectionReference<IssueComment>;
+export const invitationsCollection = collection(
+  db,
+  "invitations"
+) as CollectionReference<Invitation>;
 
 // Tenant functions
 export const getTenantRef = (tenantId: string): DocumentReference<Tenant> => {
@@ -62,6 +74,11 @@ export const getReleaseRef = (releaseId: string): DocumentReference<Release> => 
 
 export const getCommentRef = (commentId: string): DocumentReference<IssueComment> => {
   return doc(db, "comments", commentId) as DocumentReference<IssueComment>;
+};
+
+// Get invitation document reference
+export const getInvitationRef = (invitationId: string): DocumentReference<Invitation> => {
+  return doc(db, "invitations", invitationId) as DocumentReference<Invitation>;
 };
 
 // Function to create a new tenant
@@ -1494,4 +1511,184 @@ export const updateUserRole = async (
       updatedAt: Timestamp.now(),
     });
   }
+};
+
+/**
+ * Create a new invitation to join a workspace
+ * @param email - Email address to invite
+ * @param tenantId - ID of the tenant/workspace to invite to
+ * @param role - Role to assign to the user
+ * @param createdBy - ID of the user creating the invitation
+ * @returns The created invitation with ID and token
+ */
+export const createInvitation = async (
+  email: string,
+  tenantId: string,
+  role: UserRole,
+  createdBy: string
+): Promise<Invitation> => {
+  // Check if there's an existing pending invitation for this email+tenant
+  const existingQuery = query(
+    invitationsCollection,
+    where("email", "==", email),
+    where("tenantId", "==", tenantId),
+    where("status", "==", "pending")
+  );
+
+  const existingInvites = await getDocs(existingQuery);
+
+  // If there's an existing invitation, delete it (we'll create a new one)
+  if (!existingInvites.empty) {
+    const batch = writeBatch(db);
+    existingInvites.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+  }
+
+  // Create a new invitation document with auto-generated ID
+  const invitationRef = doc(invitationsCollection);
+  const invitationId = invitationRef.id;
+
+  // Generate a secure token for the invitation link
+  const token = generateToken();
+
+  // Calculate expiration date (72 hours from now)
+  const now = Timestamp.now();
+  const expiresAt = Timestamp.fromMillis(now.toMillis() + 72 * 60 * 60 * 1000);
+
+  // Create invitation data
+  const invitation: Invitation = {
+    id: invitationId,
+    email,
+    tenantId,
+    role,
+    createdAt: now,
+    expiresAt,
+    createdBy,
+    status: "pending",
+    token,
+  };
+
+  // Save to Firestore
+  await setDoc(invitationRef, invitation);
+
+  return invitation;
+};
+
+/**
+ * Get all pending invitations for a tenant
+ * @param tenantId - ID of the tenant to get invitations for
+ * @returns Array of pending invitations
+ */
+export const getTenantInvitations = async (tenantId: string): Promise<Invitation[]> => {
+  const invitationsQuery = query(
+    invitationsCollection,
+    where("tenantId", "==", tenantId),
+    where("status", "==", "pending"),
+    orderBy("createdAt", "desc")
+  );
+
+  const snapshot = await getDocs(invitationsQuery);
+  const invitations: Invitation[] = [];
+
+  snapshot.forEach(doc => {
+    invitations.push(doc.data());
+  });
+
+  return invitations;
+};
+
+/**
+ * Cancel (delete) an invitation
+ * @param invitationId - ID of the invitation to cancel
+ */
+export const cancelInvitation = async (invitationId: string): Promise<void> => {
+  const invitationRef = getInvitationRef(invitationId);
+  await deleteDoc(invitationRef);
+};
+
+/**
+ * Get an invitation by its token
+ * @param token - The unique token from the invitation link
+ * @returns The invitation or null if not found
+ */
+export const getInvitationByToken = async (token: string): Promise<Invitation | null> => {
+  const invitationsQuery = query(
+    invitationsCollection,
+    where("token", "==", token),
+    where("status", "==", "pending")
+  );
+
+  const snapshot = await getDocs(invitationsQuery);
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  return snapshot.docs[0].data();
+};
+
+/**
+ * Accept an invitation, creating a user profile or updating an existing one
+ * @param token - The invitation token
+ * @param userId - The Firebase Auth user ID of the user accepting the invitation
+ * @param email - The email of the user
+ * @param displayName - Optional display name
+ * @param photoURL - Optional photo URL
+ * @returns The tenant ID if successful
+ */
+export const acceptInvitation = async (
+  token: string,
+  userId: string,
+  email: string,
+  displayName?: string,
+  photoURL?: string
+): Promise<string> => {
+  // Get the invitation from the token
+  const invitation = await getInvitationByToken(token);
+
+  if (!invitation) {
+    throw new Error("Invitation not found or already used");
+  }
+
+  // Check if invitation has expired
+  const now = Timestamp.now();
+  if (now.toMillis() > invitation.expiresAt.toMillis()) {
+    // Update invitation status to expired
+    await updateDoc(getInvitationRef(invitation.id), {
+      status: "expired",
+    });
+    throw new Error("Invitation has expired");
+  }
+
+  // Get or create user profile
+  const userRef = getUserRef(userId);
+  const userSnap = await getDoc(userRef);
+
+  if (userSnap.exists()) {
+    // User exists, add them to the tenant
+    const userProfile = userSnap.data();
+    await addUserToTenant(userId, invitation.tenantId, invitation.role);
+
+    // Also set it as their current tenant
+    await updateUserCurrentTenant(userId, invitation.tenantId);
+  } else {
+    // Create new user profile
+    await createUserProfile(
+      userId,
+      email,
+      invitation.tenantId,
+      invitation.role,
+      displayName,
+      photoURL
+    );
+  }
+
+  // Mark invitation as accepted
+  await updateDoc(getInvitationRef(invitation.id), {
+    status: "accepted",
+  });
+
+  return invitation.tenantId;
 };

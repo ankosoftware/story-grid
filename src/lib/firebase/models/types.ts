@@ -169,3 +169,16 @@ export interface Release {
   createdBy: string; // User ID
   updatedAt?: Timestamp;
 }
+
+// Invitation model for new workspace members
+export interface Invitation {
+  id: string;
+  email: string;
+  tenantId: string;
+  role: UserRole;
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+  createdBy: string;
+  status: "pending" | "accepted" | "expired";
+  token: string;
+}

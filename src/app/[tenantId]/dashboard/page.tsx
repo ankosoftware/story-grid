@@ -22,9 +22,12 @@ import { useTenant } from "@/lib/context/TenantContext";
 import { useRouter, useParams } from "next/navigation";
 import AddBusinessIcon from "@mui/icons-material/AddBusiness";
 import BusinessIcon from "@mui/icons-material/Business";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import Link from "next/link";
+import { UserRole } from "@/lib/firebase/models/types";
 
 export default function TenantDashboardPage() {
-  const { user, logOut } = useAuth();
+  const { user, logOut, userProfile } = useAuth();
   const { tenant, tenants, switchTenant, isLoading } = useTenant();
   const router = useRouter();
   const params = useParams();
@@ -33,6 +36,9 @@ export default function TenantDashboardPage() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const [loadingSwitch, setLoadingSwitch] = useState(false);
+
+  // Check if user is an admin
+  const isAdmin = userProfile?.role === UserRole.ADMIN;
 
   // Ensure we're using the correct tenant based on the URL
   useEffect(() => {
@@ -146,6 +152,7 @@ export default function TenantDashboardPage() {
                       </Typography>
                     </Button>
                   )}
+
                   <Menu
                     anchorEl={anchorEl}
                     MenuListProps={{
@@ -191,9 +198,27 @@ export default function TenantDashboardPage() {
                     </MenuItem>
                   </Menu>
                 </Box>
-                <Button color="primary" variant="outlined" onClick={handleLogout}>
-                  Log Out
-                </Button>
+
+                <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                  {isAdmin && (
+                    <Link
+                      href={`/[tenantId]/admin/users`}
+                      as={`/${tenant.id}/admin/users`}
+                      style={{ textDecoration: "none" }}
+                    >
+                      <Button
+                        color="primary"
+                        variant="outlined"
+                        startIcon={<AdminPanelSettingsIcon />}
+                      >
+                        Admin Panel
+                      </Button>
+                    </Link>
+                  )}
+                  <Button color="primary" variant="outlined" onClick={handleLogout}>
+                    Log Out
+                  </Button>
+                </Box>
               </Box>
 
               <Typography gutterBottom variant="body1">
@@ -246,11 +271,23 @@ export default function TenantDashboardPage() {
                 Team Members
               </Typography>
               <Typography color="text.secondary" variant="body2">
-                No team members yet. Invite team members to collaborate.
+                {isAdmin ? (
+                  <>Manage team members in the Admin Panel.</>
+                ) : (
+                  <>No team members yet. Contact your administrator to invite team members.</>
+                )}
               </Typography>
-              <Button color="primary" sx={{ mt: 2 }} variant="outlined">
-                Invite Members
-              </Button>
+              {isAdmin && (
+                <Link
+                  href={`/[tenantId]/admin/users`}
+                  as={`/${tenant.id}/admin/users`}
+                  style={{ textDecoration: "none" }}
+                >
+                  <Button color="primary" sx={{ mt: 2 }} variant="outlined">
+                    Manage Users
+                  </Button>
+                </Link>
+              )}
             </Paper>
           </Grid>
         </Grid>

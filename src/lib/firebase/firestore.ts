@@ -1418,3 +1418,80 @@ export const deleteStory = async (storyId: string): Promise<void> => {
     throw error;
   }
 };
+
+/**
+ * Get all users that have access to a specific tenant
+ * @param tenantId - The ID of the tenant
+ * @returns Promise that resolves to array of user profiles with access to the tenant
+ */
+export const getTenantUsers = async (tenantId: string): Promise<UserProfile[]> => {
+  try {
+    // Query users that have this tenant in their tenants array
+    const q = query(usersCollection, where("tenants", "array-contains-any", [{ tenantId }]));
+
+    // This doesn't work as expected with complex objects in array-contains-any
+    // So we'll get all users and filter manually
+    const usersSnapshot = await getDocs(usersCollection);
+    const users: UserProfile[] = [];
+
+    usersSnapshot.forEach(doc => {
+      const userData = doc.data();
+      // Check if user has access to this tenant
+      const hasTenantAccess = userData.tenants.some(
+        (access: UserTenantAccess) => access.tenantId === tenantId
+      );
+
+      if (hasTenantAccess) {
+        users.push(userData);
+      }
+    });
+
+    return users;
+  } catch (error) {
+    console.error("Error fetching tenant users:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update a user's role in a specific tenant
+ * @param userId - The ID of the user to update
+ * @param tenantId - The ID of the tenant
+ * @param newRole - The new role to assign
+ */
+export const updateUserRole = async (
+  userId: string,
+  tenantId: string,
+  newRole: UserRole
+): Promise<void> => {
+  const userRef = getUserRef(userId);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    throw new Error("User does not exist");
+  }
+
+  const userProfile = userSnap.data();
+
+  // Update tenant access role
+  const updatedTenants = userProfile.tenants.map(access => {
+    if (access.tenantId === tenantId) {
+      return { ...access, role: newRole };
+    }
+    return access;
+  });
+
+  // Update role field if this is the user's current tenant
+  if (userProfile.tenantId === tenantId) {
+    await updateDoc(userRef, {
+      tenants: updatedTenants,
+      role: newRole,
+      updatedAt: Timestamp.now(),
+    });
+  } else {
+    await updateDoc(userRef, {
+      tenants: updatedTenants,
+      updatedAt: Timestamp.now(),
+    });
+  }
+};

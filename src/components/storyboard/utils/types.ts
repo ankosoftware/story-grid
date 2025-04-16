@@ -4,6 +4,7 @@ import { Issue, Release, IssueStatus, IssuePriority, IssueType } from "@/lib/fir
 export const ItemTypes = {
   STORY: "story",
   EPIC: "epic",
+  ACTIVITY: "activity",
 };
 
 // Define draggable item interface

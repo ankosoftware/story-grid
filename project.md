@@ -383,15 +383,3 @@ You have two main approaches:
 - **Role-Based Access:** In Firestore security rules (or application logic), validate that `request.auth.uid` is allowed to access the requested `tenantId`.
 
 ---
-
-## **5. Deployment & DevOps**
-
-### **Vercel**
-
-- Created by the team behind Next.js, so deployments are frictionless.
-- Automatic CI/CD on every push to GitHub/GitLab/Bitbucket.
-- Built-in environment variable management for your Firestore credentials.
-
-_(**Netlify** and **AWS Amplify** are also viable; Vercel just offers the most seamless integration with Next.js.)_
-
----

@@ -59,10 +59,15 @@ import {
   DraggableStoryCard,
   DraggableEpicCard,
   MemoizedReleaseCard,
+  DraggableActivityCard,
 } from "./cards";
 
 // Import container components
-import { DroppableActivityContainer, DroppableEpicContainer } from "./containers";
+import {
+  DroppableActivityContainer,
+  DroppableEpicContainer,
+  DroppableActivityRowContainer,
+} from "./containers";
 
 export default function StoryMap({
   projectId,
@@ -545,6 +550,25 @@ export default function StoryMap({
     }
   }, [deletingItemId, deletingItemType, deletingItemName]);
 
+  // Add handler for moving activities
+  const handleUpdateActivityOrder = useCallback(
+    async (activityId: string, newDisplayOrder: number) => {
+      try {
+        setUpdatingIssue(true);
+
+        // Update the activity's display order
+        await updateIssue(activityId, { displayOrder: newDisplayOrder });
+
+        console.log(`Updated display order for activity ${activityId} to ${newDisplayOrder}`);
+      } catch (error) {
+        console.error("Error updating activity order:", error);
+      } finally {
+        setUpdatingIssue(false);
+      }
+    },
+    []
+  );
+
   // --------------------------
   // Memoized rendering function for Story cards
   // --------------------------
@@ -734,25 +758,17 @@ export default function StoryMap({
               }),
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                mb: 2,
-              }}
-            >
+            <DroppableActivityRowContainer activities={activities}>
               {activities.map(activity => (
                 <Box key={activity.id} sx={{ mx: 1 }}>
                   <DroppableActivityContainer activity={activity}>
                     <Box sx={{ px: 1, mb: 1 }}>
-                      <StoryMapCard
-                        item={activity}
-                        type="activity"
+                      <DraggableActivityCard
+                        activity={activity}
+                        handleOpenItemForEdit={handleOpenItemForEdit}
+                        handleOpenComments={handleOpenComments}
                         onAction={e => handleContextMenu(e, activity.id, "activity")}
-                        onClick={() => handleOpenItemForEdit(activity, "activity")}
-                        onCommentClick={(e, item) => handleOpenComments(item)}
-                      >
-                        {/* Activity card has no additional content */}
-                      </StoryMapCard>
+                      />
                     </Box>
 
                     {/* Epics Row - Horizontal */}
@@ -802,7 +818,7 @@ export default function StoryMap({
                   onClick={() => setActivityDialogOpen(true)}
                 />
               </Box>
-            </Box>
+            </DroppableActivityRowContainer>
           </Box>
           {releases.map((release, index) => (
             <Box key={release.id} sx={{ minWidth: activities.length * 250 }}>

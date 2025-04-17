@@ -28,6 +28,7 @@ import {
   toggleCommentStatus,
 } from "@/lib/firebase/firestore";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { RichTextEditor } from "@/components/common/RichTextEditor";
 
 export interface CommentsSectionProps {
   issue: Issue | null;
@@ -248,15 +249,14 @@ export const CommentsSection = ({
                     </Box>
                     {editingCommentId === comment.id ? (
                       <Box sx={{ mt: 1 }}>
-                        <TextField
-                          fullWidth
-                          multiline
-                          disabled={isSubmitting}
-                          rows={2}
-                          size="small"
+                        <RichTextEditor
                           value={editText}
-                          variant="outlined"
-                          onChange={e => setEditText(e.target.value)}
+                          onChange={setEditText}
+                          disabled={isSubmitting}
+                          minHeight={100}
+                          maxHeight={300}
+                          placeholder="Edit your comment..."
+                          projectId={issue?.projectId}
                         />
                         <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
                           <Button
@@ -278,9 +278,7 @@ export const CommentsSection = ({
                         </Box>
                       </Box>
                     ) : (
-                      <Typography sx={{ mt: 0.5, whiteSpace: "pre-wrap" }} variant="body2">
-                        {comment.text}
-                      </Typography>
+                      <Box sx={{ mt: 0.5 }} dangerouslySetInnerHTML={{ __html: comment.text }} />
                     )}
                   </Box>
                 </Box>
@@ -325,18 +323,16 @@ export const CommentsSection = ({
         <Typography sx={{ mb: 1 }} variant="subtitle2">
           Add a comment
         </Typography>
-        <TextField
-          fullWidth
-          multiline
+        <RichTextEditor
+          value={newComment}
+          onChange={setNewComment}
           disabled={isSubmitting || !user}
           placeholder="Type your comment here..."
-          rows={3}
-          sx={{ mb: 1 }}
-          value={newComment}
-          variant="outlined"
-          onChange={e => setNewComment(e.target.value)}
+          minHeight={150}
+          maxHeight={300}
+          projectId={issue?.projectId}
         />
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
           <Button
             disabled={isSubmitting || !newComment.trim() || !user}
             variant="contained"

@@ -142,6 +142,7 @@ export const EditItemDialog = ({
           disabled={isEditing}
           label="Description"
           minHeight={150}
+          projectId={item?.projectId}
           value={editDescription}
           onChange={setEditDescription}
         />

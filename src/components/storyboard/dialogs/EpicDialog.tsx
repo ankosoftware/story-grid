@@ -17,9 +17,16 @@ export interface EpicDialogProps {
   onClose: () => void;
   onAddEpic: (backboneId: string, name: string, description?: string) => Promise<string>;
   activityId: string | null;
+  projectId: string;
 }
 
-export const EpicDialog = ({ open, onClose, onAddEpic, activityId }: EpicDialogProps) => {
+export const EpicDialog = ({
+  open,
+  onClose,
+  onAddEpic,
+  activityId,
+  projectId,
+}: EpicDialogProps) => {
   const [epicName, setEpicName] = useState("");
   const [epicDescription, setEpicDescription] = useState("");
   const [addingEpic, setAddingEpic] = useState(false);
@@ -89,6 +96,7 @@ export const EpicDialog = ({ open, onClose, onAddEpic, activityId }: EpicDialogP
           placeholder="Add detailed description..."
           value={epicDescription}
           onChange={setEpicDescription}
+          projectId={projectId}
         />
 
         <Box sx={{ mt: 2 }}>

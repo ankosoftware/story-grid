@@ -24,6 +24,7 @@ import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import { uploadBase64Image } from "@/lib/firebase/storage";
+import { useTenant } from "@/lib/context/TenantContext";
 
 export interface RichTextEditorProps {
   value: string;
@@ -33,6 +34,7 @@ export interface RichTextEditorProps {
   minHeight?: number | string;
   maxHeight?: number | string;
   label?: string;
+  projectId?: string; // Optional project ID for scoping uploads
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -43,9 +45,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   minHeight = 150,
   maxHeight = 400,
   label,
+  projectId,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { tenant } = useTenant();
 
   const editor = useEditor({
     extensions: [
@@ -77,7 +81,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Handle file input change
   const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!editor || !event.target.files || event.target.files.length === 0) return;
+    if (!editor || !event.target.files || event.target.files.length === 0) {
+      return;
+    }
 
     const file = event.target.files[0];
     if (!file.type.startsWith("image/")) {
@@ -94,8 +100,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       reader.onload = async e => {
         if (typeof e.target?.result === "string") {
           try {
-            // Upload the image to Firebase Storage
-            const { url } = await uploadBase64Image(e.target.result);
+            // Upload the image to Firebase Storage with tenant and project info
+            const { url } = await uploadBase64Image(e.target.result, {
+              tenantId: tenant?.id,
+              projectId,
+              path: "rich-editor-uploads",
+            });
 
             // Insert the image at the current cursor position
             editor.chain().focus().setImage({ src: url }).run();
@@ -118,16 +128,22 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   // Handle paste events to capture pasted images
   useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
-      if (!editor || isUploading || disabled) return;
+      if (!editor || isUploading || disabled) {
+        return;
+      }
 
       const items = e.clipboardData?.items;
-      if (!items) return;
+      if (!items) {
+        return;
+      }
 
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.startsWith("image/")) {
           e.preventDefault();
           const file = items[i].getAsFile();
-          if (!file) continue;
+          if (!file) {
+            continue;
+          }
 
           try {
             setIsUploading(true);
@@ -138,8 +154,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             reader.onload = async e => {
               if (typeof e.target?.result === "string") {
                 try {
-                  // Upload the image to Firebase Storage
-                  const { url } = await uploadBase64Image(e.target.result);
+                  // Upload the image to Firebase Storage with tenant and project info
+                  const { url } = await uploadBase64Image(e.target.result, {
+                    tenantId: tenant?.id,
+                    projectId,
+                    path: "rich-editor-uploads",
+                  });
 
                   // Insert the image at the current cursor position
                   editor.chain().focus().setImage({ src: url }).run();
@@ -166,17 +186,28 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     return () => {
       document.removeEventListener("paste", handlePaste);
     };
-  }, [editor, isUploading, disabled]);
+  }, [editor, isUploading, disabled, tenant, projectId]);
 
   // Upload an image from clipboard
   const addImage = useCallback(() => {
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
 
     // Create a file input and trigger it
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    input.onchange = e => handleFileInputChange(e as React.ChangeEvent<HTMLInputElement>);
+    input.onchange = e => {
+      // Convert the native Event to the expected type by accessing the currentTarget
+      const target = e.target as HTMLInputElement;
+      const syntheticEvent = {
+        target,
+        currentTarget: target,
+      } as React.ChangeEvent<HTMLInputElement>;
+
+      handleFileInputChange(syntheticEvent);
+    };
     input.click();
   }, [disabled]);
 
@@ -187,31 +218,31 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   return (
     <Box sx={{ width: "100%" }}>
       {label && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+        <Typography color="text.secondary" sx={{ mb: 1, fontWeight: 500 }} variant="body2">
           {label}
         </Typography>
       )}
       <Paper
-        variant="outlined"
         sx={{
           p: 1,
           mb: 1,
           backgroundColor: disabled ? "action.disabledBackground" : "background.paper",
         }}
+        variant="outlined"
       >
         <ButtonGroup
-          variant="outlined"
-          size="small"
-          aria-label="text formatting"
-          sx={{ flexWrap: "wrap", gap: 0.5, mb: 1 }}
           disableElevation
+          aria-label="text formatting"
+          size="small"
+          sx={{ flexWrap: "wrap", gap: 0.5, mb: 1 }}
+          variant="outlined"
         >
           <Tooltip title="Bold">
             <IconButton
-              onClick={() => editor.chain().focus().toggleBold().run()}
               color={editor.isActive("bold") ? "primary" : "default"}
               disabled={disabled}
               size="small"
+              onClick={() => editor.chain().focus().toggleBold().run()}
             >
               <FormatBoldIcon fontSize="small" />
             </IconButton>
@@ -219,10 +250,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
           <Tooltip title="Italic">
             <IconButton
-              onClick={() => editor.chain().focus().toggleItalic().run()}
               color={editor.isActive("italic") ? "primary" : "default"}
               disabled={disabled}
               size="small"
+              onClick={() => editor.chain().focus().toggleItalic().run()}
             >
               <FormatItalicIcon fontSize="small" />
             </IconButton>
@@ -230,10 +261,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
           <Tooltip title="Bullet List">
             <IconButton
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
               color={editor.isActive("bulletList") ? "primary" : "default"}
               disabled={disabled}
               size="small"
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
             >
               <FormatListBulletedIcon fontSize="small" />
             </IconButton>
@@ -241,10 +272,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
           <Tooltip title="Numbered List">
             <IconButton
-              onClick={() => editor.chain().focus().toggleOrderedList().run()}
               color={editor.isActive("orderedList") ? "primary" : "default"}
               disabled={disabled}
               size="small"
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
             >
               <FormatListNumberedIcon fontSize="small" />
             </IconButton>
@@ -252,10 +283,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
           <Tooltip title="Blockquote">
             <IconButton
-              onClick={() => editor.chain().focus().toggleBlockquote().run()}
               color={editor.isActive("blockquote") ? "primary" : "default"}
               disabled={disabled}
               size="small"
+              onClick={() => editor.chain().focus().toggleBlockquote().run()}
             >
               <FormatQuoteIcon fontSize="small" />
             </IconButton>
@@ -263,25 +294,25 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
           <Tooltip title="Horizontal Rule">
             <IconButton
-              onClick={() => editor.chain().focus().setHorizontalRule().run()}
               disabled={disabled}
               size="small"
+              onClick={() => editor.chain().focus().setHorizontalRule().run()}
             >
               <HorizontalRuleIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Add Image">
-            <IconButton onClick={addImage} disabled={disabled || isUploading} size="small">
+            <IconButton disabled={disabled || isUploading} size="small" onClick={addImage}>
               {isUploading ? <CircularProgress size={18} /> : <ImageIcon fontSize="small" />}
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Undo">
             <IconButton
-              onClick={() => editor.chain().focus().undo().run()}
               disabled={disabled || !editor.can().undo()}
               size="small"
+              onClick={() => editor.chain().focus().undo().run()}
             >
               <UndoIcon fontSize="small" />
             </IconButton>
@@ -289,9 +320,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
           <Tooltip title="Redo">
             <IconButton
-              onClick={() => editor.chain().focus().redo().run()}
               disabled={disabled || !editor.can().redo()}
               size="small"
+              onClick={() => editor.chain().focus().redo().run()}
             >
               <RedoIcon fontSize="small" />
             </IconButton>
@@ -328,7 +359,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </Box>
 
         {errorMessage && (
-          <Typography color="error" variant="caption" sx={{ mt: 1 }}>
+          <Typography color="error" sx={{ mt: 1 }} variant="caption">
             {errorMessage}
           </Typography>
         )}

@@ -16,9 +16,15 @@ export interface ActivityDialogProps {
   open: boolean;
   onClose: () => void;
   onAddActivity: (name: string, description?: string) => Promise<string>;
+  projectId: string;
 }
 
-export const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogProps) => {
+export const ActivityDialog = ({
+  open,
+  onClose,
+  onAddActivity,
+  projectId,
+}: ActivityDialogProps) => {
   const [activityName, setActivityName] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
   const [addingActivity, setAddingActivity] = useState(false);
@@ -87,6 +93,7 @@ export const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogP
           placeholder="Add detailed description..."
           value={activityDescription}
           onChange={setActivityDescription}
+          projectId={projectId}
         />
 
         <Box sx={{ mt: 2 }}>

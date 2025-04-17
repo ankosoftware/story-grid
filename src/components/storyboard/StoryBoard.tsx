@@ -1148,6 +1148,7 @@ export default function StoryMap({
         {/* Dialog Components */}
         <ActivityDialog
           open={activityDialogOpen}
+          projectId={projectId}
           onAddActivity={onAddActivity}
           onClose={() => setActivityDialogOpen(false)}
         />
@@ -1155,6 +1156,7 @@ export default function StoryMap({
         <EpicDialog
           activityId={selectedActivityId}
           open={epicDialogOpen}
+          projectId={projectId}
           onAddEpic={onAddEpic}
           onClose={handleCloseEpicDialog}
         />
@@ -1163,6 +1165,7 @@ export default function StoryMap({
           currentReleaseId={currentReleaseContext}
           epicId={selectedParentId}
           open={storyDialogOpen}
+          projectId={projectId}
           onAddStory={onAddStory}
           onClose={handleCloseStoryDialog}
         />

@@ -400,7 +400,7 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell>
                         <Grid container alignItems="center" spacing={1}>
-                          <Grid xs={true}>
+                          <Paper>
                             <Box
                               sx={{
                                 maxWidth: 250,
@@ -416,7 +416,7 @@ export default function UsersPage() {
                             >
                               {getInvitationLink(invitation.token)}
                             </Box>
-                          </Grid>
+                          </Paper>
                           <Grid>
                             <Button
                               size="small"

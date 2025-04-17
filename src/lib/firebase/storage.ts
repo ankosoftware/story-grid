@@ -7,15 +7,21 @@ interface UploadResult {
   path: string;
 }
 
+interface UploadOptions {
+  tenantId?: string;
+  projectId?: string;
+  contentType?: string;
+}
+
 /**
  * Uploads an image to Firebase Storage
  * @param file - The file to upload
- * @param path - The path in storage to save the file (optional)
+ * @param options - Upload options including tenant/project IDs and path
  * @returns Promise with the download URL and storage path
  */
 export const uploadImage = async (
   file: File,
-  path = "images"
+  options?: UploadOptions & { path?: string }
 ): Promise<UploadResult> => {
   if (!file) {
     throw new Error("No file provided");
@@ -24,13 +30,26 @@ export const uploadImage = async (
   // Generate a unique file name to avoid collisions
   const fileExtension = file.name.split(".").pop();
   const fileName = `${uuidv4()}.${fileExtension}`;
-  const fullPath = `${path}/${fileName}`;
+
+  // Build the storage path with tenant and project info if available
+  let basePath = options?.path || "images";
+  if (options?.tenantId) {
+    basePath = `tenants/${options.tenantId}/${basePath}`;
+
+    if (options?.projectId) {
+      basePath = `tenants/${options.tenantId}/projects/${options.projectId}/${basePath}`;
+    }
+  }
+
+  const fullPath = `${basePath}/${fileName}`;
 
   // Create a storage reference
   const storageRef = ref(storage, fullPath);
 
   // Upload the file
-  await uploadBytes(storageRef, file);
+  await uploadBytes(storageRef, file, {
+    contentType: options?.contentType,
+  });
 
   // Get the download URL
   const url = await getDownloadURL(storageRef);
@@ -44,12 +63,12 @@ export const uploadImage = async (
 /**
  * Uploads a base64 encoded image to Firebase Storage
  * @param base64Data - The base64 encoded data
- * @param path - The path in storage to save the file (optional)
+ * @param options - Upload options including tenant/project IDs and path
  * @returns Promise with the download URL and storage path
  */
 export const uploadBase64Image = async (
   base64Data: string,
-  path = "images"
+  options?: UploadOptions & { path?: string }
 ): Promise<UploadResult> => {
   // Extract base64 data
   const matches = base64Data.match(/^data:(.+);base64,(.+)$/);
@@ -75,7 +94,18 @@ export const uploadBase64Image = async (
   const blob = new Blob(byteArrays, { type: contentType });
   const fileExtension = contentType.split("/")[1];
   const fileName = `${uuidv4()}.${fileExtension}`;
-  const fullPath = `${path}/${fileName}`;
+
+  // Build the storage path with tenant and project info if available
+  let basePath = options?.path || "images";
+  if (options?.tenantId) {
+    basePath = `tenants/${options.tenantId}/${basePath}`;
+
+    if (options?.projectId) {
+      basePath = `tenants/${options.tenantId}/projects/${options.projectId}/${basePath}`;
+    }
+  }
+
+  const fullPath = `${basePath}/${fileName}`;
 
   // Create a storage reference
   const storageRef = ref(storage, fullPath);
@@ -90,4 +120,4 @@ export const uploadBase64Image = async (
     url,
     path: fullPath,
   };
-}; 
+};

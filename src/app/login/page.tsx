@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,8 +17,10 @@ import {
 } from "@mui/material";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import GoogleIcon from "@mui/icons-material/Google";
+import { Suspense } from "react";
 
-export default function LoginPage() {
+// Create a separate component for the parts that use useSearchParams
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,6 +30,9 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams?.get("returnUrl") || "/dashboard";
   const { signIn, signInWithGoogle } = useAuth();
+
+  // Show invitation message if coming from an invitation link
+  const isFromInvitation = returnUrl.startsWith("/invite/");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,9 +66,6 @@ export default function LoginPage() {
       setGoogleLoading(false);
     }
   };
-
-  // Show invitation message if coming from an invitation link
-  const isFromInvitation = returnUrl.startsWith("/invite/");
 
   return (
     <Container maxWidth="sm">
@@ -148,5 +150,24 @@ export default function LoginPage() {
         </Paper>
       </Box>
     </Container>
+  );
+}
+
+// Main component with Suspense boundary
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <Container maxWidth="sm">
+          <Box sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Paper elevation={3} sx={{ p: 4, width: "100%", borderRadius: 2, textAlign: "center" }}>
+              <Typography variant="h5">Loading...</Typography>
+            </Paper>
+          </Box>
+        </Container>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

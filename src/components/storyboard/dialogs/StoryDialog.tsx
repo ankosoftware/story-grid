@@ -31,6 +31,7 @@ export interface StoryDialogProps {
   ) => Promise<string>;
   epicId: string | null;
   currentReleaseId?: string | null;
+  projectId: string;
 }
 
 export const StoryDialog = ({
@@ -39,6 +40,7 @@ export const StoryDialog = ({
   onAddStory,
   epicId,
   currentReleaseId,
+  projectId,
 }: StoryDialogProps) => {
   const [storyName, setStoryName] = useState("");
   const [storyDescription, setStoryDescription] = useState("");
@@ -128,6 +130,7 @@ export const StoryDialog = ({
           label="Description (optional)"
           placeholder="Add detailed description..."
           minHeight={150}
+          projectId={projectId}
         />
 
         <TextField

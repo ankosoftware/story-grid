@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Container,
   Paper,
@@ -35,8 +35,9 @@ const RoleColors: Record<UserRole, string> = {
   [UserRole.VIEWER]: "default",
 };
 
-export default function InvitationPage({ params }: { params: { token: string } }) {
-  const { token } = params;
+export default function InvitationPage() {
+  const params = useParams();
+  const token = params.token as string;
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [invitation, setInvitation] = useState<Invitation | null>(null);
@@ -151,7 +152,7 @@ export default function InvitationPage({ params }: { params: { token: string } }
   return (
     <Container maxWidth="sm">
       <Paper elevation={3} sx={{ mt: 8, p: 4, borderRadius: 2 }}>
-        <Typography gutterBottom align="center" variant="h4" component="h1">
+        <Typography gutterBottom align="center" component="h1" variant="h4">
           Workspace Invitation
         </Typography>
 
@@ -167,31 +168,31 @@ export default function InvitationPage({ params }: { params: { token: string } }
             </Alert>
 
             <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" gutterBottom>
+              <Typography gutterBottom variant="subtitle1">
                 Invitation Details
               </Typography>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography color="text.secondary" variant="body2">
                   Email:
                 </Typography>
-                <Typography variant="body2" fontWeight="medium">
+                <Typography fontWeight="medium" variant="body2">
                   {invitation.email}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography color="text.secondary" variant="body2">
                   Role:
                 </Typography>
                 <Box>
                   <Chip
+                    color={RoleColors[invitation.role] as any}
                     label={invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)}
                     size="small"
-                    color={RoleColors[invitation.role] as any}
                   />
                 </Box>
               </Box>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography color="text.secondary" variant="body2">
                   Expires:
                 </Typography>
                 <Typography variant="body2">
@@ -207,7 +208,7 @@ export default function InvitationPage({ params }: { params: { token: string } }
 
               <Divider sx={{ my: 2 }} />
 
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+              <Typography gutterBottom color="text.secondary" variant="body2">
                 {RoleDescriptions[invitation.role]}
               </Typography>
             </Box>
@@ -215,19 +216,19 @@ export default function InvitationPage({ params }: { params: { token: string } }
             {user ? (
               <Button
                 fullWidth
-                variant="contained"
-                onClick={handleAcceptInvitation}
                 disabled={accepting}
                 sx={{ mt: 2 }}
+                variant="contained"
+                onClick={handleAcceptInvitation}
               >
                 {accepting ? "Joining..." : "Accept Invitation"}
               </Button>
             ) : (
               <Box sx={{ mt: 3 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom align="center">
+                <Typography gutterBottom align="center" color="text.secondary" variant="body2">
                   You need to sign in to accept this invitation
                 </Typography>
-                <Button fullWidth variant="contained" onClick={handleSignInToAccept} sx={{ mt: 1 }}>
+                <Button fullWidth sx={{ mt: 1 }} variant="contained" onClick={handleSignInToAccept}>
                   Sign In to Accept
                 </Button>
               </Box>

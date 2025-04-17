@@ -56,7 +56,7 @@ export const DraggableEpicCard = memo(
           }
         },
       }),
-      [epic.id, epic.parentId, epic.displayOrder, handleMoveEpicToActivity],
+      [epic.id, epic.parentId, epic.displayOrder, handleMoveEpicToActivity]
     );
 
     // Use refs properly for react-dnd
@@ -116,7 +116,7 @@ export const DraggableEpicCard = memo(
         </Box>
       </Box>
     );
-  },
+  }
 );
 
 // Add displayName to fix the linter warning

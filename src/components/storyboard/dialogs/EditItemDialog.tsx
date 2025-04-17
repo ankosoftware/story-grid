@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { Issue, Release, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
 import { CommentsSection } from "../components/CommentsSection";
+import { RichTextEditor } from "@/components/common/RichTextEditor";
 
 export interface EditItemDialogProps {
   open: boolean;
@@ -136,16 +137,13 @@ export const EditItemDialog = ({
           onChange={e => setEditName(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <TextField
-          fullWidth
-          multiline
+
+        <RichTextEditor
           disabled={isEditing}
           label="Description"
-          margin="dense"
-          rows={3}
+          minHeight={150}
           value={editDescription}
-          onChange={e => setEditDescription(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onChange={setEditDescription}
         />
 
         {/* Add additional fields for stories */}

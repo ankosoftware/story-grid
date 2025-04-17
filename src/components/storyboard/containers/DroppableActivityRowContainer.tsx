@@ -277,7 +277,7 @@ export const DroppableActivityRowContainer = memo(
         ref={dropRef}
         sx={{
           display: "flex",
-          mb: 2,
+          mb: 0,
           position: "relative",
           transition: "background-color 0.2s ease",
           border: isOver && canDrop ? `2px dashed #2196f3` : "none",

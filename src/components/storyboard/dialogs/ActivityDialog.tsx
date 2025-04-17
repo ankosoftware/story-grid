@@ -10,6 +10,7 @@ import {
   Box,
   Typography,
 } from "@mui/material";
+import { RichTextEditor } from "@/components/common/RichTextEditor";
 
 export interface ActivityDialogProps {
   open: boolean;
@@ -78,22 +79,14 @@ export const ActivityDialog = ({ open, onClose, onAddActivity }: ActivityDialogP
           onChange={e => setActivityName(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <TextField
-          fullWidth
-          multiline
+
+        <RichTextEditor
           disabled={addingActivity}
           label="Description (optional)"
-          margin="dense"
-          rows={3}
+          minHeight={150}
+          placeholder="Add detailed description..."
           value={activityDescription}
-          onChange={e => setActivityDescription(e.target.value)}
-          onKeyDown={e => {
-            // Allow shift+enter for new lines in multiline fields
-            if (e.key === "Enter" && !e.shiftKey && !addingActivity) {
-              e.preventDefault();
-              handleCreateActivity();
-            }
-          }}
+          onChange={setActivityDescription}
         />
 
         <Box sx={{ mt: 2 }}>

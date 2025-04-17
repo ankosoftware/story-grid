@@ -10,6 +10,7 @@ import {
   Box,
   Typography,
 } from "@mui/material";
+import { RichTextEditor } from "@/components/common/RichTextEditor";
 
 export interface EpicDialogProps {
   open: boolean;
@@ -80,25 +81,18 @@ export const EpicDialog = ({ open, onClose, onAddEpic, activityId }: EpicDialogP
           onChange={e => setEpicName(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <TextField
-          fullWidth
-          multiline
+
+        <RichTextEditor
           disabled={addingEpic}
           label="Description (optional)"
-          margin="dense"
-          rows={3}
+          minHeight={150}
+          placeholder="Add detailed description..."
           value={epicDescription}
-          onChange={e => setEpicDescription(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter" && !e.shiftKey && !addingEpic) {
-              e.preventDefault();
-              handleCreateEpic();
-            }
-          }}
+          onChange={setEpicDescription}
         />
 
         <Box sx={{ mt: 2 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography color="text.secondary" variant="caption">
             Note: You can add comments to this task after creation.
           </Typography>
         </Box>

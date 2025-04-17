@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
+import { RichTextEditor } from "@/components/common/RichTextEditor";
 
 export interface StoryDialogProps {
   open: boolean;
@@ -119,21 +120,14 @@ export const StoryDialog = ({
           onChange={e => setStoryName(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <TextField
-          fullWidth
-          multiline
+
+        <RichTextEditor
+          value={storyDescription}
+          onChange={setStoryDescription}
           disabled={addingStory}
           label="Description (optional)"
-          margin="dense"
-          rows={3}
-          value={storyDescription}
-          onChange={e => setStoryDescription(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter" && !e.shiftKey && !addingStory) {
-              e.preventDefault();
-              handleCreateStory();
-            }
-          }}
+          placeholder="Add detailed description..."
+          minHeight={150}
         />
 
         <TextField

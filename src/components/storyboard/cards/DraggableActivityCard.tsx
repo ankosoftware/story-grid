@@ -1,9 +1,11 @@
 import React, { memo, useRef } from "react";
-import { Box, useTheme } from "@mui/material";
+import { Box, useTheme, IconButton } from "@mui/material";
 import { useDrag } from "react-dnd";
 import { Issue } from "@/lib/firebase/models/types";
 import { ItemTypes } from "../utils/types";
 import { StoryMapCard } from "./StoryMapCard";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 interface DraggableActivityCardProps {
   activity: Issue;
@@ -11,6 +13,8 @@ interface DraggableActivityCardProps {
   handleOpenComments?: (item: Issue) => void;
   onClick?: () => void;
   onAction?: (e: React.MouseEvent<HTMLElement>, id: string) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (activityId: string) => void;
 }
 
 export const DraggableActivityCard = memo(
@@ -20,6 +24,8 @@ export const DraggableActivityCard = memo(
     handleOpenComments,
     onClick,
     onAction,
+    isCollapsed = false,
+    onToggleCollapse,
   }: DraggableActivityCardProps) => {
     const theme = useTheme();
 
@@ -56,11 +62,18 @@ export const DraggableActivityCard = memo(
       }
     };
 
+    const handleToggleCollapse = (e: React.MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      if (onToggleCollapse) {
+        onToggleCollapse(activity.id);
+      }
+    };
+
     return (
       <Box
         ref={previewRef}
-        data-display-order={activity.displayOrder}
         data-activity-id={activity.id}
+        data-display-order={activity.displayOrder}
         sx={{
           opacity: isDragging ? 0.6 : 1,
           cursor: "move",
@@ -78,7 +91,32 @@ export const DraggableActivityCard = memo(
             onAction={onAction}
             onClick={handleCardClick}
             onCommentClick={handleOpenComments ? (e, item) => handleOpenComments(item) : undefined}
-          />
+          >
+            {onToggleCollapse && (
+              <IconButton
+                size="small"
+                sx={{
+                  color: "white",
+                  padding: "2px",
+                  position: "absolute",
+                  bottom: 2,
+                  right: 2,
+                  backgroundColor: isCollapsed ? "rgba(255, 255, 255, 0.1)" : "transparent",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  },
+                }}
+                onClick={handleToggleCollapse}
+              >
+                {isCollapsed ? (
+                  <ExpandMoreIcon fontSize="small" />
+                ) : (
+                  <ExpandLessIcon fontSize="small" />
+                )}
+              </IconButton>
+            )}
+          </StoryMapCard>
         </Box>
       </Box>
     );

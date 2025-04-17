@@ -861,7 +861,7 @@ export default function StoryMap({
           >
             <DroppableActivityRowContainer activities={activities}>
               {activities.map(activity => (
-                <Box key={activity.id} sx={{ mx: 1 }}>
+                <Box key={activity.id} sx={{ mx: 0 }}>
                   <DroppableActivityContainer activity={activity}>
                     <Box sx={{ px: 0, mb: 0 }}>
                       <DraggableActivityCard
@@ -882,12 +882,12 @@ export default function StoryMap({
                           sx={{
                             display: "flex",
                             flexDirection: "row",
-                            gap: 2,
+                            gap: 3,
                             mb: 1,
                             height: "100%",
                             ...(stickyActivitiesRow && {
                               position: "sticky",
-                              top: theme.spacing(7), // Adjust this value based on the height of the activity cards
+                              top: theme.spacing(7),
                               zIndex: 9,
                               backgroundColor: theme.palette.background.paper,
                               paddingTop: 1,
@@ -1012,6 +1012,9 @@ export default function StoryMap({
                               </DroppableEpicContainer>
                             </Box>
                           ))}
+                        <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
+                          <StoryMapCard type="placeholder" />
+                        </Box>
                       </Box>
                     ) : (
                       /* Show a collapsed placeholder when the activity is collapsed */
@@ -1061,7 +1064,7 @@ export default function StoryMap({
                   {!collapsedActivities.includes(activity.id) ? (
                     /* Epics Row - Horizontal */
                     <Box
-                      sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2, height: "100%" }}
+                      sx={{ display: "flex", flexDirection: "row", gap: 1, mb: 1, height: "100%" }}
                     >
                       {epics[activity.id] &&
                         epics[activity.id].map(epic => (

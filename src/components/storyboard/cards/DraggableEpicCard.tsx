@@ -89,9 +89,11 @@ export const DraggableEpicCard = memo(
           transition: "transform 0.2s ease, opacity 0.2s ease",
           zIndex: isDragging ? 1000 : 1,
           display: isDragging ? "block" : "block",
+          width: "100%",
+          mb: 1,
         }}
       >
-        <Box ref={dragRef} sx={{ display: "flex", alignItems: "center" }}>
+        <Box ref={dragRef} sx={{ display: "flex", alignItems: "center", width: "100%" }}>
           <StoryMapCard
             item={epic}
             type="epic"

@@ -22,14 +22,19 @@ import {
   Tooltip,
   useTheme,
   Link,
+  Button,
+  Snackbar,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TodayIcon from "@mui/icons-material/Today";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import EditIcon from "@mui/icons-material/Edit";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Issue, Release, IssueType } from "@/lib/firebase/models/types";
 import Grid from "@mui/material/Grid";
+import { exportEstimationToMarkup, EstimationExportData } from "./utils";
+import ExportEstimationDialog from "./dialogs/ExportEstimationDialog";
 
 // Interface for component props
 interface EstimationPanelProps {
@@ -106,6 +111,13 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
   onEditStory,
 }) => {
   const theme = useTheme();
+
+  // State for export dialog
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
+  // State for snackbar feedback
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   // Use memo to calculate estimations only when inputs change
   const estimations = useMemo(() => {
@@ -388,6 +400,42 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
     }
   };
 
+  // Handle opening the export dialog
+  const handleOpenExportDialog = () => {
+    setExportDialogOpen(true);
+  };
+
+  // Handle closing the export dialog
+  const handleCloseExportDialog = () => {
+    setExportDialogOpen(false);
+  };
+
+  // Handle exporting the estimation data
+  const handleExportEstimation = (selectedReleaseIds: string[]) => {
+    // Create export data object
+    const exportData: EstimationExportData = {
+      totalEstimation: estimations.totalEstimation,
+      releaseEstimations: estimations.releaseEstimations,
+      storyPointToHours,
+      overheadPercentage,
+      dailyBurnRate,
+      blendedHourlyRate,
+      projectName: `Project ${projectId}`,
+    };
+
+    // Export to markup
+    exportEstimationToMarkup(exportData, selectedReleaseIds);
+
+    // Show success message
+    setSnackbarMessage("Estimation exported successfully!");
+    setSnackbarOpen(true);
+  };
+
+  // Handle closing the snackbar
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
+
   if (loading) {
     return (
       <Box sx={{ p: 3 }}>
@@ -407,9 +455,17 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
     <Box>
       {/* Project Estimation Summary */}
       <Box sx={{ mb: 4 }}>
-        <Typography gutterBottom variant="h5">
-          Project Estimation Summary
-        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Typography variant="h5">Project Estimation Summary</Typography>
+          <Button
+            disabled={releaseEstimations.length === 0}
+            startIcon={<FileDownloadIcon />}
+            variant="outlined"
+            onClick={handleOpenExportDialog}
+          >
+            Export Estimation
+          </Button>
+        </Box>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 4 }}>
             <Card>
@@ -664,6 +720,22 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
           </Grid>
         </Grid>
       </Box>
+
+      {/* Export Dialog */}
+      <ExportEstimationDialog
+        open={exportDialogOpen}
+        releases={releases}
+        onClose={handleCloseExportDialog}
+        onExport={handleExportEstimation}
+      />
+
+      {/* Snackbar for feedback */}
+      <Snackbar
+        autoHideDuration={6000}
+        message={snackbarMessage}
+        open={snackbarOpen}
+        onClose={handleCloseSnackbar}
+      />
     </Box>
   );
 };

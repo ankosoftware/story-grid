@@ -21,6 +21,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Issue, Release, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
@@ -40,6 +41,7 @@ import {
   createUnassignedReleaseObject,
   StoryMapProps,
   exportStoryboardToCSV,
+  exportStoryboardToMarkup,
 } from "./utils";
 
 // Import dialog components
@@ -610,6 +612,19 @@ export default function StoryMap({
     setSnackbarOpen(true);
   };
 
+  // Function to handle exporting Markdown
+  const handleExportMarkup = () => {
+    // Close the menu
+    handleCloseExportMenu();
+
+    // Use the exported function
+    exportStoryboardToMarkup(activities, epics, issues, releases, "Story Board");
+
+    // Show success message
+    setSnackbarMessage("Markdown exported successfully!");
+    setSnackbarOpen(true);
+  };
+
   // Add handler for toggling activity collapse
   const handleToggleActivityCollapse = useCallback((activityId: string) => {
     setCollapsedActivities(prev => {
@@ -818,6 +833,10 @@ export default function StoryMap({
           <MenuItem onClick={handleExportCSV}>
             <CloudDownloadIcon fontSize="small" sx={{ mr: 1 }} />
             Export as CSV
+          </MenuItem>
+          <MenuItem onClick={handleExportMarkup}>
+            <DescriptionIcon fontSize="small" sx={{ mr: 1 }} />
+            Export as Markdown
           </MenuItem>
         </Menu>
 

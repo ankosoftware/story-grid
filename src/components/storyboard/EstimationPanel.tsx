@@ -123,10 +123,13 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
       };
     }
 
-    // Calculate estimations for each story
+    // Sort and calculate estimations for each story
     const storyEstimations: Record<string, StoryEstimation> = {};
     Object.entries(issues).forEach(([epicId, epicStories]) => {
-      epicStories.forEach(story => {
+      // Sort stories by displayOrder to maintain consistent ordering across the application
+      const sortedStories = [...epicStories].sort((a, b) => a.displayOrder - b.displayOrder);
+
+      sortedStories.forEach(story => {
         if (story.storyPoints) {
           const hours = story.storyPoints * storyPointToHours * (1 + overheadPercentage / 100);
           storyEstimations[story.id] = {
@@ -148,12 +151,18 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
       });
     });
 
-    // Calculate estimations for each epic
+    // Sort and calculate estimations for each epic
     const epicEstimations: Record<string, EpicEstimation> = {};
     Object.entries(epics).forEach(([activityId, activityEpics]) => {
-      activityEpics.forEach(epic => {
+      // Sort epics by displayOrder to maintain consistent ordering across the application
+      const sortedEpics = [...activityEpics].sort((a, b) => a.displayOrder - b.displayOrder);
+
+      sortedEpics.forEach(epic => {
         const epicStories = issues[epic.id] || [];
-        const epicStoriesEstimations = epicStories
+        // Sort stories within each epic by displayOrder
+        const sortedEpicStories = [...epicStories].sort((a, b) => a.displayOrder - b.displayOrder);
+
+        const epicStoriesEstimations = sortedEpicStories
           .map(story => storyEstimations[story.id])
           .filter(Boolean);
 
@@ -185,7 +194,10 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
       // Find all stories in this release
       const releaseStories: Issue[] = [];
       Object.values(issues).forEach(epicStories => {
-        epicStories
+        // Sort stories by displayOrder for consistent presentation
+        const sortedEpicStories = [...epicStories].sort((a, b) => a.displayOrder - b.displayOrder);
+
+        sortedEpicStories
           .filter(story => story.releaseId === release.id)
           .forEach(story => releaseStories.push(story));
       });
@@ -240,6 +252,9 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
           });
         }
       });
+
+      // Sort the release epics by their display order for a consistent, logical presentation
+      releaseEpics.sort((a, b) => a.issue.displayOrder - b.issue.displayOrder);
 
       releaseEstimations.push({
         id: release.id,

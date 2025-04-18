@@ -16,12 +16,12 @@ import {
   Alert,
   Chip,
   Divider,
-  Grid,
   Card,
   CardContent,
   IconButton,
   Tooltip,
   useTheme,
+  Link,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TodayIcon from "@mui/icons-material/Today";
@@ -29,6 +29,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import EditIcon from "@mui/icons-material/Edit";
 import { Issue, Release, IssueType } from "@/lib/firebase/models/types";
+import Grid from "@mui/material/Grid";
 
 // Interface for component props
 interface EstimationPanelProps {
@@ -316,15 +317,17 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
   };
 
   // Handle the click on an epic to edit it
-  const handleEpicClick = (epic: Issue) => {
+  const handleEpicClick = (event: React.MouseEvent, epic: Issue) => {
     if (onEditEpic) {
+      event.stopPropagation();
       onEditEpic(epic);
     }
   };
 
   // Handle the click on a story to edit it
-  const handleStoryClick = (story: Issue) => {
+  const handleStoryClick = (event: React.MouseEvent, story: Issue) => {
     if (onEditStory) {
+      event.stopPropagation();
       onEditStory(story);
     }
   };
@@ -352,7 +355,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
           Project Estimation Summary
         </Typography>
         <Grid container spacing={3}>
-          <Grid item md={4} xs={12}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -372,7 +375,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
               </CardContent>
             </Card>
           </Grid>
-          <Grid item md={4} xs={12}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -390,7 +393,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
               </CardContent>
             </Card>
           </Grid>
-          <Grid item md={4} xs={12}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -423,7 +426,13 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
             <Accordion key={release.id} sx={{ mb: 2 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
-                  <Typography sx={{ flexGrow: 1, fontWeight: "bold" }}>{release.name}</Typography>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography sx={{ fontWeight: "bold" }}>{release.name}</Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      {formatDate(release.startDate)} - {formatDate(release.endDate)} (
+                      {release.daysToComplete} working days)
+                    </Typography>
+                  </Box>
                   <Box sx={{ display: "flex", gap: 2 }}>
                     <Chip
                       color="primary"
@@ -447,15 +456,6 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Box sx={{ mb: 2 }}>
-                  <Typography gutterBottom variant="subtitle2">
-                    Timeline:
-                  </Typography>
-                  <Typography variant="body2">
-                    {formatDate(release.startDate)} - {formatDate(release.endDate)} (
-                    {release.daysToComplete} working days)
-                  </Typography>
-                </Box>
                 <Divider sx={{ my: 2 }} />
 
                 {/* Epics in this release */}
@@ -482,27 +482,19 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
                         }}
                       >
                         <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              flexGrow: 1,
-                              alignItems: "center",
-                              cursor: onEditEpic ? "pointer" : "default",
-                            }}
-                            onClick={e => {
-                              if (onEditEpic) {
-                                e.stopPropagation();
-                                handleEpicClick(epic.issue);
-                              }
-                            }}
-                          >
-                            <Typography fontWeight="medium">{epic.name}</Typography>
-                            {onEditEpic && (
-                              <Tooltip title="Edit Epic">
-                                <IconButton size="small" sx={{ ml: 1 }}>
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
+                          <Box sx={{ flexGrow: 1 }}>
+                            {onEditEpic ? (
+                              <Link
+                                component="button"
+                                fontWeight="medium"
+                                sx={{ textAlign: "left", textDecoration: "none" }}
+                                variant="body1"
+                                onClick={e => handleEpicClick(e, epic.issue)}
+                              >
+                                {epic.name}
+                              </Link>
+                            ) : (
+                              <Typography fontWeight="medium">{epic.name}</Typography>
                             )}
                           </Box>
                           <Box sx={{ display: "flex", gap: 2 }}>
@@ -537,30 +529,20 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
                             </TableHead>
                             <TableBody>
                               {epic.stories.map(story => (
-                                <TableRow
-                                  key={story.id}
-                                  hover={!!onEditStory}
-                                  sx={{
-                                    cursor: onEditStory ? "pointer" : "default",
-                                    "&:hover": onEditStory
-                                      ? {
-                                          backgroundColor: theme.palette.action.hover,
-                                        }
-                                      : {},
-                                  }}
-                                  onClick={() => onEditStory && handleStoryClick(story.issue)}
-                                >
+                                <TableRow key={story.id} hover={!!onEditStory}>
                                   <TableCell component="th" scope="row">
-                                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                                      {story.name}
-                                      {onEditStory && (
-                                        <Tooltip title="Edit Story">
-                                          <IconButton size="small" sx={{ ml: 1 }}>
-                                            <EditIcon fontSize="small" />
-                                          </IconButton>
-                                        </Tooltip>
-                                      )}
-                                    </Box>
+                                    {onEditStory ? (
+                                      <Link
+                                        component="button"
+                                        sx={{ textAlign: "left", textDecoration: "none" }}
+                                        variant="body2"
+                                        onClick={e => handleStoryClick(e, story.issue)}
+                                      >
+                                        {story.name}
+                                      </Link>
+                                    ) : (
+                                      <Typography variant="body2">{story.name}</Typography>
+                                    )}
                                   </TableCell>
                                   <TableCell align="right">
                                     {formatNumber(story.storyPoints)}
@@ -594,7 +576,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
           Estimation Configuration
         </Typography>
         <Grid container spacing={3}>
-          <Grid item md={6} xs={12}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2 }}>
               <Typography gutterBottom variant="subtitle1">
                 Effort Calculation
@@ -609,7 +591,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
               </Box>
             </Paper>
           </Grid>
-          <Grid item md={6} xs={12}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2 }}>
               <Typography gutterBottom variant="subtitle1">
                 Timeline & Cost Calculation

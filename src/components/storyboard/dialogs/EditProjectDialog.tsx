@@ -1,0 +1,247 @@
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Alert,
+  CircularProgress,
+  Divider,
+  Typography,
+  InputAdornment,
+  FormHelperText,
+} from "@mui/material";
+import { Project } from "@/lib/firebase/models/types";
+import { updateProject } from "@/lib/firebase/firestore";
+
+interface EditProjectDialogProps {
+  open: boolean;
+  project: Project;
+  onClose: () => void;
+  onProjectUpdated: (updatedProject: Project) => void;
+}
+
+export const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
+  open,
+  project,
+  onClose,
+  onProjectUpdated,
+}) => {
+  const [editProjectName, setEditProjectName] = useState(project?.name || "");
+  const [editProjectDescription, setEditProjectDescription] = useState(project?.description || "");
+  const [storyPointToHours, setStoryPointToHours] = useState<number | string>(
+    project?.storyPointToHours || ""
+  );
+  const [overheadPercentage, setOverheadPercentage] = useState<number | string>(
+    project?.overheadPercentage || ""
+  );
+  const [dailyBurnRate, setDailyBurnRate] = useState<number | string>(project?.dailyBurnRate || "");
+  const [blendedHourlyRate, setBlendedHourlyRate] = useState<number | string>(
+    project?.blendedHourlyRate || ""
+  );
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
+  // Reset form when project changes
+  useEffect(() => {
+    if (project) {
+      setEditProjectName(project.name);
+      setEditProjectDescription(project.description || "");
+      setStoryPointToHours(project.storyPointToHours || "");
+      setOverheadPercentage(project.overheadPercentage || "");
+      setDailyBurnRate(project.dailyBurnRate || "");
+      setBlendedHourlyRate(project.blendedHourlyRate || "");
+    }
+  }, [project]);
+
+  // Helper function to validate numeric input
+  const handleNumericInput = (
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<number | string>>
+  ) => {
+    // Allow empty string or valid numbers
+    if (value === "" || !isNaN(Number(value))) {
+      setter(value);
+    }
+  };
+
+  // Handle project update
+  const handleUpdateProject = async () => {
+    if (!editProjectName.trim()) {
+      setUpdateError("Project name is required");
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      setUpdateError(null);
+
+      // Parse numeric values
+      const storyPointsValue = storyPointToHours === "" ? undefined : Number(storyPointToHours);
+      const overheadValue = overheadPercentage === "" ? undefined : Number(overheadPercentage);
+      const burnRateValue = dailyBurnRate === "" ? undefined : Number(dailyBurnRate);
+      const hourlyRateValue = blendedHourlyRate === "" ? undefined : Number(blendedHourlyRate);
+
+      const updatedData = {
+        name: editProjectName,
+        description: editProjectDescription.trim() ? editProjectDescription : "",
+        storyPointToHours: storyPointsValue,
+        overheadPercentage: overheadValue,
+        dailyBurnRate: burnRateValue,
+        blendedHourlyRate: hourlyRateValue,
+      };
+
+      await updateProject(project.id, updatedData);
+
+      // Create updated project object
+      const updatedProject = {
+        ...project,
+        ...updatedData,
+      };
+
+      // Notify parent component
+      onProjectUpdated(updatedProject);
+      onClose();
+    } catch (err) {
+      console.error("Error updating project:", err);
+      setUpdateError((err as Error).message || "Failed to update project");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+      <DialogTitle>Edit Project</DialogTitle>
+      <DialogContent>
+        {updateError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {updateError}
+          </Alert>
+        )}
+        <TextField
+          autoFocus
+          fullWidth
+          disabled={updating}
+          id="projectName"
+          label="Project Name"
+          margin="dense"
+          sx={{ mb: 2 }}
+          type="text"
+          value={editProjectName}
+          variant="outlined"
+          onChange={e => setEditProjectName(e.target.value)}
+        />
+        <TextField
+          fullWidth
+          multiline
+          disabled={updating}
+          id="projectDescription"
+          label="Description (optional)"
+          margin="dense"
+          rows={4}
+          sx={{ mb: 3 }}
+          type="text"
+          value={editProjectDescription}
+          variant="outlined"
+          onChange={e => setEditProjectDescription(e.target.value)}
+        />
+
+        {/* Estimation Configuration Section */}
+        <Divider sx={{ my: 2 }} />
+        <Typography sx={{ mb: 2 }} variant="h6">
+          Estimation Configuration
+        </Typography>
+
+        <TextField
+          fullWidth
+          disabled={updating}
+          id="storyPointToHours"
+          InputProps={{
+            endAdornment: <InputAdornment position="end">hours/point</InputAdornment>,
+          }}
+          label="Story Point to Hours Conversion"
+          margin="dense"
+          sx={{ mb: 2 }}
+          type="text"
+          value={storyPointToHours}
+          variant="outlined"
+          onChange={e => handleNumericInput(e.target.value, setStoryPointToHours)}
+        />
+        <FormHelperText sx={{ mt: -1, mb: 2 }}>
+          Enter the number of hours equivalent to 1 story point (e.g., 8)
+        </FormHelperText>
+
+        <TextField
+          fullWidth
+          disabled={updating}
+          id="overheadPercentage"
+          InputProps={{
+            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+          }}
+          label="Overhead Percentage"
+          margin="dense"
+          sx={{ mb: 2 }}
+          type="text"
+          value={overheadPercentage}
+          variant="outlined"
+          onChange={e => handleNumericInput(e.target.value, setOverheadPercentage)}
+        />
+        <FormHelperText sx={{ mt: -1, mb: 2 }}>
+          Enter the percentage to add for QA/Project Management overhead (e.g., 25)
+        </FormHelperText>
+
+        <TextField
+          fullWidth
+          disabled={updating}
+          id="dailyBurnRate"
+          InputProps={{
+            endAdornment: <InputAdornment position="end">hours/day</InputAdornment>,
+          }}
+          label="Daily Burn Rate"
+          margin="dense"
+          type="text"
+          value={dailyBurnRate}
+          variant="outlined"
+          onChange={e => handleNumericInput(e.target.value, setDailyBurnRate)}
+        />
+        <FormHelperText sx={{ mt: -1, mb: 2 }}>
+          Enter the number of hours the team can complete per day (e.g., 16 for two developers)
+        </FormHelperText>
+
+        <TextField
+          fullWidth
+          disabled={updating}
+          id="blendedHourlyRate"
+          InputProps={{
+            endAdornment: <InputAdornment position="end">$/hour</InputAdornment>,
+          }}
+          label="Blended Hourly Rate"
+          margin="dense"
+          type="text"
+          value={blendedHourlyRate}
+          variant="outlined"
+          onChange={e => handleNumericInput(e.target.value, setBlendedHourlyRate)}
+        />
+        <FormHelperText sx={{ mt: -1, mb: 2 }}>
+          Enter the average hourly rate for cost calculations (e.g., 100 for $100/hour)
+        </FormHelperText>
+      </DialogContent>
+      <DialogActions>
+        <Button disabled={updating} onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          disabled={updating}
+          startIcon={updating ? <CircularProgress size={20} /> : null}
+          variant="contained"
+          onClick={handleUpdateProject}
+        >
+          {updating ? "Updating..." : "Update Project"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};

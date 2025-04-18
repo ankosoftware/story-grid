@@ -11,19 +11,16 @@ import {
   Breadcrumbs,
   Link as MuiLink,
   Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   Snackbar,
 } from "@mui/material";
 import Link from "next/link";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import EditIcon from "@mui/icons-material/Edit";
 import { getProjectById, updateIssue } from "@/lib/firebase/firestore";
 import { Project, Issue, IssueType } from "@/lib/firebase/models/types";
 import { useStoryBoard } from "@/lib/hooks/useStoryBoard";
 import EstimationPanel from "@/components/storyboard/EstimationPanel";
+import { EditItemDialog, EditProjectDialog } from "@/components/storyboard/dialogs";
 import { useTenant } from "@/lib/context/TenantContext";
 
 export default function ProjectEstimationPage() {
@@ -38,9 +35,7 @@ export default function ProjectEstimationPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Issue | null>(null);
   const [editingItemType, setEditingItemType] = useState<"epic" | "story" | null>(null);
-  const [editItemName, setEditItemName] = useState("");
-  const [editItemDescription, setEditItemDescription] = useState("");
-  const [editItemStoryPoints, setEditItemStoryPoints] = useState<number | string>("");
+  const [editProjectDialogOpen, setEditProjectDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -88,13 +83,22 @@ export default function ProjectEstimationPage() {
     router.push(`/${tenantId}/projects/${projectId}`);
   };
 
+  // Handle opening the edit project dialog
+  const handleEditProject = useCallback(() => {
+    setEditProjectDialogOpen(true);
+  }, []);
+
+  // Handle project update
+  const handleProjectUpdated = useCallback((updatedProject: Project) => {
+    setProject(updatedProject);
+    setSnackbarMessage("Project updated successfully");
+    setSnackbarOpen(true);
+  }, []);
+
   // Handle opening the edit dialog for an epic
   const handleEditEpic = useCallback((epic: Issue) => {
     setEditingItem(epic);
     setEditingItemType("epic");
-    setEditItemName(epic.name);
-    setEditItemDescription(epic.description || "");
-    setEditItemStoryPoints("");
     setEditDialogOpen(true);
   }, []);
 
@@ -102,9 +106,6 @@ export default function ProjectEstimationPage() {
   const handleEditStory = useCallback((story: Issue) => {
     setEditingItem(story);
     setEditingItemType("story");
-    setEditItemName(story.name);
-    setEditItemDescription(story.description || "");
-    setEditItemStoryPoints(story.storyPoints || "");
     setEditDialogOpen(true);
   }, []);
 
@@ -116,60 +117,32 @@ export default function ProjectEstimationPage() {
   }, []);
 
   // Handle updating the item
-  const handleUpdateItem = useCallback(async () => {
-    if (!editingItem || !editingItemType) {
-      return;
-    }
+  const handleUpdateItem = useCallback(
+    async (item: Issue, updatedData: Partial<Issue>) => {
+      try {
+        setIsUpdating(true);
 
-    try {
-      setIsUpdating(true);
+        // Call the Firestore update function
+        await updateIssue(item.id, updatedData);
 
-      // Prepare the update data
-      const updateData: Partial<Issue> = {
-        name: editItemName.trim(),
-      };
+        // Show success message
+        setSnackbarMessage(
+          `${item.type === IssueType.EPIC ? "Epic" : "Story"} updated successfully`
+        );
+        setSnackbarOpen(true);
 
-      if (editItemDescription.trim()) {
-        updateData.description = editItemDescription.trim();
+        // Close the dialog
+        handleCloseEditDialog();
+      } catch (error) {
+        console.error("Error updating item:", error);
+        setSnackbarMessage(`Error updating ${item.type}: ${(error as Error).message}`);
+        setSnackbarOpen(true);
+      } finally {
+        setIsUpdating(false);
       }
-
-      // Add story points for stories
-      if (editingItemType === "story" && editItemStoryPoints !== "") {
-        updateData.storyPoints = Number(editItemStoryPoints);
-      }
-
-      // Call the Firestore update function
-      await updateIssue(editingItem.id, updateData);
-
-      // Show success message
-      setSnackbarMessage(`${editingItemType === "epic" ? "Epic" : "Story"} updated successfully`);
-      setSnackbarOpen(true);
-
-      // Close the dialog
-      handleCloseEditDialog();
-    } catch (error) {
-      console.error("Error updating item:", error);
-      setSnackbarMessage(`Error updating ${editingItemType}: ${(error as Error).message}`);
-      setSnackbarOpen(true);
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [
-    editingItem,
-    editingItemType,
-    editItemName,
-    editItemDescription,
-    editItemStoryPoints,
-    handleCloseEditDialog,
-  ]);
-
-  // Handle numeric input validation for story points
-  const handleNumericInput = (value: string) => {
-    // Allow empty string or valid numbers
-    if (value === "" || !isNaN(Number(value))) {
-      setEditItemStoryPoints(value);
-    }
-  };
+    },
+    [handleCloseEditDialog]
+  );
 
   if (loading) {
     return (
@@ -221,14 +194,14 @@ export default function ProjectEstimationPage() {
             Timeline, effort, and cost estimations based on story points and configuration
           </Typography>
         </Box>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          sx={{ ml: 2 }}
-          variant="outlined"
-          onClick={handleBackToProject}
-        >
-          Back to Project
-        </Button>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button startIcon={<EditIcon />} variant="outlined" onClick={handleEditProject}>
+            Edit Project
+          </Button>
+          <Button startIcon={<ArrowBackIcon />} variant="outlined" onClick={handleBackToProject}>
+            Back to Project
+          </Button>
+        </Box>
       </Box>
 
       {/* Estimation content */}
@@ -250,58 +223,25 @@ export default function ProjectEstimationPage() {
         />
       </Paper>
 
-      {/* Edit Dialog */}
-      <Dialog fullWidth maxWidth="sm" open={editDialogOpen} onClose={handleCloseEditDialog}>
-        <DialogTitle>{editingItemType === "epic" ? "Edit Epic" : "Edit Story"}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            required
-            id="itemName"
-            label={editingItemType === "epic" ? "Epic Name" : "Story Name"}
-            margin="dense"
-            value={editItemName}
-            variant="outlined"
-            onChange={e => setEditItemName(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            multiline
-            id="itemDescription"
-            label="Description"
-            margin="dense"
-            rows={3}
-            value={editItemDescription}
-            variant="outlined"
-            onChange={e => setEditItemDescription(e.target.value)}
-          />
-          {editingItemType === "story" && (
-            <TextField
-              fullWidth
-              id="storyPoints"
-              label="Story Points"
-              margin="dense"
-              type="text"
-              value={editItemStoryPoints}
-              variant="outlined"
-              onChange={e => handleNumericInput(e.target.value)}
-            />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={isUpdating} onClick={handleCloseEditDialog}>
-            Cancel
-          </Button>
-          <Button
-            disabled={isUpdating || !editItemName.trim()}
-            variant="contained"
-            onClick={handleUpdateItem}
-          >
-            {isUpdating ? "Updating..." : "Update"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Edit Item Dialog */}
+      <EditItemDialog
+        item={editingItem}
+        itemType={editingItemType}
+        open={editDialogOpen}
+        releases={releases}
+        onClose={handleCloseEditDialog}
+        onUpdateItem={handleUpdateItem}
+      />
+
+      {/* Edit Project Dialog */}
+      {project && (
+        <EditProjectDialog
+          open={editProjectDialogOpen}
+          project={project}
+          onClose={() => setEditProjectDialogOpen(false)}
+          onProjectUpdated={handleProjectUpdated}
+        />
+      )}
 
       {/* Snackbar for notifications */}
       <Snackbar

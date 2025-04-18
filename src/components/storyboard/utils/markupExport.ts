@@ -74,6 +74,16 @@ export const generateStoryboardMarkup = (
     return total;
   };
 
+  // Check if a release has any stories assigned to it
+  const releaseHasStories = (releaseId: string): boolean => {
+    for (const epicId in issues) {
+      if (issues[epicId].some(story => story.releaseId === releaseId)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   // Calculate story points for an epic in a specific release (or all releases if releaseId is null)
   const calculateEpicStoryPoints = (epicId: string, releaseId: string | null = null): number => {
     if (!issues[epicId]) {
@@ -105,6 +115,11 @@ export const generateStoryboardMarkup = (
   markupContent += `# Releases Summary\n\n`;
 
   releases.forEach(release => {
+    // Skip releases with no stories
+    if (!releaseHasStories(release.id)) {
+      return;
+    }
+
     const totalPoints = calculateReleaseStoryPoints(release.id);
     const anchor = release.name.toLowerCase().replace(/\s+/g, "-");
 
@@ -159,6 +174,11 @@ export const generateStoryboardMarkup = (
 
   // Process each release
   releases.forEach(release => {
+    // Skip releases with no stories
+    if (!releaseHasStories(release.id)) {
+      return;
+    }
+
     const anchor = release.name.toLowerCase().replace(/\s+/g, "-");
     markupContent += `<a id="${anchor}-activities"></a>\n`;
     markupContent += `## ${release.name} Activities\n\n`;

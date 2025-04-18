@@ -74,7 +74,9 @@ export const MemoizedStoryCard = memo(
                 textOverflow: "ellipsis",
                 fontSize: "0.75rem",
                 lineHeight: 1.2,
+                width: "70px",
                 maxWidth: "70px",
+                height: "40px",
               }}
               variant="body2"
             >

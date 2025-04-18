@@ -5,7 +5,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Button,
   Dialog,
   DialogTitle,
@@ -15,8 +14,13 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
+  FormControlLabel,
+  Checkbox,
+  LinearProgress,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import AddIcon from "@mui/icons-material/Add";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/lib/context/TenantContext";
 import { useProjects } from "@/lib/hooks/useProjects";
@@ -24,7 +28,7 @@ import { useProjects } from "@/lib/hooks/useProjects";
 export default function ProjectsPage() {
   const { tenant } = useTenant();
   const router = useRouter();
-  const { projects, loading, error, createNewProject } = useProjects();
+  const { projects, loading, error, createNewProject, cloneProject } = useProjects();
 
   // Dialog state
   const [open, setOpen] = useState(false);
@@ -33,6 +37,16 @@ export default function ProjectsPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("Project created successfully!");
+
+  // Clone dialog state
+  const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
+  const [cloneProjectId, setCloneProjectId] = useState<string | null>(null);
+  const [cloneProjectName, setCloneProjectName] = useState("");
+  const [includeComments, setIncludeComments] = useState(false);
+  const [cloning, setCloning] = useState(false);
+  const [cloneError, setCloneError] = useState<string | null>(null);
+  const [cloneProgress, setCloneProgress] = useState(0);
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -43,6 +57,21 @@ export default function ProjectsPage() {
     setProjectName("");
     setProjectDescription("");
     setCreateError(null);
+  };
+
+  const handleCloneDialogOpen = (projectId: string, projectName: string) => {
+    setCloneProjectId(projectId);
+    setCloneProjectName(`Copy of ${projectName}`);
+    setIncludeComments(false);
+    setCloneDialogOpen(true);
+  };
+
+  const handleCloneDialogClose = () => {
+    setCloneDialogOpen(false);
+    setCloneProjectId(null);
+    setCloneProjectName("");
+    setCloneError(null);
+    setCloneProgress(0);
   };
 
   const handleCreateProject = async () => {
@@ -62,6 +91,7 @@ export default function ProjectsPage() {
         null
       );
 
+      setSuccessMessage("Project created successfully!");
       setShowSuccess(true);
       handleClose();
 
@@ -73,6 +103,48 @@ export default function ProjectsPage() {
       setCreateError((err as Error).message || "Failed to create project");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleCloneProject = async () => {
+    if (!cloneProjectName.trim()) {
+      setCloneError("Project name is required");
+      return;
+    }
+
+    if (!cloneProjectId) {
+      setCloneError("No project selected for cloning");
+      return;
+    }
+
+    try {
+      setCloning(true);
+      setCloneError(null);
+      setCloneProgress(0);
+
+      // Report progress from the cloning operation
+      const onProgress = (progress: number) => {
+        setCloneProgress(progress);
+      };
+
+      const newProjectId = await cloneProject(
+        cloneProjectId,
+        cloneProjectName,
+        includeComments,
+        onProgress
+      );
+
+      handleCloneDialogClose();
+      setSuccessMessage("Project cloned successfully!");
+      setShowSuccess(true);
+
+      // Navigate to the new project's storyboard after a brief delay
+      setTimeout(() => {
+        router.push(`/${tenant?.id}/projects/${newProjectId}`);
+      }, 1000);
+    } catch (err) {
+      setCloneError((err as Error).message || "Failed to clone project");
+      setCloning(false);
     }
   };
 
@@ -136,6 +208,61 @@ export default function ProjectsPage() {
         </DialogActions>
       </Dialog>
 
+      {/* Project clone dialog */}
+      <Dialog fullWidth maxWidth="sm" open={cloneDialogOpen} onClose={handleCloneDialogClose}>
+        <DialogTitle>Clone Project</DialogTitle>
+        <DialogContent>
+          {cloneError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {cloneError}
+            </Alert>
+          )}
+          <TextField
+            autoFocus
+            fullWidth
+            id="cloneName"
+            label="New Project Name"
+            margin="dense"
+            sx={{ mb: 2 }}
+            type="text"
+            value={cloneProjectName}
+            variant="outlined"
+            onChange={e => setCloneProjectName(e.target.value)}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={includeComments}
+                name="includeComments"
+                onChange={e => setIncludeComments(e.target.checked)}
+              />
+            }
+            label="Include comments"
+          />
+          {cloning && (
+            <Box sx={{ width: "100%", mt: 2 }}>
+              <Typography color="text.secondary" sx={{ mb: 1 }} variant="body2">
+                Cloning progress: {Math.round(cloneProgress)}%
+              </Typography>
+              <LinearProgress value={cloneProgress} variant="determinate" />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={cloning} onClick={handleCloneDialogClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={cloning}
+            startIcon={cloning ? <CircularProgress size={20} /> : null}
+            variant="contained"
+            onClick={handleCloneProject}
+          >
+            {cloning ? "Cloning..." : "Clone Project"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Projects grid */}
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -170,9 +297,7 @@ export default function ProjectsPage() {
                   "&:hover": {
                     boxShadow: 6,
                   },
-                  cursor: "pointer",
                 }}
-                onClick={() => router.push(`/${tenant?.id}/projects/${project.id}`)}
               >
                 <Typography gutterBottom component="h2" variant="h6">
                   {project.name}
@@ -180,8 +305,23 @@ export default function ProjectsPage() {
                 <Typography color="text.secondary" sx={{ mb: 2 }} variant="body2">
                   {project.description}
                 </Typography>
-                <Box sx={{ mt: "auto", display: "flex", justifyContent: "flex-end" }}>
-                  <Button size="small">Open Project</Button>
+                <Box sx={{ mt: "auto", display: "flex", justifyContent: "space-between" }}>
+                  <Button
+                    size="small"
+                    startIcon={<ContentCopyIcon />}
+                    onClick={e => {
+                      e.stopPropagation(); // Prevent opening the project
+                      handleCloneDialogOpen(project.id, project.name);
+                    }}
+                  >
+                    Clone
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={() => router.push(`/${tenant?.id}/projects/${project.id}`)}
+                  >
+                    Open Project
+                  </Button>
                 </Box>
               </Paper>
             </Grid>
@@ -197,7 +337,7 @@ export default function ProjectsPage() {
         onClose={() => setShowSuccess(false)}
       >
         <Alert severity="success" onClose={() => setShowSuccess(false)}>
-          Project created successfully!
+          {successMessage}
         </Alert>
       </Snackbar>
     </Box>

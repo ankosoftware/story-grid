@@ -17,6 +17,9 @@ import {
   DialogActions,
   TextField,
   Snackbar,
+  Divider,
+  InputAdornment,
+  FormHelperText,
 } from "@mui/material";
 import Link from "next/link";
 import EditIcon from "@mui/icons-material/Edit";
@@ -38,6 +41,9 @@ export default function ProjectView() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editProjectName, setEditProjectName] = useState("");
   const [editProjectDescription, setEditProjectDescription] = useState("");
+  const [storyPointToHours, setStoryPointToHours] = useState<number | string>("");
+  const [overheadPercentage, setOverheadPercentage] = useState<number | string>("");
+  const [dailyBurnRate, setDailyBurnRate] = useState<number | string>("");
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
@@ -91,6 +97,9 @@ export default function ProjectView() {
     if (project) {
       setEditProjectName(project.name);
       setEditProjectDescription(project.description || "");
+      setStoryPointToHours(project.storyPointToHours || "");
+      setOverheadPercentage(project.overheadPercentage || "");
+      setDailyBurnRate(project.dailyBurnRate || "");
       setUpdateError(null);
       setEditDialogOpen(true);
     }
@@ -112,9 +121,17 @@ export default function ProjectView() {
       setUpdating(true);
       setUpdateError(null);
 
+      // Parse numeric values
+      const storyPointsValue = storyPointToHours === "" ? undefined : Number(storyPointToHours);
+      const overheadValue = overheadPercentage === "" ? undefined : Number(overheadPercentage);
+      const burnRateValue = dailyBurnRate === "" ? undefined : Number(dailyBurnRate);
+
       await updateProject(projectId, {
         name: editProjectName,
         description: editProjectDescription.trim() ? editProjectDescription : "",
+        storyPointToHours: storyPointsValue,
+        overheadPercentage: overheadValue,
+        dailyBurnRate: burnRateValue,
       });
 
       // Update local project state
@@ -126,6 +143,9 @@ export default function ProjectView() {
           ...prevProject,
           name: editProjectName,
           description: editProjectDescription.trim() ? editProjectDescription : "",
+          storyPointToHours: storyPointsValue,
+          overheadPercentage: overheadValue,
+          dailyBurnRate: burnRateValue,
         };
       });
 
@@ -142,6 +162,17 @@ export default function ProjectView() {
   // Close success snackbar
   const handleCloseSuccessSnackbar = () => {
     setShowUpdateSuccess(false);
+  };
+
+  // Helper function to validate numeric input
+  const handleNumericInput = (
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<number | string>>
+  ) => {
+    // Allow empty string or valid numbers
+    if (value === "" || !isNaN(Number(value))) {
+      setter(value);
+    }
   };
 
   if (loading) {
@@ -249,11 +280,74 @@ export default function ProjectView() {
             label="Description (optional)"
             margin="dense"
             rows={4}
+            sx={{ mb: 3 }}
             type="text"
             value={editProjectDescription}
             variant="outlined"
             onChange={e => setEditProjectDescription(e.target.value)}
           />
+
+          {/* Estimation Configuration Section */}
+          <Divider sx={{ my: 2 }} />
+          <Typography sx={{ mb: 2 }} variant="h6">
+            Estimation Configuration
+          </Typography>
+
+          <TextField
+            fullWidth
+            disabled={updating}
+            id="storyPointToHours"
+            InputProps={{
+              endAdornment: <InputAdornment position="end">hours/point</InputAdornment>,
+            }}
+            label="Story Point to Hours Conversion"
+            margin="dense"
+            sx={{ mb: 2 }}
+            type="text"
+            value={storyPointToHours}
+            variant="outlined"
+            onChange={e => handleNumericInput(e.target.value, setStoryPointToHours)}
+          />
+          <FormHelperText sx={{ mt: -1, mb: 2 }}>
+            Enter the number of hours equivalent to 1 story point (e.g., 8)
+          </FormHelperText>
+
+          <TextField
+            fullWidth
+            disabled={updating}
+            id="overheadPercentage"
+            InputProps={{
+              endAdornment: <InputAdornment position="end">%</InputAdornment>,
+            }}
+            label="Overhead Percentage"
+            margin="dense"
+            sx={{ mb: 2 }}
+            type="text"
+            value={overheadPercentage}
+            variant="outlined"
+            onChange={e => handleNumericInput(e.target.value, setOverheadPercentage)}
+          />
+          <FormHelperText sx={{ mt: -1, mb: 2 }}>
+            Enter the percentage to add for QA/Project Management overhead (e.g., 25)
+          </FormHelperText>
+
+          <TextField
+            fullWidth
+            disabled={updating}
+            id="dailyBurnRate"
+            InputProps={{
+              endAdornment: <InputAdornment position="end">hours/day</InputAdornment>,
+            }}
+            label="Daily Burn Rate"
+            margin="dense"
+            type="text"
+            value={dailyBurnRate}
+            variant="outlined"
+            onChange={e => handleNumericInput(e.target.value, setDailyBurnRate)}
+          />
+          <FormHelperText sx={{ mt: -1, mb: 2 }}>
+            Enter the number of hours the team can complete per day (e.g., 16 for two developers)
+          </FormHelperText>
         </DialogContent>
         <DialogActions>
           <Button disabled={updating} onClick={handleCloseEditDialog}>

@@ -92,7 +92,6 @@ export interface Project {
   storyPointToHours?: number; // Hours per story point (e.g., 8 hours per point)
   overheadPercentage?: number; // Overhead percentage for QA/PM (e.g., 25%)
   dailyBurnRate?: number; // Hours per day the team can burn through (e.g., 16 hours)
-  estimatedStartDate?: Timestamp | null; // Estimated project start date for planning
 }
 
 // Status enum for issues

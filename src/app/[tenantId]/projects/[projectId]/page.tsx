@@ -21,8 +21,6 @@ import {
   InputAdornment,
   FormHelperText,
 } from "@mui/material";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import Link from "next/link";
 import EditIcon from "@mui/icons-material/Edit";
 import { getProjectById, updateProject } from "@/lib/firebase/firestore";
@@ -30,7 +28,6 @@ import { Project } from "@/lib/firebase/models/types";
 import { useStoryBoard } from "@/lib/hooks/useStoryBoard";
 import StoryBoard from "@/components/storyboard/StoryBoard";
 import { useTenant } from "@/lib/context/TenantContext";
-import { Timestamp } from "firebase/firestore";
 
 export default function ProjectView() {
   const { projectId, tenantId } = useParams() as { projectId: string; tenantId: string };
@@ -47,7 +44,6 @@ export default function ProjectView() {
   const [storyPointToHours, setStoryPointToHours] = useState<number | string>("");
   const [overheadPercentage, setOverheadPercentage] = useState<number | string>("");
   const [dailyBurnRate, setDailyBurnRate] = useState<number | string>("");
-  const [estimatedStartDate, setEstimatedStartDate] = useState<Date | null>(null);
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
@@ -104,9 +100,6 @@ export default function ProjectView() {
       setStoryPointToHours(project.storyPointToHours || "");
       setOverheadPercentage(project.overheadPercentage || "");
       setDailyBurnRate(project.dailyBurnRate || "");
-      setEstimatedStartDate(
-        project.estimatedStartDate ? project.estimatedStartDate.toDate() : null
-      );
       setUpdateError(null);
       setEditDialogOpen(true);
     }
@@ -132,10 +125,6 @@ export default function ProjectView() {
       const storyPointsValue = storyPointToHours === "" ? undefined : Number(storyPointToHours);
       const overheadValue = overheadPercentage === "" ? undefined : Number(overheadPercentage);
       const burnRateValue = dailyBurnRate === "" ? undefined : Number(dailyBurnRate);
-      // Convert Date to Timestamp
-      const estimatedStartTimestamp = estimatedStartDate
-        ? Timestamp.fromDate(estimatedStartDate)
-        : null;
 
       await updateProject(projectId, {
         name: editProjectName,
@@ -143,7 +132,6 @@ export default function ProjectView() {
         storyPointToHours: storyPointsValue,
         overheadPercentage: overheadValue,
         dailyBurnRate: burnRateValue,
-        estimatedStartDate: estimatedStartTimestamp,
       });
 
       // Update local project state
@@ -158,7 +146,6 @@ export default function ProjectView() {
           storyPointToHours: storyPointsValue,
           overheadPercentage: overheadValue,
           dailyBurnRate: burnRateValue,
-          estimatedStartDate: estimatedStartTimestamp,
         };
       });
 
@@ -305,26 +292,6 @@ export default function ProjectView() {
           <Typography sx={{ mb: 2 }} variant="h6">
             Estimation Configuration
           </Typography>
-
-          {/* Estimated Start Date */}
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker
-              label="Estimated Start Date"
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  margin: "dense",
-                  disabled: updating,
-                  sx: { mb: 2 },
-                },
-              }}
-              value={estimatedStartDate}
-              onChange={(newDate: Date | null) => setEstimatedStartDate(newDate)}
-            />
-          </LocalizationProvider>
-          <FormHelperText sx={{ mt: -1, mb: 2 }}>
-            The planned start date for the project
-          </FormHelperText>
 
           <TextField
             fullWidth

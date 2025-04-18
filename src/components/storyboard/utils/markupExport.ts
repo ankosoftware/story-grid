@@ -131,13 +131,13 @@ export const generateStoryboardMarkup = (
     if (release.startDate || release.endDate) {
       markupContent += `**Timeline:** `;
       if (release.startDate) {
-        markupContent += `Start: ${new Date(release.startDate).toLocaleDateString()}`;
+        markupContent += `Start: ${release.startDate.toDate().toLocaleDateString()}`;
       }
       if (release.startDate && release.endDate) {
         markupContent += ` | `;
       }
       if (release.endDate) {
-        markupContent += `End: ${new Date(release.endDate).toLocaleDateString()}`;
+        markupContent += `End: ${release.endDate.toDate().toLocaleDateString()}`;
       }
       markupContent += `\n\n`;
     }

@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
+import { Markdown } from "tiptap-markdown";
+import TurndownService from "turndown";
 import "@/styles/RichTextEditor.css";
 import {
   Box,
@@ -37,6 +39,19 @@ export interface RichTextEditorProps {
   projectId?: string; // Optional project ID for scoping uploads
 }
 
+// Simple HTML tag detection regex
+const hasHtmlTagsRegex = /<[a-z][\s\S]*>/i;
+
+/**
+ * Rich Text Editor Component that supports both HTML and Markdown
+ *
+ * Key features:
+ * - Accepts both HTML and Markdown input
+ * - Automatically converts HTML input to Markdown
+ * - Always outputs content as Markdown
+ * - Provides rich text editing UI (bold, italic, lists, etc.)
+ * - Supports image uploads (with Firebase Storage integration)
+ */
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
@@ -51,6 +66,49 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { tenant } = useTenant();
 
+  // Initialize Turndown service for HTML to Markdown conversion
+  const turndownService = useMemo(() => {
+    const service = new TurndownService({
+      headingStyle: "atx",
+      codeBlockStyle: "fenced",
+      emDelimiter: "*",
+      bulletListMarker: "-",
+    });
+
+    // Configure image rule to properly handle images
+    service.addRule("images", {
+      filter: "img",
+      replacement: function (content, node) {
+        const img = node as HTMLImageElement;
+        return `![${img.alt || ""}](${img.src}${img.title ? ` "${img.title}"` : ""})`;
+      },
+    });
+
+    return service;
+  }, []);
+
+  // Process the initial content - convert HTML to Markdown if needed
+  const processInitialContent = useCallback(
+    (content: string): string => {
+      if (!content) {
+        return "";
+      }
+
+      // Check if content is HTML and convert if needed
+      if (hasHtmlTagsRegex.test(content)) {
+        try {
+          return turndownService.turndown(content);
+        } catch (error) {
+          console.error("Error converting HTML to Markdown:", error);
+          return content; // Return original content if conversion fails
+        }
+      }
+
+      return content; // Return as-is if not HTML
+    },
+    [turndownService]
+  );
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -58,11 +116,19 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         inline: true,
         allowBase64: true,
       }),
+      Markdown.configure({
+        html: false,
+        tightLists: true,
+        bulletListMarker: "-",
+        linkify: true,
+      }),
     ],
-    content: value || "",
+    content: processInitialContent(value) || "",
     editable: !disabled,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      // Get markdown output
+      const markdown = editor.storage.markdown.getMarkdown();
+      onChange(markdown);
     },
     editorProps: {
       attributes: {
@@ -74,10 +140,15 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Update the editor content when the value prop changes
   useEffect(() => {
-    if (editor && editor.getHTML() !== value) {
-      editor.commands.setContent(value || "");
+    if (editor) {
+      const processedContent = processInitialContent(value);
+      const currentMarkdown = editor.storage.markdown?.getMarkdown() || "";
+
+      if (processedContent !== currentMarkdown) {
+        editor.commands.setContent(processedContent || "");
+      }
     }
-  }, [editor, value]);
+  }, [editor, value, processInitialContent]);
 
   // Handle file input change
   const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

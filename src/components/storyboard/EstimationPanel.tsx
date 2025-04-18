@@ -123,6 +123,9 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
       };
     }
 
+    // Sort activities by displayOrder
+    const sortedActivities = [...activities].sort((a, b) => a.displayOrder - b.displayOrder);
+
     // Sort and calculate estimations for each story
     const storyEstimations: Record<string, StoryEstimation> = {};
     Object.entries(issues).forEach(([epicId, epicStories]) => {
@@ -151,36 +154,50 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
       });
     });
 
-    // Sort and calculate estimations for each epic
+    // Sort and calculate estimations for each epic, respecting activity order
     const epicEstimations: Record<string, EpicEstimation> = {};
-    Object.entries(epics).forEach(([activityId, activityEpics]) => {
-      // Sort epics by displayOrder to maintain consistent ordering across the application
+
+    // First, collect all epics and associate them with their parent activity for proper sorting
+    const allSortedEpics: { epic: Issue; activityOrder: number }[] = [];
+
+    sortedActivities.forEach((activity, activityIndex) => {
+      const activityEpics = epics[activity.id] || [];
+      // Sort epics within each activity by their display order
       const sortedEpics = [...activityEpics].sort((a, b) => a.displayOrder - b.displayOrder);
 
+      // Add activity index for global sort
       sortedEpics.forEach(epic => {
-        const epicStories = issues[epic.id] || [];
-        // Sort stories within each epic by displayOrder
-        const sortedEpicStories = [...epicStories].sort((a, b) => a.displayOrder - b.displayOrder);
-
-        const epicStoriesEstimations = sortedEpicStories
-          .map(story => storyEstimations[story.id])
-          .filter(Boolean);
-
-        const storyPoints = epicStoriesEstimations.reduce(
-          (sum, story) => sum + (story?.storyPoints || 0),
-          0
-        );
-        const hours = epicStoriesEstimations.reduce((sum, story) => sum + (story?.hours || 0), 0);
-
-        epicEstimations[epic.id] = {
-          id: epic.id,
-          name: epic.name,
-          storyPoints,
-          hours,
-          stories: epicStoriesEstimations,
-          issue: epic,
-        };
+        allSortedEpics.push({
+          epic,
+          activityOrder: activityIndex,
+        });
       });
+    });
+
+    // Process epics in activity + display order
+    allSortedEpics.forEach(({ epic }) => {
+      const epicStories = issues[epic.id] || [];
+      // Sort stories within each epic by displayOrder
+      const sortedEpicStories = [...epicStories].sort((a, b) => a.displayOrder - b.displayOrder);
+
+      const epicStoriesEstimations = sortedEpicStories
+        .map(story => storyEstimations[story.id])
+        .filter(Boolean);
+
+      const storyPoints = epicStoriesEstimations.reduce(
+        (sum, story) => sum + (story?.storyPoints || 0),
+        0
+      );
+      const hours = epicStoriesEstimations.reduce((sum, story) => sum + (story?.hours || 0), 0);
+
+      epicEstimations[epic.id] = {
+        id: epic.id,
+        name: epic.name,
+        storyPoints,
+        hours,
+        stories: epicStoriesEstimations,
+        issue: epic,
+      };
     });
 
     // Sort releases by displayOrder
@@ -253,8 +270,31 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
         }
       });
 
-      // Sort the release epics by their display order for a consistent, logical presentation
-      releaseEpics.sort((a, b) => a.issue.displayOrder - b.issue.displayOrder);
+      // Sort epics by activity order first, then by epic display order within each activity
+      releaseEpics.sort((a, b) => {
+        // Find the corresponding epics in the allSortedEpics array to get activity orders
+        const epicA = allSortedEpics.find(item => item.epic.id === a.issue.id);
+        const epicB = allSortedEpics.find(item => item.epic.id === b.issue.id);
+
+        // If both epics have an activity order, compare them
+        if (epicA && epicB) {
+          // First sort by activity order
+          if (epicA.activityOrder !== epicB.activityOrder) {
+            return epicA.activityOrder - epicB.activityOrder;
+          }
+          // If same activity, sort by epic display order
+          return a.issue.displayOrder - b.issue.displayOrder;
+        } else if (epicA) {
+          // A has activity info but B doesn't, prioritize A
+          return -1;
+        } else if (epicB) {
+          // B has activity info but A doesn't, prioritize B
+          return 1;
+        }
+
+        // Fallback to just epic display order if activity info is missing for both
+        return a.issue.displayOrder - b.issue.displayOrder;
+      });
 
       releaseEstimations.push({
         id: release.id,
@@ -303,6 +343,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
       releaseEstimations,
     };
   }, [
+    activities,
     issues,
     epics,
     releases,

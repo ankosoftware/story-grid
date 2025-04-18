@@ -16,18 +16,30 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import Link from "next/link";
 import ProtectedRoute from "@/lib/auth/ProtectedRoute";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { UserRole } from "@/lib/firebase/models/types";
 import { usePathname } from "next/navigation";
 import AdminGuard from "@/components/auth/AdminGuard";
 
-export default function AdminLayout({
-  children,
-  params,
-}: {
+type AdminLayoutProps = {
   children: React.ReactNode;
-  params: { tenantId: string };
-}) {
-  const { tenantId } = params;
+  params: Promise<{ tenantId: string }>;
+};
+
+export default function AdminLayout({ children, params }: AdminLayoutProps) {
+  const [tenantIdValue, setTenantIdValue] = React.useState<string>("");
+
+  React.useEffect(() => {
+    const resolveParams = async () => {
+      try {
+        const resolvedParams = await params;
+        setTenantIdValue(resolvedParams.tenantId);
+      } catch (error) {
+        console.error("Error resolving params:", error);
+      }
+    };
+
+    resolveParams();
+  }, [params]);
+
   const pathname = usePathname();
   const { userProfile } = useAuth();
 
@@ -37,14 +49,14 @@ export default function AdminLayout({
       text: "Users",
       icon: <PeopleIcon />,
       href: `/[tenantId]/admin/users`,
-      as: `/${tenantId}/admin/users`,
+      as: `/${tenantIdValue}/admin/users`,
       active: pathname?.includes("/admin/users"),
     },
     {
       text: "Settings",
       icon: <SettingsIcon />,
       href: `/[tenantId]/admin/settings`,
-      as: `/${tenantId}/admin/settings`,
+      as: `/${tenantIdValue}/admin/settings`,
       active: pathname?.includes("/admin/settings"),
     },
   ];
@@ -93,3 +105,6 @@ export default function AdminLayout({
     </ProtectedRoute>
   );
 }
+
+// Add displayName to fix the linter warning
+AdminLayout.displayName = "AdminLayout";

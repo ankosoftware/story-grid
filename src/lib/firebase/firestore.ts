@@ -805,7 +805,6 @@ export const updateIssue = async (
   // Add updatedAt timestamp
   const dataWithTimestamp = {
     ...updateData,
-    storyPoints: updateData.storyPoints || null,
     updatedAt: Timestamp.now(),
   };
 

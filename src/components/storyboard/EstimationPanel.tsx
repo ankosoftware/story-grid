@@ -19,11 +19,15 @@ import {
   Grid,
   Card,
   CardContent,
+  IconButton,
+  Tooltip,
+  useTheme,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TodayIcon from "@mui/icons-material/Today";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import EditIcon from "@mui/icons-material/Edit";
 import { Issue, Release, IssueType } from "@/lib/firebase/models/types";
 
 // Interface for component props
@@ -39,6 +43,8 @@ interface EstimationPanelProps {
   blendedHourlyRate?: number;
   loading: boolean;
   error: Error | null;
+  onEditEpic?: (epic: Issue) => void;
+  onEditStory?: (story: Issue) => void;
 }
 
 // Interface for estimation results
@@ -57,6 +63,7 @@ interface StoryEstimation {
   name: string;
   storyPoints: number;
   hours: number;
+  issue: Issue; // Store the original issue object for editing
 }
 
 // Interface for epic estimation
@@ -66,6 +73,7 @@ interface EpicEstimation {
   storyPoints: number;
   hours: number;
   stories: StoryEstimation[];
+  issue: Issue; // Store the original issue object for editing
 }
 
 // Interface for release estimation
@@ -93,7 +101,11 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
   blendedHourlyRate = 100, // Default to $100 per hour
   loading,
   error,
+  onEditEpic,
+  onEditStory,
 }) => {
+  const theme = useTheme();
+
   // Use memo to calculate estimations only when inputs change
   const estimations = useMemo(() => {
     if (loading || error) {
@@ -121,6 +133,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
             name: story.name,
             storyPoints: story.storyPoints,
             hours,
+            issue: story,
           };
         } else {
           storyEstimations[story.id] = {
@@ -128,6 +141,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
             name: story.name,
             storyPoints: 0,
             hours: 0,
+            issue: story,
           };
         }
       });
@@ -154,6 +168,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
           storyPoints,
           hours,
           stories: epicStoriesEstimations,
+          issue: epic,
         };
       });
     });
@@ -220,6 +235,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
             storyPoints: epicStoryPoints,
             hours: epicHours,
             stories: epicStoriesInRelease,
+            issue: epic.issue,
           });
         }
       });
@@ -284,7 +300,9 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
 
   // Format date function
   const formatDate = (date: Date | null): string => {
-    if (!date) return "N/A";
+    if (!date) {
+      return "N/A";
+    }
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -297,11 +315,25 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
     return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
   };
 
+  // Handle the click on an epic to edit it
+  const handleEpicClick = (epic: Issue) => {
+    if (onEditEpic) {
+      onEditEpic(epic);
+    }
+  };
+
+  // Handle the click on a story to edit it
+  const handleStoryClick = (story: Issue) => {
+    if (onEditStory) {
+      onEditStory(story);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ p: 3 }}>
-        <Skeleton variant="rectangular" width="100%" height={200} sx={{ mb: 2 }} />
-        <Skeleton variant="rectangular" width="100%" height={400} />
+        <Skeleton height={200} sx={{ mb: 2 }} variant="rectangular" width="100%" />
+        <Skeleton height={400} variant="rectangular" width="100%" />
       </Box>
     );
   }
@@ -316,60 +348,60 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
     <Box>
       {/* Project Estimation Summary */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" gutterBottom>
+        <Typography gutterBottom variant="h5">
           Project Estimation Summary
         </Typography>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+          <Grid item md={4} xs={12}>
             <Card>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                   <TodayIcon color="primary" sx={{ mr: 1 }} />
                   <Typography variant="h6">Timeline</Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
+                <Typography gutterBottom color="text.secondary" variant="body2">
                   Estimated Timeline
                 </Typography>
                 <Typography variant="body1">
                   {formatDate(totalEstimation.startDate)} - {formatDate(totalEstimation.endDate)}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                <Typography color="text.secondary" sx={{ mt: 2 }} variant="body2">
                   Working Days to Complete
                 </Typography>
                 <Typography variant="body1">{totalEstimation.daysToComplete} days</Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item md={4} xs={12}>
             <Card>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                   <AccessTimeIcon color="primary" sx={{ mr: 1 }} />
                   <Typography variant="h6">Effort</Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
+                <Typography gutterBottom color="text.secondary" variant="body2">
                   Total Story Points
                 </Typography>
                 <Typography variant="body1">{formatNumber(totalEstimation.storyPoints)}</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                <Typography color="text.secondary" sx={{ mt: 2 }} variant="body2">
                   Total Hours (Including {overheadPercentage}% Overhead)
                 </Typography>
                 <Typography variant="body1">{formatNumber(totalEstimation.hours)} hours</Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item md={4} xs={12}>
             <Card>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                   <AttachMoneyIcon color="primary" sx={{ mr: 1 }} />
                   <Typography variant="h6">Cost</Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
+                <Typography gutterBottom color="text.secondary" variant="body2">
                   Blended Hourly Rate
                 </Typography>
                 <Typography variant="body1">${formatNumber(blendedHourlyRate)}/hour</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                <Typography color="text.secondary" sx={{ mt: 2 }} variant="body2">
                   Total Estimated Cost
                 </Typography>
                 <Typography variant="body1">${formatNumber(totalEstimation.cost)}</Typography>
@@ -381,7 +413,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
 
       {/* Release Estimations */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" gutterBottom>
+        <Typography gutterBottom variant="h5">
           Release Estimations
         </Typography>
         {releaseEstimations.length === 0 ? (
@@ -391,24 +423,24 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
             <Accordion key={release.id} sx={{ mb: 2 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
-                  <Typography sx={{ flexGrow: 1 }}>{release.name}</Typography>
+                  <Typography sx={{ flexGrow: 1, fontWeight: "bold" }}>{release.name}</Typography>
                   <Box sx={{ display: "flex", gap: 2 }}>
                     <Chip
-                      size="small"
+                      color="primary"
                       label={`${formatNumber(release.storyPoints)} SP`}
-                      color="primary"
+                      size="small"
                       variant="outlined"
                     />
                     <Chip
-                      size="small"
+                      color="primary"
                       label={`${formatNumber(release.hours)} hours`}
-                      color="primary"
+                      size="small"
                       variant="outlined"
                     />
                     <Chip
-                      size="small"
-                      label={`$${formatNumber(release.cost)}`}
                       color="primary"
+                      label={`$${formatNumber(release.cost)}`}
+                      size="small"
                       variant="outlined"
                     />
                   </Box>
@@ -416,7 +448,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
               </AccordionSummary>
               <AccordionDetails>
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
+                  <Typography gutterBottom variant="subtitle2">
                     Timeline:
                   </Typography>
                   <Typography variant="body2">
@@ -425,73 +457,131 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
                   </Typography>
                 </Box>
                 <Divider sx={{ my: 2 }} />
-                <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Epic</TableCell>
-                        <TableCell align="right">Story Points</TableCell>
-                        <TableCell align="right">Hours</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {release.epics.map(epic => (
-                        <TableRow key={epic.id}>
-                          <TableCell component="th" scope="row">
-                            {epic.name}
-                          </TableCell>
-                          <TableCell align="right">{formatNumber(epic.storyPoints)}</TableCell>
-                          <TableCell align="right">{formatNumber(epic.hours)}</TableCell>
-                        </TableRow>
-                      ))}
-                      {release.epics.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={3} align="center">
-                            No epics in this release
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
 
-                {/* Stories in this release */}
-                <Typography variant="subtitle2" gutterBottom>
-                  Stories:
-                </Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Story</TableCell>
-                        <TableCell>Epic</TableCell>
-                        <TableCell align="right">Story Points</TableCell>
-                        <TableCell align="right">Hours</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {release.epics.flatMap(epic =>
-                        epic.stories.map(story => (
-                          <TableRow key={story.id}>
-                            <TableCell component="th" scope="row">
-                              {story.name}
-                            </TableCell>
-                            <TableCell>{epic.name}</TableCell>
-                            <TableCell align="right">{formatNumber(story.storyPoints)}</TableCell>
-                            <TableCell align="right">{formatNumber(story.hours)}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                      {release.epics.flatMap(epic => epic.stories).length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={4} align="center">
-                            No stories in this release
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                {/* Epics in this release */}
+                {release.epics.length === 0 ? (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    No epics in this release
+                  </Alert>
+                ) : (
+                  release.epics.map(epic => (
+                    <Accordion
+                      key={epic.id}
+                      sx={{
+                        mb: 2,
+                        "&:before": { display: "none" },
+                        boxShadow: "none",
+                        border: `1px solid ${theme.palette.divider}`,
+                      }}
+                    >
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                          background: theme.palette.background.default,
+                          "&:hover": { background: theme.palette.action.hover },
+                        }}
+                      >
+                        <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexGrow: 1,
+                              alignItems: "center",
+                              cursor: onEditEpic ? "pointer" : "default",
+                            }}
+                            onClick={e => {
+                              if (onEditEpic) {
+                                e.stopPropagation();
+                                handleEpicClick(epic.issue);
+                              }
+                            }}
+                          >
+                            <Typography fontWeight="medium">{epic.name}</Typography>
+                            {onEditEpic && (
+                              <Tooltip title="Edit Epic">
+                                <IconButton size="small" sx={{ ml: 1 }}>
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
+                          <Box sx={{ display: "flex", gap: 2 }}>
+                            <Chip
+                              color="secondary"
+                              label={`${formatNumber(epic.storyPoints)} SP`}
+                              size="small"
+                              variant="outlined"
+                            />
+                            <Chip
+                              color="secondary"
+                              label={`${formatNumber(epic.hours)} hours`}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Box>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <TableContainer component={Paper} variant="outlined">
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell width="50%">Story</TableCell>
+                                <TableCell align="right" width="25%">
+                                  Story Points
+                                </TableCell>
+                                <TableCell align="right" width="25%">
+                                  Hours
+                                </TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {epic.stories.map(story => (
+                                <TableRow
+                                  key={story.id}
+                                  hover={!!onEditStory}
+                                  sx={{
+                                    cursor: onEditStory ? "pointer" : "default",
+                                    "&:hover": onEditStory
+                                      ? {
+                                          backgroundColor: theme.palette.action.hover,
+                                        }
+                                      : {},
+                                  }}
+                                  onClick={() => onEditStory && handleStoryClick(story.issue)}
+                                >
+                                  <TableCell component="th" scope="row">
+                                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                                      {story.name}
+                                      {onEditStory && (
+                                        <Tooltip title="Edit Story">
+                                          <IconButton size="small" sx={{ ml: 1 }}>
+                                            <EditIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      )}
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {formatNumber(story.storyPoints)}
+                                  </TableCell>
+                                  <TableCell align="right">{formatNumber(story.hours)}</TableCell>
+                                </TableRow>
+                              ))}
+                              {epic.stories.length === 0 && (
+                                <TableRow>
+                                  <TableCell align="center" colSpan={3}>
+                                    No stories in this epic
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </AccordionDetails>
+                    </Accordion>
+                  ))
+                )}
               </AccordionDetails>
             </Accordion>
           ))
@@ -500,13 +590,13 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
 
       {/* Estimation Configuration */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" gutterBottom>
+        <Typography gutterBottom variant="h5">
           Estimation Configuration
         </Typography>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid item md={6} xs={12}>
             <Paper sx={{ p: 2 }}>
-              <Typography variant="subtitle1" gutterBottom>
+              <Typography gutterBottom variant="subtitle1">
                 Effort Calculation
               </Typography>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
@@ -519,9 +609,9 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
               </Box>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item md={6} xs={12}>
             <Paper sx={{ p: 2 }}>
-              <Typography variant="subtitle1" gutterBottom>
+              <Typography gutterBottom variant="subtitle1">
                 Timeline & Cost Calculation
               </Typography>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>

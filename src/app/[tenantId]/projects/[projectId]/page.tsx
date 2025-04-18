@@ -23,6 +23,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import EditIcon from "@mui/icons-material/Edit";
+import TimelineIcon from "@mui/icons-material/Timeline";
 import { getProjectById, updateProject } from "@/lib/firebase/firestore";
 import { Project } from "@/lib/firebase/models/types";
 import { useStoryBoard } from "@/lib/hooks/useStoryBoard";
@@ -44,6 +45,7 @@ export default function ProjectView() {
   const [storyPointToHours, setStoryPointToHours] = useState<number | string>("");
   const [overheadPercentage, setOverheadPercentage] = useState<number | string>("");
   const [dailyBurnRate, setDailyBurnRate] = useState<number | string>("");
+  const [blendedHourlyRate, setBlendedHourlyRate] = useState<number | string>("");
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
@@ -62,6 +64,11 @@ export default function ProjectView() {
     addRelease,
     moveIssue,
   } = useStoryBoard(projectId);
+
+  // Navigate to estimation page
+  const handleNavigateToEstimation = () => {
+    router.push(`/${tenantId}/projects/${projectId}/estimation`);
+  };
 
   // Fetch project details
   useEffect(() => {
@@ -100,6 +107,7 @@ export default function ProjectView() {
       setStoryPointToHours(project.storyPointToHours || "");
       setOverheadPercentage(project.overheadPercentage || "");
       setDailyBurnRate(project.dailyBurnRate || "");
+      setBlendedHourlyRate(project.blendedHourlyRate || "");
       setUpdateError(null);
       setEditDialogOpen(true);
     }
@@ -125,6 +133,7 @@ export default function ProjectView() {
       const storyPointsValue = storyPointToHours === "" ? undefined : Number(storyPointToHours);
       const overheadValue = overheadPercentage === "" ? undefined : Number(overheadPercentage);
       const burnRateValue = dailyBurnRate === "" ? undefined : Number(dailyBurnRate);
+      const hourlyRateValue = blendedHourlyRate === "" ? undefined : Number(blendedHourlyRate);
 
       await updateProject(projectId, {
         name: editProjectName,
@@ -132,6 +141,7 @@ export default function ProjectView() {
         storyPointToHours: storyPointsValue,
         overheadPercentage: overheadValue,
         dailyBurnRate: burnRateValue,
+        blendedHourlyRate: hourlyRateValue,
       });
 
       // Update local project state
@@ -146,6 +156,7 @@ export default function ProjectView() {
           storyPointToHours: storyPointsValue,
           overheadPercentage: overheadValue,
           dailyBurnRate: burnRateValue,
+          blendedHourlyRate: hourlyRateValue,
         };
       });
 
@@ -222,17 +233,21 @@ export default function ProjectView() {
             </Typography>
           )}
         </Box>
-        <Button
-          startIcon={<EditIcon />}
-          sx={{ ml: 2 }}
-          variant="outlined"
-          onClick={handleOpenEditDialog}
-        >
-          Edit Project
-        </Button>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            startIcon={<TimelineIcon />}
+            variant="outlined"
+            onClick={handleNavigateToEstimation}
+          >
+            View Estimation
+          </Button>
+          <Button startIcon={<EditIcon />} variant="outlined" onClick={handleOpenEditDialog}>
+            Edit Project
+          </Button>
+        </Box>
       </Box>
 
-      {/* Story board */}
+      {/* Story Board */}
       <Paper sx={{ p: 2, mb: 4 }}>
         <StoryBoard
           activities={activities}
@@ -347,6 +362,24 @@ export default function ProjectView() {
           />
           <FormHelperText sx={{ mt: -1, mb: 2 }}>
             Enter the number of hours the team can complete per day (e.g., 16 for two developers)
+          </FormHelperText>
+
+          <TextField
+            fullWidth
+            disabled={updating}
+            id="blendedHourlyRate"
+            InputProps={{
+              endAdornment: <InputAdornment position="end">$/hour</InputAdornment>,
+            }}
+            label="Blended Hourly Rate"
+            margin="dense"
+            type="text"
+            value={blendedHourlyRate}
+            variant="outlined"
+            onChange={e => handleNumericInput(e.target.value, setBlendedHourlyRate)}
+          />
+          <FormHelperText sx={{ mt: -1, mb: 2 }}>
+            Enter the average hourly rate for cost calculations (e.g., 100 for $100/hour)
           </FormHelperText>
         </DialogContent>
         <DialogActions>

@@ -6,7 +6,6 @@ import {
   DialogActions,
   TextField,
   Button,
-  CircularProgress,
   Box,
   Typography,
 } from "@mui/material";
@@ -45,7 +44,6 @@ export const StoryDialog = ({
   const [storyName, setStoryName] = useState("");
   const [storyDescription, setStoryDescription] = useState("");
   const [storyPoints, setStoryPoints] = useState<number | undefined>(undefined);
-  const [addingStory, setAddingStory] = useState(false);
   const [storyError, setStoryError] = useState<string | null>(null);
 
   // Reset form when dialog closes or opens
@@ -59,7 +57,7 @@ export const StoryDialog = ({
     }
   }, [open]);
 
-  const handleCreateStory = async () => {
+  const handleCreateStory = () => {
     if (!epicId) {
       setStoryError("No epic selected");
       return;
@@ -68,20 +66,20 @@ export const StoryDialog = ({
       setStoryError("Story name is required");
       return;
     }
-    try {
-      setAddingStory(true);
-      setStoryError(null);
-      await onAddStory(epicId, storyName, {
-        description: storyDescription.trim() ? storyDescription : undefined,
-        storyPoints: storyPoints,
-        releaseId: currentReleaseId || undefined,
-      });
-      onClose();
-    } catch (err) {
-      setStoryError((err as Error).message || "Failed to create story");
-    } finally {
-      setAddingStory(false);
-    }
+
+    // Close the dialog immediately
+    onClose();
+
+    // Start the async operation after closing the dialog
+    // The parent component will handle the toast notification
+    onAddStory(epicId, storyName, {
+      description: storyDescription.trim() ? storyDescription : undefined,
+      storyPoints: storyPoints,
+      releaseId: currentReleaseId || undefined,
+    }).catch(err => {
+      console.error("Error creating story:", err);
+      // Error handling will be done by the parent component
+    });
   };
 
   // Helper function to handle numeric input for story points
@@ -99,7 +97,7 @@ export const StoryDialog = ({
 
   // Add keyboard handler for Enter key
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && !addingStory) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleCreateStory();
     }
@@ -107,15 +105,14 @@ export const StoryDialog = ({
 
   return (
     <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
-      <DialogTitle>Add New User Story</DialogTitle>
+      <DialogTitle>Add New Story</DialogTitle>
       <DialogContent>
         <TextField
           autoFocus
           fullWidth
-          disabled={addingStory}
           error={!!storyError}
           helperText={storyError}
-          label="Story Name"
+          label="Story Title"
           margin="dense"
           sx={{ mb: 2 }}
           value={storyName}
@@ -124,52 +121,37 @@ export const StoryDialog = ({
         />
 
         <RichTextEditor
+          label="Description (optional)"
+          minHeight={150}
+          placeholder="Add detailed description..."
+          projectId={projectId}
           value={storyDescription}
           onChange={setStoryDescription}
-          disabled={addingStory}
-          label="Description (optional)"
-          placeholder="Add detailed description..."
-          minHeight={150}
-          projectId={projectId}
         />
 
         <TextField
           fullWidth
-          disabled={addingStory}
-          InputProps={{
-            inputProps: { min: 0 },
-          }}
-          label="Story Points"
+          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+          label="Story Points (optional)"
           margin="dense"
-          sx={{ mt: 2, mb: 2 }}
+          sx={{ mt: 2 }}
           type="number"
-          value={storyPoints === undefined ? "" : storyPoints}
+          value={storyPoints ?? ""}
           onChange={handleStoryPointsChange}
-          onKeyDown={handleKeyDown}
         />
 
         <Box sx={{ mt: 2 }}>
-          <Typography color="text.secondary" variant="body2">
-            Tip: Write user stories in the format As a [persona], I want to [do something] so that
-            [benefit]
-          </Typography>
-
-          <Typography sx={{ mt: 2 }} variant="caption" color="text.secondary">
-            Note: You can add comments to this story after creation.
+          <Typography color="text.secondary" variant="caption">
+            {currentReleaseId
+              ? "This story will be added to the current release."
+              : "This story will not be assigned to any release."}
           </Typography>
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button disabled={addingStory} onClick={onClose}>
-          Cancel
-        </Button>
-        <Button
-          disabled={addingStory}
-          startIcon={addingStory ? <CircularProgress size={20} /> : undefined}
-          variant="contained"
-          onClick={handleCreateStory}
-        >
-          {addingStory ? "Creating..." : "Create Story"}
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" onClick={handleCreateStory}>
+          Create Story
         </Button>
       </DialogActions>
     </Dialog>

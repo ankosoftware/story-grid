@@ -6,7 +6,6 @@ import {
   DialogActions,
   TextField,
   Button,
-  CircularProgress,
   Box,
   Typography,
 } from "@mui/material";
@@ -29,7 +28,6 @@ export const EpicDialog = ({
 }: EpicDialogProps) => {
   const [epicName, setEpicName] = useState("");
   const [epicDescription, setEpicDescription] = useState("");
-  const [addingEpic, setAddingEpic] = useState(false);
   const [epicError, setEpicError] = useState<string | null>(null);
 
   // Reset form when dialog closes or opens
@@ -42,7 +40,7 @@ export const EpicDialog = ({
     }
   }, [open]);
 
-  const handleCreateEpic = async () => {
+  const handleCreateEpic = () => {
     if (!activityId) {
       setEpicError("No activity selected");
       return;
@@ -51,21 +49,23 @@ export const EpicDialog = ({
       setEpicError("Epic name is required");
       return;
     }
-    try {
-      setAddingEpic(true);
-      setEpicError(null);
-      await onAddEpic(activityId, epicName, epicDescription.trim() ? epicDescription : undefined);
-      onClose();
-    } catch (err) {
-      setEpicError((err as Error).message || "Failed to create epic");
-    } finally {
-      setAddingEpic(false);
-    }
+
+    // Close the dialog immediately
+    onClose();
+
+    // Start the async operation after closing the dialog
+    // The parent component will handle the toast notification
+    onAddEpic(activityId, epicName, epicDescription.trim() ? epicDescription : undefined).catch(
+      err => {
+        console.error("Error creating epic:", err);
+        // Error handling will be done by the parent component
+      }
+    );
   };
 
   // Add keyboard handler for Enter key
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && !addingEpic) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleCreateEpic();
     }
@@ -78,7 +78,6 @@ export const EpicDialog = ({
         <TextField
           autoFocus
           fullWidth
-          disabled={addingEpic}
           error={!!epicError}
           helperText={epicError}
           label="Task Name"
@@ -90,7 +89,6 @@ export const EpicDialog = ({
         />
 
         <RichTextEditor
-          disabled={addingEpic}
           label="Description (optional)"
           minHeight={150}
           placeholder="Add detailed description..."
@@ -106,16 +104,9 @@ export const EpicDialog = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button disabled={addingEpic} onClick={onClose}>
-          Cancel
-        </Button>
-        <Button
-          disabled={addingEpic}
-          startIcon={addingEpic ? <CircularProgress size={20} /> : undefined}
-          variant="contained"
-          onClick={handleCreateEpic}
-        >
-          {addingEpic ? "Creating..." : "Create Task"}
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" onClick={handleCreateEpic}>
+          Create Task
         </Button>
       </DialogActions>
     </Dialog>

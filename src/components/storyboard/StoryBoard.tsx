@@ -347,6 +347,32 @@ export default function StoryMap({
     [selectedStoryId, onMoveIssue, handleCloseMoveMenu]
   );
 
+  // Handler for Activity Dialog
+  const handleOpenActivityDialog = useCallback(() => {
+    setActivityDialogOpen(true);
+  }, []);
+
+  const handleCloseActivityDialog = useCallback(() => {
+    setActivityDialogOpen(false);
+  }, []);
+
+  const handleActivityDialogSubmit = useCallback(
+    async (name: string, description?: string) => {
+      try {
+        const activityId = await onAddActivity(name, description);
+        setSnackbarMessage(`Activity '${name}' created successfully`);
+        setSnackbarOpen(true);
+        return activityId;
+      } catch (error) {
+        console.error("Error creating activity:", error);
+        setSnackbarMessage(`Failed to create activity: ${(error as Error).message}`);
+        setSnackbarOpen(true);
+        throw error;
+      }
+    },
+    [onAddActivity]
+  );
+
   // Handler for Epic Dialog
   const handleOpenEpicDialog = useCallback((activityId: string) => {
     setSelectedActivityId(activityId);
@@ -357,6 +383,23 @@ export default function StoryMap({
     setEpicDialogOpen(false);
     setSelectedActivityId(null);
   }, []);
+
+  const handleEpicDialogSubmit = useCallback(
+    async (activityId: string, name: string, description?: string) => {
+      try {
+        const epicId = await onAddEpic(activityId, name, description);
+        setSnackbarMessage(`Epic '${name}' created successfully`);
+        setSnackbarOpen(true);
+        return epicId;
+      } catch (error) {
+        console.error("Error creating epic:", error);
+        setSnackbarMessage(`Failed to create epic: ${(error as Error).message}`);
+        setSnackbarOpen(true);
+        throw error;
+      }
+    },
+    [onAddEpic]
+  );
 
   // Handler for Story Dialog
   const handleOpenStoryDialog = useCallback((epicId: string, releaseId?: string | null) => {
@@ -369,6 +412,23 @@ export default function StoryMap({
     setStoryDialogOpen(false);
     setSelectedParentId(null);
   }, []);
+
+  const handleStoryDialogSubmit = useCallback(
+    async (epicId: string, name: string, options?: any) => {
+      try {
+        const storyId = await onAddStory(epicId, name, options);
+        setSnackbarMessage(`Story '${name}' created successfully`);
+        setSnackbarOpen(true);
+        return storyId;
+      } catch (error) {
+        console.error("Error creating story:", error);
+        setSnackbarMessage(`Failed to create story: ${(error as Error).message}`);
+        setSnackbarOpen(true);
+        throw error;
+      }
+    },
+    [onAddStory]
+  );
 
   // Handler for Release Dialog
   const handleOpenReleaseDialog = useCallback(() => {
@@ -1170,26 +1230,26 @@ export default function StoryMap({
         {/* Dialog Components */}
         <ActivityDialog
           open={activityDialogOpen}
+          onClose={handleCloseActivityDialog}
+          onAddActivity={handleActivityDialogSubmit}
           projectId={projectId}
-          onAddActivity={onAddActivity}
-          onClose={() => setActivityDialogOpen(false)}
         />
 
         <EpicDialog
-          activityId={selectedActivityId}
           open={epicDialogOpen}
-          projectId={projectId}
-          onAddEpic={onAddEpic}
           onClose={handleCloseEpicDialog}
+          onAddEpic={handleEpicDialogSubmit}
+          activityId={selectedActivityId}
+          projectId={projectId}
         />
 
         <StoryDialog
-          currentReleaseId={currentReleaseContext}
-          epicId={selectedParentId}
           open={storyDialogOpen}
-          projectId={projectId}
-          onAddStory={onAddStory}
           onClose={handleCloseStoryDialog}
+          onAddStory={handleStoryDialogSubmit}
+          epicId={selectedParentId}
+          currentReleaseId={currentReleaseContext}
+          projectId={projectId}
         />
 
         <ReleaseDialog

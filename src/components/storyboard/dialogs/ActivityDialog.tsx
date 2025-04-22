@@ -27,7 +27,6 @@ export const ActivityDialog = ({
 }: ActivityDialogProps) => {
   const [activityName, setActivityName] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
-  const [addingActivity, setAddingActivity] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
 
   // Reset form when dialog closes or opens
@@ -40,29 +39,28 @@ export const ActivityDialog = ({
     }
   }, [open]);
 
-  const handleCreateActivity = async () => {
+  const handleCreateActivity = () => {
     if (!activityName.trim()) {
       setActivityError("Activity name is required");
       return;
     }
-    try {
-      setAddingActivity(true);
-      setActivityError(null);
-      await onAddActivity(
-        activityName,
-        activityDescription.trim() ? activityDescription : undefined
-      );
-      onClose();
-    } catch (err) {
-      setActivityError((err as Error).message || "Failed to create activity");
-    } finally {
-      setAddingActivity(false);
-    }
+
+    // Close the dialog immediately
+    onClose();
+
+    // Start the async operation after closing the dialog
+    // The parent component will handle the toast notification
+    onAddActivity(activityName, activityDescription.trim() ? activityDescription : undefined).catch(
+      err => {
+        console.error("Error creating activity:", err);
+        // Error handling will be done by the parent component
+      }
+    );
   };
 
   // Add keyboard handler for Enter key
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && !addingActivity) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleCreateActivity();
     }
@@ -75,7 +73,6 @@ export const ActivityDialog = ({
         <TextField
           autoFocus
           fullWidth
-          disabled={addingActivity}
           error={!!activityError}
           helperText={activityError}
           label="Activity Name"
@@ -87,7 +84,6 @@ export const ActivityDialog = ({
         />
 
         <RichTextEditor
-          disabled={addingActivity}
           label="Description (optional)"
           minHeight={150}
           placeholder="Add detailed description..."
@@ -103,16 +99,9 @@ export const ActivityDialog = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button disabled={addingActivity} onClick={onClose}>
-          Cancel
-        </Button>
-        <Button
-          disabled={addingActivity}
-          startIcon={addingActivity ? <CircularProgress size={20} /> : undefined}
-          variant="contained"
-          onClick={handleCreateActivity}
-        >
-          {addingActivity ? "Creating..." : "Create Activity"}
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" onClick={handleCreateActivity}>
+          Create Activity
         </Button>
       </DialogActions>
     </Dialog>

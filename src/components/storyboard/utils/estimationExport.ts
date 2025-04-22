@@ -42,7 +42,7 @@ interface ReleaseEstimation {
   epics: EpicEstimation[];
 }
 
-interface EstimationExportData {
+export interface EstimationExportData {
   totalEstimation: EstimationDetails;
   releaseEstimations: ReleaseEstimation[];
   storyPointToHours: number;
@@ -153,7 +153,6 @@ export const generateEstimationMarkup = (
 
     markupContent += `<a id="${anchor}"></a>\n`;
     markupContent += `## ${release.name}\n\n`;
-
     markupContent += `| Metric | Value |\n`;
     markupContent += `| ------ | ----- |\n`;
     markupContent += `| Timeline | ${formatDate(release.startDate)} - ${formatDate(release.endDate)} |\n`;
@@ -167,29 +166,38 @@ export const generateEstimationMarkup = (
       markupContent += `*No epics in this release*\n\n`;
     } else {
       markupContent += `### Epics in ${release.name}\n\n`;
-      markupContent += `| Epic | Story Points | Hours |\n`;
-      markupContent += `| ---- | ------------ | ----- |\n`;
 
+      // Process each epic with detailed description instead of table
       release.epics.forEach(epic => {
-        markupContent += `| ${epic.name} | ${epic.storyPoints.toLocaleString()} | ${epic.hours.toLocaleString()} |\n`;
-      });
+        markupContent += `#### ${epic.name}\n\n`;
 
-      markupContent += `\n`;
+        // Add epic description if available
+        if (epic.issue && epic.issue.description) {
+          markupContent += `**Description:** ${epic.issue.description}\n\n`;
+        }
 
-      // Process stories in each epic
-      release.epics.forEach(epic => {
-        markupContent += `#### ${epic.name} Stories\n\n`;
+        // Add epic metrics
+        markupContent += `**Metrics:**\n`;
+        markupContent += `- Story Points: ${epic.storyPoints.toLocaleString()}\n`;
+        markupContent += `- Hours: ${epic.hours.toLocaleString()}\n\n`;
 
+        // Process stories in the epic
         if (epic.stories.length === 0) {
           markupContent += `*No stories in this epic*\n\n`;
         } else {
-          markupContent += `| Story | Story Points | Hours |\n`;
-          markupContent += `| ----- | ------------ | ----- |\n`;
+          markupContent += `**Stories:**\n\n`;
+          markupContent += `| Story | Story Points | Hours | Description |\n`;
+          markupContent += `| ----- | ------------ | ----- | ----------- |\n`;
 
           epic.stories.forEach(story => {
             // Escape pipe characters in markdown table
             const escapedName = story.name.replace(/\|/g, "\\|");
-            markupContent += `| ${escapedName} | ${story.storyPoints.toLocaleString()} | ${story.hours.toLocaleString()} |\n`;
+            const escapedDescription =
+              story.issue && story.issue.description
+                ? story.issue.description.replace(/\|/g, "\\|")
+                : "";
+
+            markupContent += `| ${escapedName} | ${story.storyPoints.toLocaleString()} | ${story.hours.toLocaleString()} | ${escapedDescription} |\n`;
           });
 
           markupContent += `\n`;

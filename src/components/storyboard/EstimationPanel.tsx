@@ -100,6 +100,7 @@ interface ReleaseEstimation {
   endDate: Date | null;
   daysToComplete: number;
   epics: EpicEstimation[];
+  activities: Issue[];
 }
 
 const EstimationPanel: React.FC<EstimationPanelProps> = ({

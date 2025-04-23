@@ -41,6 +41,7 @@ interface ReleaseEstimation {
   endDate: Date | null;
   daysToComplete: number;
   epics: EpicEstimation[];
+  activities: Issue[];
 }
 
 export interface EstimationExportData {
@@ -843,8 +844,14 @@ export const exportEstimationToExcel = (
     applyReleaseSheetStyling(releaseSheet);
   });
 
-  // Generate a filename
-  const filename = `estimation-export-${projectName.replace(/[^a-z0-9]/gi, "-")}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  // Generate a filename with date and time
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  // Format time as HH-MM-SS
+  const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, "-");
+
+  const filename = `estimation-export-${projectName.replace(/[^a-z0-9]/gi, "-")}-${dateStr}-${timeStr}.xlsx`;
 
   // Write the workbook to file and initiate download
   workbook.xlsx.writeBuffer().then(buffer => {
@@ -1305,9 +1312,12 @@ const generateReleaseSheetData = (
   activityOrder.forEach(activityId => {
     const epics = epicsByActivity[activityId];
     if (epics.length > 0) {
-      // We might not have activity name directly available in the Issue model
-      // Use a generic name with the activity ID for now
-      const activityName = `Activity ${activityId.substring(0, 8)}`;
+      // Try to get a more meaningful activity name
+      // If the activityId is "unknown", use a generic name
+      // Otherwise, use the full activityId which is better than a truncated version
+      const activityName =
+        release.activities?.find(activity => activity.id === activityId)?.name ||
+        `Activity ${activityId}`;
 
       // Calculate activity totals
       const activityStoryPoints = epics.reduce((sum, epic) => sum + epic.storyPoints, 0);
@@ -1341,9 +1351,6 @@ const generateReleaseSheetData = (
               ]);
             });
         });
-
-      // Add a blank row after each activity for better readability
-      releaseData.push([]);
     }
   });
 

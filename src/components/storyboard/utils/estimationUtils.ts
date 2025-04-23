@@ -40,6 +40,7 @@ interface ReleaseEstimation {
   endDate: Date | null;
   daysToComplete: number;
   epics: EpicEstimation[];
+  activities: Issue[];
 }
 
 interface EstimationResult {
@@ -266,6 +267,7 @@ export const estimateReleasesWithEpics = (
       endDate,
       daysToComplete,
       epics: releaseEpics,
+      activities: sortedActivities,
     });
 
     // Next release starts after this one ends

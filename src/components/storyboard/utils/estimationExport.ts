@@ -53,6 +53,42 @@ export interface EstimationExportData {
 }
 
 /**
+ * Sanitizes HTML content for safe inclusion in markdown or HTML exports
+ * Removes HTML tags and converts common entities to their text equivalents
+ * @param text Text that may contain HTML
+ * @returns Sanitized text
+ */
+const sanitizeHtml = (text: string | undefined | null): string => {
+  if (!text) {
+    return "";
+  }
+
+  // Create a temporary div element to handle HTML parsing
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = text;
+
+  // Get the text content (strips all HTML tags)
+  let sanitized = tempDiv.textContent || tempDiv.innerText || "";
+
+  // Replace common HTML entities with their text equivalents
+  sanitized = sanitized
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ");
+
+  // Escape characters that have special meaning in markdown tables
+  sanitized = sanitized
+    .replace(/\|/g, "\\|") // Escape pipe characters for markdown tables
+    .replace(/\n/g, " ") // Replace newlines with spaces to prevent breaking markdown tables
+    .replace(/\r/g, ""); // Remove carriage returns
+
+  return sanitized;
+};
+
+/**
  * Generates a structured markup document from estimation data
  * @param data Estimation export data object
  * @param selectedReleaseIds Array of selected release IDs to include in the export
@@ -173,7 +209,7 @@ export const generateEstimationMarkup = (
 
         // Add epic description if available
         if (epic.issue && epic.issue.description) {
-          markupContent += `**Description:** ${epic.issue.description}\n\n`;
+          markupContent += `**Description:** ${sanitizeHtml(epic.issue.description)}\n\n`;
         }
 
         // Add epic metrics
@@ -508,7 +544,7 @@ export const generateEstimationHtml = (
         // Add epic description if available
         if (epic.issue && epic.issue.description) {
           htmlContent += `
-  <p><strong>Description:</strong> ${epic.issue.description}</p>`;
+  <p><strong>Description:</strong> ${sanitizeHtml(epic.issue.description)}</p>`;
         }
 
         // Add epic metrics
@@ -537,9 +573,7 @@ export const generateEstimationHtml = (
           epic.stories.forEach(story => {
             const escapedName = story.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const escapedDescription =
-              story.issue && story.issue.description
-                ? story.issue.description.replace(/</g, "&lt;").replace(/>/g, "&gt;")
-                : "";
+              story.issue && story.issue.description ? sanitizeHtml(story.issue.description) : "";
 
             htmlContent += `
     <tr>

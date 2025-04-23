@@ -77,6 +77,7 @@ import {
 
 export default function StoryMap({
   projectId,
+  projectName,
   activities,
   epics,
   issues,
@@ -665,7 +666,7 @@ export default function StoryMap({
     handleCloseExportMenu();
 
     // Use the exported function
-    exportStoryboardToCSV(activities, epics, issues, releases);
+    exportStoryboardToCSV(activities, epics, issues, releases, projectName);
 
     // Show success message
     setSnackbarMessage("CSV exported successfully!");
@@ -678,7 +679,7 @@ export default function StoryMap({
     handleCloseExportMenu();
 
     // Use the exported function
-    exportStoryboardToMarkup(activities, epics, issues, releases, "Story Board");
+    exportStoryboardToMarkup(activities, epics, issues, releases, projectName);
 
     // Show success message
     setSnackbarMessage("Markdown exported successfully!");
@@ -1230,26 +1231,26 @@ export default function StoryMap({
         {/* Dialog Components */}
         <ActivityDialog
           open={activityDialogOpen}
-          onClose={handleCloseActivityDialog}
-          onAddActivity={handleActivityDialogSubmit}
           projectId={projectId}
+          onAddActivity={handleActivityDialogSubmit}
+          onClose={handleCloseActivityDialog}
         />
 
         <EpicDialog
-          open={epicDialogOpen}
-          onClose={handleCloseEpicDialog}
-          onAddEpic={handleEpicDialogSubmit}
           activityId={selectedActivityId}
+          open={epicDialogOpen}
           projectId={projectId}
+          onAddEpic={handleEpicDialogSubmit}
+          onClose={handleCloseEpicDialog}
         />
 
         <StoryDialog
-          open={storyDialogOpen}
-          onClose={handleCloseStoryDialog}
-          onAddStory={handleStoryDialogSubmit}
-          epicId={selectedParentId}
           currentReleaseId={currentReleaseContext}
+          epicId={selectedParentId}
+          open={storyDialogOpen}
           projectId={projectId}
+          onAddStory={handleStoryDialogSubmit}
+          onClose={handleCloseStoryDialog}
         />
 
         <ReleaseDialog

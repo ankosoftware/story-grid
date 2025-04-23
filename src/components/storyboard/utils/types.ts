@@ -19,6 +19,7 @@ export interface DragItem {
 // Define props for the main story map component
 export interface StoryMapProps {
   projectId: string;
+  projectName: string;
   activities: Issue[]; // Backbone items – User Activities/Goals
   epics: Record<string, Issue[]>; // Epics by activity (backbone) ID (User Tasks)
   issues: Record<string, Issue[]>; // Stories by epic ID

@@ -44,6 +44,7 @@ import ExportEstimationDialog, { ExportFormat } from "./dialogs/ExportEstimation
 // Interface for component props
 interface EstimationPanelProps {
   projectId: string;
+  projectName: string;
   activities: Issue[]; // Backbone items
   epics: Record<string, Issue[]>; // Epics by activity ID
   issues: Record<string, Issue[]>; // Stories by epic ID
@@ -102,6 +103,7 @@ interface ReleaseEstimation {
 
 const EstimationPanel: React.FC<EstimationPanelProps> = ({
   projectId,
+  projectName,
   activities,
   epics,
   issues,
@@ -230,7 +232,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
       overheadPercentage,
       dailyBurnRate,
       blendedHourlyRate,
-      projectName: `Project ${projectId}`,
+      projectName,
     };
 
     // Export based on selected format
@@ -414,14 +416,14 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
                             {onEditEpic ? (
                               <Link
                                 component="button"
+                                sx={{ fontWeight: "medium" }}
                                 variant="subtitle1"
                                 onClick={e => handleEpicClick(e, epic.issue)}
-                                sx={{ fontWeight: "medium" }}
                               >
                                 {epic.name}
                               </Link>
                             ) : (
-                              <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
+                              <Typography sx={{ fontWeight: "medium" }} variant="subtitle1">
                                 {epic.name}
                               </Typography>
                             )}
@@ -534,6 +536,7 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
       {/* Export Dialog */}
       <ExportEstimationDialog
         open={exportDialogOpen}
+        projectName={projectName}
         releases={releases}
         onClose={handleCloseExportDialog}
         onExport={handleExportEstimation}

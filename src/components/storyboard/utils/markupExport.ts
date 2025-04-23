@@ -355,7 +355,7 @@ export const exportStoryboardToMarkup = (
   projectName?: string
 ): string => {
   const markupContent = generateStoryboardMarkup(activities, epics, issues, releases, projectName);
-  const filename = `storyboard-export-${new Date().toISOString().slice(0, 10)}.md`;
+  const filename = `storyboard-export-${projectName}-${new Date().toISOString().slice(0, 10)}.md`;
   downloadMarkup(markupContent, filename);
   return filename;
 };

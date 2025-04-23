@@ -729,7 +729,7 @@ export const exportEstimationToMarkup = (
   }
 
   const markupContent = generateEstimationMarkup(data, selectedReleaseIds);
-  const filename = `estimation-export-${new Date().toISOString().slice(0, 10)}.md`;
+  const filename = `estimation-export-${data.projectName}-${new Date().toISOString().slice(0, 10)}.md`;
   downloadMarkup(markupContent, filename);
   return filename;
 };

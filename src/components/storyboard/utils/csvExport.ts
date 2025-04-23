@@ -97,10 +97,11 @@ export const exportStoryboardToCSV = (
   activities: Issue[],
   epics: ActivityEpicMap,
   issues: EpicIssueMap,
-  releases: Release[]
+  releases: Release[],
+  projectName: string
 ): string => {
   const csvContent = generateStoryboardCSV(activities, epics, issues, releases);
-  const filename = `storyboard-export-${new Date().toISOString().slice(0, 10)}.csv`;
+  const filename = `storyboard-export-${projectName}-${new Date().toISOString().slice(0, 10)}.csv`;
   downloadCSV(csvContent, filename);
   return filename;
 };

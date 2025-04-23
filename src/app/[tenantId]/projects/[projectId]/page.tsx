@@ -170,6 +170,7 @@ export default function ProjectView() {
           issues={issues}
           loading={boardLoading}
           projectId={projectId}
+          projectName={project.name}
           releases={releases}
           onAddActivity={addActivity}
           onAddEpic={addEpic}

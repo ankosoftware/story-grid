@@ -216,6 +216,7 @@ export default function ProjectEstimationPage() {
           loading={boardLoading}
           overheadPercentage={project.overheadPercentage}
           projectId={projectId}
+          projectName={project.name}
           releases={releases}
           storyPointToHours={project.storyPointToHours}
           onEditEpic={handleEditEpic}

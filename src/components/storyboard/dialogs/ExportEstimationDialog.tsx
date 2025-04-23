@@ -27,8 +27,9 @@ export enum ExportFormat {
 interface ExportEstimationDialogProps {
   open: boolean;
   onClose: () => void;
-  onExport: (selectedReleaseIds: string[], format: ExportFormat) => void;
+  onExport: (selectedReleaseIds: string[], format: ExportFormat, projectName: string) => void;
   releases: Release[];
+  projectName: string;
 }
 
 const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
@@ -36,6 +37,7 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
   onClose,
   onExport,
   releases,
+  projectName,
 }) => {
   // State for tracking selected releases
   const [selectedReleaseIds, setSelectedReleaseIds] = useState<string[]>([]);
@@ -73,7 +75,7 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
 
   // Handle export button click
   const handleExport = () => {
-    onExport(selectedReleaseIds, exportFormat);
+    onExport(selectedReleaseIds, exportFormat, projectName);
     onClose();
   };
 
@@ -87,10 +89,10 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
   const sortedReleases = [...releases].sort((a, b) => a.displayOrder - b.displayOrder);
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={handleClose}>
       <DialogTitle>Export Estimation</DialogTitle>
       <DialogContent>
-        <Typography variant="body1" gutterBottom>
+        <Typography gutterBottom variant="body1">
           Select the releases to include in the exported estimation:
         </Typography>
 
@@ -101,7 +103,7 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
         ) : (
           <>
             <Box sx={{ my: 2 }}>
-              <Button variant="outlined" size="small" onClick={handleSelectAll}>
+              <Button size="small" variant="outlined" onClick={handleSelectAll}>
                 {selectedReleaseIds.length === releases.length ? "Deselect All" : "Select All"}
               </Button>
             </Box>
@@ -140,17 +142,17 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
                 onChange={handleFormatChange}
               >
                 <FormControlLabel
-                  value={ExportFormat.MARKDOWN}
                   control={<Radio />}
                   label="Markdown (.md)"
+                  value={ExportFormat.MARKDOWN}
                 />
                 <FormControlLabel
-                  value={ExportFormat.HTML}
                   control={<Radio />}
                   label="HTML (Word-compatible)"
+                  value={ExportFormat.HTML}
                 />
               </RadioGroup>
-              <Typography variant="caption" color="text.secondary">
+              <Typography color="text.secondary" variant="caption">
                 {exportFormat === ExportFormat.MARKDOWN
                   ? "Downloads a Markdown file"
                   : "Opens in a new window with print option"}
@@ -162,10 +164,10 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
         <Button
-          onClick={handleExport}
-          variant="contained"
           color="primary"
           disabled={selectedReleaseIds.length === 0 || releases.length === 0}
+          variant="contained"
+          onClick={handleExport}
         >
           Export
         </Button>

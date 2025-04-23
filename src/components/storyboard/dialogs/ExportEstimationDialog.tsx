@@ -12,13 +12,22 @@ import {
   Box,
   Alert,
   Divider,
+  RadioGroup,
+  Radio,
+  FormControl,
+  FormLabel,
 } from "@mui/material";
 import { Release } from "@/lib/firebase/models/types";
+
+export enum ExportFormat {
+  MARKDOWN = "markdown",
+  HTML = "html",
+}
 
 interface ExportEstimationDialogProps {
   open: boolean;
   onClose: () => void;
-  onExport: (selectedReleaseIds: string[]) => void;
+  onExport: (selectedReleaseIds: string[], format: ExportFormat) => void;
   releases: Release[];
 }
 
@@ -30,6 +39,8 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
 }) => {
   // State for tracking selected releases
   const [selectedReleaseIds, setSelectedReleaseIds] = useState<string[]>([]);
+  // State for tracking selected export format
+  const [exportFormat, setExportFormat] = useState<ExportFormat>(ExportFormat.MARKDOWN);
 
   // Handle selection of all releases
   const handleSelectAll = () => {
@@ -55,9 +66,14 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
     });
   };
 
+  // Handle export format change
+  const handleFormatChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setExportFormat(event.target.value as ExportFormat);
+  };
+
   // Handle export button click
   const handleExport = () => {
-    onExport(selectedReleaseIds);
+    onExport(selectedReleaseIds, exportFormat);
     onClose();
   };
 
@@ -112,6 +128,34 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
                 Please select at least one release to export.
               </Alert>
             )}
+
+            <Divider sx={{ my: 2 }} />
+
+            <FormControl component="fieldset">
+              <FormLabel component="legend">Export Format</FormLabel>
+              <RadioGroup
+                row
+                name="export-format"
+                value={exportFormat}
+                onChange={handleFormatChange}
+              >
+                <FormControlLabel
+                  value={ExportFormat.MARKDOWN}
+                  control={<Radio />}
+                  label="Markdown (.md)"
+                />
+                <FormControlLabel
+                  value={ExportFormat.HTML}
+                  control={<Radio />}
+                  label="HTML (Word-compatible)"
+                />
+              </RadioGroup>
+              <Typography variant="caption" color="text.secondary">
+                {exportFormat === ExportFormat.MARKDOWN
+                  ? "Downloads a Markdown file"
+                  : "Opens in a new window with print option"}
+              </Typography>
+            </FormControl>
           </>
         )}
       </DialogContent>

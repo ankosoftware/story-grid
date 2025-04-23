@@ -4,9 +4,13 @@ export { ItemTypes, createUnassignedReleaseObject } from "./types";
 export type { DragItem, StoryMapProps } from "./types";
 export { generateStoryboardCSV, downloadCSV, exportStoryboardToCSV } from "./csvExport";
 export { generateStoryboardMarkup, downloadMarkup, exportStoryboardToMarkup } from "./markupExport";
-export { 
-  generateEstimationMarkup, 
+export {
+  generateEstimationMarkup,
   downloadMarkup as downloadEstimationMarkup,
   exportEstimationToMarkup,
-  type EstimationExportData
+  generateEstimationHtml,
+  openHtmlInNewWindow,
+  exportEstimationToHtml,
+  type EstimationExportData,
 } from "./estimationExport";
+export { estimateReleasesWithEpics } from "./estimationUtils";

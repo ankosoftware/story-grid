@@ -22,6 +22,7 @@ import { Release } from "@/lib/firebase/models/types";
 export enum ExportFormat {
   MARKDOWN = "markdown",
   HTML = "html",
+  EXCEL = "excel",
 }
 
 interface ExportEstimationDialogProps {
@@ -88,6 +89,20 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
   // Sort releases by displayOrder
   const sortedReleases = [...releases].sort((a, b) => a.displayOrder - b.displayOrder);
 
+  // Get format description
+  const getFormatDescription = (format: ExportFormat): string => {
+    switch (format) {
+      case ExportFormat.MARKDOWN:
+        return "Downloads a Markdown file";
+      case ExportFormat.HTML:
+        return "Opens in a new window with print option";
+      case ExportFormat.EXCEL:
+        return "Downloads an Excel file with a tab for each release";
+      default:
+        return "";
+    }
+  };
+
   return (
     <Dialog fullWidth maxWidth="sm" open={open} onClose={handleClose}>
       <DialogTitle>Export Estimation</DialogTitle>
@@ -151,11 +166,14 @@ const ExportEstimationDialog: React.FC<ExportEstimationDialogProps> = ({
                   label="HTML (Word-compatible)"
                   value={ExportFormat.HTML}
                 />
+                <FormControlLabel
+                  control={<Radio />}
+                  label="Excel (.xlsx)"
+                  value={ExportFormat.EXCEL}
+                />
               </RadioGroup>
               <Typography color="text.secondary" variant="caption">
-                {exportFormat === ExportFormat.MARKDOWN
-                  ? "Downloads a Markdown file"
-                  : "Opens in a new window with print option"}
+                {getFormatDescription(exportFormat)}
               </Typography>
             </FormControl>
           </>

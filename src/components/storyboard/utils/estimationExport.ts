@@ -1,4 +1,5 @@
 import { Issue, Release } from "@/lib/firebase/models/types";
+import * as XLSX from "xlsx";
 
 // Interface for estimation results
 interface EstimationDetails {
@@ -732,4 +733,532 @@ export const exportEstimationToMarkup = (
   const filename = `estimation-export-${data.projectName}-${new Date().toISOString().slice(0, 10)}.md`;
   downloadMarkup(markupContent, filename);
   return filename;
+};
+
+/**
+ * Exports estimation data to Excel format with separate tabs for each release
+ * @param data Estimation export data
+ * @param selectedReleaseIds Array of release IDs to include in the export
+ * @returns Filename of the exported Excel
+ */
+export const exportEstimationToExcel = (
+  data: EstimationExportData,
+  selectedReleaseIds: string[]
+): string => {
+  const {
+    totalEstimation,
+    releaseEstimations,
+    storyPointToHours,
+    overheadPercentage,
+    dailyBurnRate,
+    blendedHourlyRate,
+    projectName = "Project",
+  } = data;
+
+  // Filter to only include selected releases
+  const filteredReleases = releaseEstimations.filter(release =>
+    selectedReleaseIds.includes(release.id)
+  );
+
+  // Create a new workbook
+  const workbook = XLSX.utils.book_new();
+
+  // Create a summary sheet first
+  const summaryData = generateSummarySheetData(
+    data,
+    filteredReleases,
+    storyPointToHours,
+    overheadPercentage,
+    dailyBurnRate,
+    blendedHourlyRate
+  );
+  const summaryWorksheet = XLSX.utils.aoa_to_sheet(summaryData);
+
+  // Apply styling to the summary sheet
+  applyExcelStyling(summaryWorksheet, {
+    headerRow: 5, // The row with "Metric", "Value" headers
+    tableStartRow: 6, // The first row of the main table data
+    tableEndRow: 11, // The last row of the main table data
+    secondHeaderRow: 15, // The "Effort Calculation" header
+    secondTableStartRow: 16, // Start of effort calculation table
+    secondTableEndRow: 17, // End of effort calculation table
+    thirdHeaderRow: 19, // The "Timeline & Cost Calculation" header
+    thirdTableStartRow: 20, // Start of timeline calculation table
+    thirdTableEndRow: 21, // End of timeline calculation table
+    releaseHeaderRow: 25, // The row with "Release", "Story Points", etc.
+    releaseStartRow: 26, // First row of release data
+    releaseEndRow: 26 + filteredReleases.length - 1, // Last row of release data
+  });
+
+  // Add the summary sheet to the workbook
+  XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Summary");
+
+  // Create a sheet for each release
+  filteredReleases.forEach(release => {
+    const releaseData = generateReleaseSheetData(release, storyPointToHours, overheadPercentage);
+    const releaseWorksheet = XLSX.utils.aoa_to_sheet(releaseData);
+
+    // Apply styling to the release sheet
+    applyExcelStyling(releaseWorksheet, {
+      titleRow: 0, // Title row
+      headerRow: 10, // Header row for the items table
+      hierarchicalData: true, // Indicates this sheet has hierarchical data
+      // We don't specify tableStartRow and tableEndRow for release worksheets
+      // because they're dynamically sized based on the data
+    });
+
+    // Add the release sheet to the workbook
+    XLSX.utils.book_append_sheet(workbook, releaseWorksheet, release.name.substring(0, 31)); // Excel limits sheet names to 31 chars
+  });
+
+  // Generate a filename
+  const filename = `estimation-export-${projectName.replace(/[^a-z0-9]/gi, "-")}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+  // Write the workbook to file and initiate download
+  XLSX.writeFile(workbook, filename);
+
+  return filename;
+};
+
+/**
+ * Styling options for Excel worksheets
+ */
+interface ExcelStylingOptions {
+  titleRow?: number; // Row containing the title
+  headerRow?: number; // Row containing the column headers
+  tableStartRow?: number; // First row of table data
+  tableEndRow?: number; // Last row of table data
+  secondHeaderRow?: number; // Row containing second table header
+  secondTableStartRow?: number; // First row of second table
+  secondTableEndRow?: number; // Last row of second table
+  thirdHeaderRow?: number; // Row containing third table header
+  thirdTableStartRow?: number; // First row of third table
+  thirdTableEndRow?: number; // Last row of third table
+  releaseHeaderRow?: number; // Row containing release table headers
+  releaseStartRow?: number; // First row of release data
+  releaseEndRow?: number; // Last row of release data
+  hierarchicalData?: boolean; // Whether the data is hierarchical (indented)
+}
+
+/**
+ * Apply styling to an Excel worksheet
+ * @param worksheet XLSX worksheet to style
+ * @param options Styling options
+ */
+const applyExcelStyling = (worksheet: XLSX.WorkSheet, options: ExcelStylingOptions): void => {
+  // We can't directly style the worksheet with the XLSX library
+  // Instead, we'll add cell formatting properties that Excel will recognize
+
+  // Set column widths
+  const columnWidths = [
+    { wch: 45 }, // Column A (Names/Descriptions)
+    { wch: 15 }, // Column B (Story Points)
+    { wch: 15 }, // Column C (Hours)
+    { wch: 25 }, // Column D (Cost/Description)
+    { wch: 15 }, // Column E (Additional data if present)
+    { wch: 15 }, // Column F (Additional data if present)
+    { wch: 15 }, // Column G (Additional data if present)
+  ];
+
+  worksheet["!cols"] = columnWidths;
+
+  // Build cell styles
+  const titleStyle = {
+    font: { bold: true, color: { rgb: "2F5496" }, sz: 14 },
+    fill: { fgColor: { rgb: "FFFFFF" } },
+  };
+
+  const subtitleStyle = {
+    font: { bold: true, color: { rgb: "2F5496" }, sz: 12 },
+    fill: { fgColor: { rgb: "FFFFFF" } },
+  };
+
+  const headerStyle = {
+    font: { bold: true, color: { rgb: "FFFFFF" } },
+    fill: { fgColor: { rgb: "2F5496" } },
+    alignment: { horizontal: "center", vertical: "center" },
+    border: {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    },
+  };
+
+  const dataCellStyle = {
+    border: {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    },
+  };
+
+  const numericCellStyle = {
+    ...dataCellStyle,
+    alignment: { horizontal: "right" },
+  };
+
+  const labelCellStyle = {
+    ...dataCellStyle,
+    font: { bold: true },
+    fill: { fgColor: { rgb: "E7E6E6" } },
+  };
+
+  const activityStyle = {
+    ...dataCellStyle,
+    font: { bold: true, color: { rgb: "1F3864" } },
+    fill: { fgColor: { rgb: "E7E6E6" } },
+  };
+
+  const epicStyle = {
+    ...dataCellStyle,
+    font: { italic: true },
+  };
+
+  // If there's a title row, style it
+  if (options.titleRow !== undefined) {
+    // Create cell ref like A1, B1, etc.
+    const titleCell = XLSX.utils.encode_cell({ r: options.titleRow, c: 0 });
+    worksheet[titleCell].s = titleStyle;
+  }
+
+  // Style header row if specified
+  if (options.headerRow !== undefined) {
+    // Get the range of cells in the header row
+    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
+    for (let c = 0; c <= range.e.c; c++) {
+      const cell = XLSX.utils.encode_cell({ r: options.headerRow, c });
+      if (worksheet[cell]) {
+        worksheet[cell].s = headerStyle;
+      }
+    }
+  }
+
+  // Style main table data if specified
+  if (options.tableStartRow !== undefined && options.tableEndRow !== undefined) {
+    for (let r = options.tableStartRow; r <= options.tableEndRow; r++) {
+      // Label cells (first column)
+      const labelCell = XLSX.utils.encode_cell({ r, c: 0 });
+      if (worksheet[labelCell]) {
+        worksheet[labelCell].s = labelCellStyle;
+      }
+
+      // Data cells (second column)
+      const dataCell = XLSX.utils.encode_cell({ r, c: 1 });
+      if (worksheet[dataCell]) {
+        worksheet[dataCell].s = dataCellStyle;
+      }
+    }
+  }
+
+  // Style second table if specified
+  if (options.secondHeaderRow !== undefined) {
+    const headerCell = XLSX.utils.encode_cell({ r: options.secondHeaderRow, c: 0 });
+    if (worksheet[headerCell]) {
+      worksheet[headerCell].s = subtitleStyle;
+    }
+  }
+
+  if (options.secondTableStartRow !== undefined && options.secondTableEndRow !== undefined) {
+    for (let r = options.secondTableStartRow; r <= options.secondTableEndRow; r++) {
+      // Label cells (first column)
+      const labelCell = XLSX.utils.encode_cell({ r, c: 0 });
+      if (worksheet[labelCell]) {
+        worksheet[labelCell].s = labelCellStyle;
+      }
+
+      // Data cells (second column)
+      const dataCell = XLSX.utils.encode_cell({ r, c: 1 });
+      if (worksheet[dataCell]) {
+        worksheet[dataCell].s = dataCellStyle;
+      }
+    }
+  }
+
+  // Style third table if specified
+  if (options.thirdHeaderRow !== undefined) {
+    const headerCell = XLSX.utils.encode_cell({ r: options.thirdHeaderRow, c: 0 });
+    if (worksheet[headerCell]) {
+      worksheet[headerCell].s = subtitleStyle;
+    }
+  }
+
+  if (options.thirdTableStartRow !== undefined && options.thirdTableEndRow !== undefined) {
+    for (let r = options.thirdTableStartRow; r <= options.thirdTableEndRow; r++) {
+      // Label cells (first column)
+      const labelCell = XLSX.utils.encode_cell({ r, c: 0 });
+      if (worksheet[labelCell]) {
+        worksheet[labelCell].s = labelCellStyle;
+      }
+
+      // Data cells (second column)
+      const dataCell = XLSX.utils.encode_cell({ r, c: 1 });
+      if (worksheet[dataCell]) {
+        worksheet[dataCell].s = dataCellStyle;
+      }
+    }
+  }
+
+  // Style release table if specified
+  if (options.releaseHeaderRow !== undefined) {
+    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
+    for (let c = 0; c <= range.e.c; c++) {
+      const cell = XLSX.utils.encode_cell({ r: options.releaseHeaderRow, c });
+      if (worksheet[cell]) {
+        worksheet[cell].s = headerStyle;
+      }
+    }
+  }
+
+  if (options.releaseStartRow !== undefined && options.releaseEndRow !== undefined) {
+    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
+    for (let r = options.releaseStartRow; r <= options.releaseEndRow; r++) {
+      for (let c = 0; c <= range.e.c; c++) {
+        const cell = XLSX.utils.encode_cell({ r, c });
+        if (worksheet[cell]) {
+          if (c === 0) {
+            // Release name
+            worksheet[cell].s = { ...dataCellStyle, font: { bold: true } };
+          } else if (c === 2 || c === 3) {
+            // Hours and cost columns
+            worksheet[cell].s = numericCellStyle;
+          } else {
+            worksheet[cell].s = dataCellStyle;
+          }
+        }
+      }
+    }
+  }
+
+  // Style hierarchical data if specified
+  if (options.hierarchicalData) {
+    // We need to scan all data rows to find hierarchical data
+    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
+    // Skip first several rows which are headers
+    const dataStartRow = options.headerRow !== undefined ? options.headerRow + 1 : 11;
+
+    for (let r = dataStartRow; r <= range.e.r; r++) {
+      const nameCell = XLSX.utils.encode_cell({ r, c: 0 });
+      if (!worksheet[nameCell]) {
+        continue;
+      }
+
+      const nameValue = worksheet[nameCell].v?.toString() || "";
+
+      if (nameValue.trim().startsWith("  ")) {
+        // Story level (most indented)
+        for (let c = 0; c <= range.e.c; c++) {
+          const cell = XLSX.utils.encode_cell({ r, c });
+          if (worksheet[cell]) {
+            worksheet[cell].s = dataCellStyle;
+          }
+        }
+      } else if (nameValue.trim().startsWith(" ")) {
+        // Epic level
+        for (let c = 0; c <= range.e.c; c++) {
+          const cell = XLSX.utils.encode_cell({ r, c });
+          if (worksheet[cell]) {
+            worksheet[cell].s = epicStyle;
+          }
+        }
+      } else if (nameValue.trim() !== "") {
+        // Activity level (no indentation)
+        for (let c = 0; c <= range.e.c; c++) {
+          const cell = XLSX.utils.encode_cell({ r, c });
+          if (worksheet[cell]) {
+            worksheet[cell].s = activityStyle;
+          }
+        }
+      }
+    }
+  }
+};
+
+/**
+ * Generates data for the summary sheet
+ */
+const generateSummarySheetData = (
+  data: EstimationExportData,
+  filteredReleases: ReleaseEstimation[],
+  storyPointToHours: number,
+  overheadPercentage: number,
+  dailyBurnRate: number,
+  blendedHourlyRate: number
+): any[][] => {
+  // Format date function
+  const formatDate = (date: Date | null): string => {
+    if (!date) {
+      return "N/A";
+    }
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // Calculate totals for the selected releases
+  const selectedTotalStoryPoints = filteredReleases.reduce(
+    (sum, release) => sum + release.storyPoints,
+    0
+  );
+  const selectedTotalHours = filteredReleases.reduce((sum, release) => sum + release.hours, 0);
+  const selectedTotalCost = filteredReleases.reduce((sum, release) => sum + release.cost, 0);
+  const selectedTotalDaysToComplete = filteredReleases.reduce(
+    (sum, release) => sum + release.daysToComplete,
+    0
+  );
+
+  // Calculate selected releases start and end dates
+  const selectedStartDate = filteredReleases.length > 0 ? filteredReleases[0].startDate : null;
+  const selectedEndDate =
+    filteredReleases.length > 0 ? filteredReleases[filteredReleases.length - 1].endDate : null;
+
+  // Get current date and time for export metadata
+  const exportDate = new Date().toLocaleString();
+
+  // Start building the data array for the summary sheet
+  const summaryData: any[][] = [
+    [`${data.projectName} Estimation Report`],
+    [`Generated on: ${exportDate}`],
+    [],
+    ["Project Summary"],
+    [],
+    ["Metric", "Value"],
+    ["Timeline", `${formatDate(selectedStartDate)} - ${formatDate(selectedEndDate)}`],
+    ["Working Days to Complete", `${selectedTotalDaysToComplete} days`],
+    ["Total Story Points", selectedTotalStoryPoints],
+    ["Total Hours (Including Overhead)", selectedTotalHours],
+    ["Blended Hourly Rate", `$${blendedHourlyRate}`],
+    ["Total Estimated Cost", `$${selectedTotalCost.toLocaleString()}`],
+    [],
+    ["Estimation Configuration"],
+    [],
+    ["Effort Calculation", ""],
+    ["Story Point to Hours Conversion", `${storyPointToHours} hours per story point`],
+    ["Overhead Percentage (QA/PM)", `${overheadPercentage}%`],
+    [],
+    ["Timeline & Cost Calculation", ""],
+    ["Daily Burn Rate", `${dailyBurnRate} hours/day`],
+    ["Blended Hourly Rate", `$${blendedHourlyRate}/hour`],
+    [],
+    ["Release Summary"],
+    [],
+    ["Release", "Story Points", "Hours", "Cost", "Days to Complete", "Start Date", "End Date"],
+  ];
+
+  // Add each release to the summary
+  filteredReleases.forEach(release => {
+    summaryData.push([
+      release.name,
+      release.storyPoints,
+      release.hours,
+      `$${release.cost.toLocaleString()}`,
+      release.daysToComplete,
+      formatDate(release.startDate),
+      formatDate(release.endDate),
+    ]);
+  });
+
+  return summaryData;
+};
+
+/**
+ * Generates data for a release sheet with hierarchical structure
+ */
+const generateReleaseSheetData = (
+  release: ReleaseEstimation,
+  storyPointToHours: number,
+  overheadPercentage: number
+): any[][] => {
+  // Format date function
+  const formatDate = (date: Date | null): string => {
+    if (!date) {
+      return "N/A";
+    }
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // Start building the data array for the release sheet
+  const releaseData: any[][] = [
+    [`${release.name} Release Estimation`],
+    [],
+    ["Timeline", `${formatDate(release.startDate)} - ${formatDate(release.endDate)}`],
+    ["Working Days to Complete", `${release.daysToComplete} days`],
+    ["Total Story Points", release.storyPoints],
+    ["Total Hours (Including Overhead)", release.hours],
+    ["Estimated Cost", `$${release.cost.toLocaleString()}`],
+    [],
+    ["Activity / Epic / Story Breakdown"],
+    [],
+    ["Item", "Story Points", "Hours", "Description"],
+  ];
+
+  // Group epics by their parent activity
+  const epicsByActivity: { [activityId: string]: EpicEstimation[] } = {};
+
+  release.epics.forEach(epic => {
+    const activityId = epic.issue.parentId || "unknown";
+    if (!epicsByActivity[activityId]) {
+      epicsByActivity[activityId] = [];
+    }
+    epicsByActivity[activityId].push(epic);
+  });
+
+  // For simplicity, we'll just use the activity IDs for sorting
+  // Since we don't have parentDisplayOrder directly available
+  const activityOrder = Object.keys(epicsByActivity);
+
+  // Add activities, epics, and stories to the sheet in a hierarchical format
+  activityOrder.forEach(activityId => {
+    const epics = epicsByActivity[activityId];
+    if (epics.length > 0) {
+      // We might not have activity name directly available in the Issue model
+      // Use a generic name with the activity ID for now
+      const activityName = `Activity ${activityId.substring(0, 8)}`;
+
+      // Calculate activity totals
+      const activityStoryPoints = epics.reduce((sum, epic) => sum + epic.storyPoints, 0);
+      const activityHours = epics.reduce((sum, epic) => sum + epic.hours, 0);
+
+      // Add activity row
+      releaseData.push([activityName, activityStoryPoints, activityHours, ""]);
+
+      // Process each epic within this activity
+      epics
+        .sort((a, b) => a.issue.displayOrder - b.issue.displayOrder)
+        .forEach(epic => {
+          // Add epic row
+          releaseData.push([
+            `  ${epic.name}`,
+            epic.storyPoints,
+            epic.hours,
+            sanitizeHtml(epic.issue.description),
+          ]);
+
+          // Process each story within this epic
+          epic.stories
+            .sort((a, b) => a.issue.displayOrder - b.issue.displayOrder)
+            .forEach(story => {
+              // Add story row
+              releaseData.push([
+                `    ${story.name}`,
+                story.storyPoints,
+                story.hours,
+                sanitizeHtml(story.issue.description),
+              ]);
+            });
+        });
+
+      // Add a blank row after each activity for better readability
+      releaseData.push([]);
+    }
+  });
+
+  return releaseData;
 };

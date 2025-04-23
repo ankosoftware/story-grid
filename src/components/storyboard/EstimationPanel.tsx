@@ -37,6 +37,7 @@ import {
   estimateReleasesWithEpics,
   exportEstimationToMarkup,
   exportEstimationToHtml,
+  exportEstimationToExcel,
   EstimationExportData,
 } from "./utils";
 import ExportEstimationDialog, { ExportFormat } from "./dialogs/ExportEstimationDialog";
@@ -239,6 +240,9 @@ const EstimationPanel: React.FC<EstimationPanelProps> = ({
     if (format === ExportFormat.MARKDOWN) {
       // Export to markdown
       exportEstimationToMarkup(exportData, selectedReleaseIds);
+    } else if (format === ExportFormat.EXCEL) {
+      // Export to Excel
+      exportEstimationToExcel(exportData, selectedReleaseIds);
     } else {
       // Export to HTML
       exportEstimationToHtml(exportData, selectedReleaseIds);

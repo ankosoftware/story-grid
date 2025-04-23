@@ -11,6 +11,7 @@ export {
   generateEstimationHtml,
   openHtmlInNewWindow,
   exportEstimationToHtml,
+  exportEstimationToExcel,
   type EstimationExportData,
 } from "./estimationExport";
 export { estimateReleasesWithEpics } from "./estimationUtils";

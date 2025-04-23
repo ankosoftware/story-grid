@@ -1,5 +1,5 @@
 import { Issue, Release } from "@/lib/firebase/models/types";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 // Interface for estimation results
 interface EstimationDetails {
@@ -87,6 +87,22 @@ const sanitizeHtml = (text: string | undefined | null): string => {
     .replace(/\r/g, ""); // Remove carriage returns
 
   return sanitized;
+};
+
+/**
+ * Sanitizes a string to be used as a valid Excel worksheet name
+ * Excel worksheet names cannot contain: * ? : \ / [ ]
+ * @param name The original name to sanitize
+ * @returns A sanitized name valid for Excel worksheets
+ */
+const sanitizeWorksheetName = (name: string): string => {
+  // Replace invalid characters with underscores
+  const sanitized = name
+    .replace(/[\*\?\:\\/\[\]]/g, "_") // Replace Excel's invalid chars with underscore
+    .trim(); // Remove leading/trailing whitespace
+
+  // Excel worksheet names are limited to 31 characters
+  return sanitized.substring(0, 31);
 };
 
 /**
@@ -761,9 +777,27 @@ export const exportEstimationToExcel = (
   );
 
   // Create a new workbook
-  const workbook = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Storyboard App";
+  workbook.lastModifiedBy = "Storyboard App";
+  workbook.created = new Date();
+  workbook.modified = new Date();
 
-  // Create a summary sheet first
+  // Create a summary sheet
+  const summarySheet = workbook.addWorksheet("Summary");
+
+  // Set column widths
+  summarySheet.columns = [
+    { width: 45 }, // Column A (Names/Descriptions)
+    { width: 15 }, // Column B (Story Points/Values)
+    { width: 15 }, // Column C (Hours)
+    { width: 25 }, // Column D (Cost/Description)
+    { width: 15 }, // Column E (Additional data if present)
+    { width: 15 }, // Column F (Additional data if present)
+    { width: 15 }, // Column G (Additional data if present)
+  ];
+
+  // Get summary data
   const summaryData = generateSummarySheetData(
     data,
     filteredReleases,
@@ -772,306 +806,359 @@ export const exportEstimationToExcel = (
     dailyBurnRate,
     blendedHourlyRate
   );
-  const summaryWorksheet = XLSX.utils.aoa_to_sheet(summaryData);
 
-  // Apply styling to the summary sheet
-  applyExcelStyling(summaryWorksheet, {
-    headerRow: 5, // The row with "Metric", "Value" headers
-    tableStartRow: 6, // The first row of the main table data
-    tableEndRow: 11, // The last row of the main table data
-    secondHeaderRow: 15, // The "Effort Calculation" header
-    secondTableStartRow: 16, // Start of effort calculation table
-    secondTableEndRow: 17, // End of effort calculation table
-    thirdHeaderRow: 19, // The "Timeline & Cost Calculation" header
-    thirdTableStartRow: 20, // Start of timeline calculation table
-    thirdTableEndRow: 21, // End of timeline calculation table
-    releaseHeaderRow: 25, // The row with "Release", "Story Points", etc.
-    releaseStartRow: 26, // First row of release data
-    releaseEndRow: 26 + filteredReleases.length - 1, // Last row of release data
+  // Add data to summary sheet
+  summaryData.forEach(row => {
+    summarySheet.addRow(row);
   });
 
-  // Add the summary sheet to the workbook
-  XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Summary");
+  // Apply styling to the summary sheet
+  applySummarySheetStyling(summarySheet, filteredReleases.length);
 
   // Create a sheet for each release
   filteredReleases.forEach(release => {
-    const releaseData = generateReleaseSheetData(release, storyPointToHours, overheadPercentage);
-    const releaseWorksheet = XLSX.utils.aoa_to_sheet(releaseData);
+    // Sanitize the release name for use as a worksheet name
+    const worksheetName = sanitizeWorksheetName(release.name);
 
-    // Apply styling to the release sheet
-    applyExcelStyling(releaseWorksheet, {
-      titleRow: 0, // Title row
-      headerRow: 10, // Header row for the items table
-      hierarchicalData: true, // Indicates this sheet has hierarchical data
-      // We don't specify tableStartRow and tableEndRow for release worksheets
-      // because they're dynamically sized based on the data
+    // Add worksheet with sanitized name
+    const releaseSheet = workbook.addWorksheet(worksheetName);
+
+    // Set column widths
+    releaseSheet.columns = [
+      { width: 45 }, // Column A (Names/Descriptions)
+      { width: 15 }, // Column B (Story Points)
+      { width: 15 }, // Column C (Hours)
+      { width: 25 }, // Column D (Description)
+    ];
+
+    // Get release data
+    const releaseData = generateReleaseSheetData(release, storyPointToHours, overheadPercentage);
+
+    // Add data to release sheet
+    releaseData.forEach(row => {
+      releaseSheet.addRow(row);
     });
 
-    // Add the release sheet to the workbook
-    XLSX.utils.book_append_sheet(workbook, releaseWorksheet, release.name.substring(0, 31)); // Excel limits sheet names to 31 chars
+    // Apply styling to the release sheet
+    applyReleaseSheetStyling(releaseSheet);
   });
 
   // Generate a filename
   const filename = `estimation-export-${projectName.replace(/[^a-z0-9]/gi, "-")}-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
   // Write the workbook to file and initiate download
-  XLSX.writeFile(workbook, filename);
+  workbook.xlsx.writeBuffer().then(buffer => {
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  });
 
   return filename;
 };
 
 /**
- * Styling options for Excel worksheets
+ * Apply styling to the summary sheet
+ * @param worksheet ExcelJS worksheet to style
+ * @param releaseCount Number of releases
  */
-interface ExcelStylingOptions {
-  titleRow?: number; // Row containing the title
-  headerRow?: number; // Row containing the column headers
-  tableStartRow?: number; // First row of table data
-  tableEndRow?: number; // Last row of table data
-  secondHeaderRow?: number; // Row containing second table header
-  secondTableStartRow?: number; // First row of second table
-  secondTableEndRow?: number; // Last row of second table
-  thirdHeaderRow?: number; // Row containing third table header
-  thirdTableStartRow?: number; // First row of third table
-  thirdTableEndRow?: number; // Last row of third table
-  releaseHeaderRow?: number; // Row containing release table headers
-  releaseStartRow?: number; // First row of release data
-  releaseEndRow?: number; // Last row of release data
-  hierarchicalData?: boolean; // Whether the data is hierarchical (indented)
-}
+const applySummarySheetStyling = (worksheet: ExcelJS.Worksheet, releaseCount: number): void => {
+  // Title styles
+  worksheet.getCell("A1").font = {
+    bold: true,
+    color: { argb: "FF2F5496" },
+    size: 14,
+  };
+
+  // Export date styling
+  worksheet.getCell("A2").font = {
+    italic: true,
+    color: { argb: "FF666666" },
+  };
+
+  // "Project Summary" subtitle
+  worksheet.getCell("A4").font = {
+    bold: true,
+    color: { argb: "FF2F5496" },
+    size: 12,
+  };
+
+  // Main summary table headers (row 6)
+  const headerRow = worksheet.getRow(6);
+  headerRow.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF2F5496" },
+    };
+    cell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+  });
+
+  // Main summary table (rows 6-11)
+  for (let i = 6; i <= 11; i++) {
+    // Label cells (first column)
+    const labelCell = worksheet.getCell(`A${i}`);
+    labelCell.font = { bold: true };
+    labelCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE7E6E6" },
+    };
+    labelCell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+
+    // Value cells (second column)
+    const valueCell = worksheet.getCell(`B${i}`);
+    valueCell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+  }
+
+  // Configuration section headers
+  worksheet.getCell("A14").font = {
+    bold: true,
+    color: { argb: "FF2F5496" },
+    size: 12,
+  };
+
+  // "Effort Calculation" subtitle
+  worksheet.getCell("A16").font = {
+    bold: true,
+    color: { argb: "FF2F5496" },
+  };
+
+  // Effort calculation table (rows 16-17)
+  for (let i = 16; i <= 17; i++) {
+    // Label cells
+    const labelCell = worksheet.getCell(`A${i}`);
+    labelCell.font = { bold: true };
+    labelCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE7E6E6" },
+    };
+    labelCell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+
+    // Value cells
+    const valueCell = worksheet.getCell(`B${i}`);
+    valueCell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+  }
+
+  // "Timeline & Cost Calculation" subtitle
+  worksheet.getCell("A20").font = {
+    bold: true,
+    color: { argb: "FF2F5496" },
+  };
+
+  // Timeline calculation table (rows 20-21)
+  for (let i = 20; i <= 21; i++) {
+    // Label cells
+    const labelCell = worksheet.getCell(`A${i}`);
+    labelCell.font = { bold: true };
+    labelCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE7E6E6" },
+    };
+    labelCell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+
+    // Value cells
+    const valueCell = worksheet.getCell(`B${i}`);
+    valueCell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+  }
+
+  // "Release Summary" subtitle
+  worksheet.getCell("A24").font = {
+    bold: true,
+    color: { argb: "FF2F5496" },
+    size: 12,
+  };
+
+  // Release summary table header (row 26)
+  const releaseHeaderRow = worksheet.getRow(26);
+  releaseHeaderRow.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF2F5496" },
+    };
+    cell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+  });
+
+  // Release summary table data
+  for (let i = 27; i <= 26 + releaseCount; i++) {
+    const row = worksheet.getRow(i);
+
+    row.eachCell((cell, colNumber) => {
+      // Apply borders to all cells
+      cell.border = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
+
+      // First column (release name) should be bold
+      if (colNumber === 1) {
+        cell.font = { bold: true };
+      }
+
+      // Hours and cost columns should be right-aligned
+      if (colNumber === 3 || colNumber === 4) {
+        cell.alignment = { horizontal: "right" };
+      }
+    });
+  }
+};
 
 /**
- * Apply styling to an Excel worksheet
- * @param worksheet XLSX worksheet to style
- * @param options Styling options
+ * Apply styling to a release sheet
+ * @param worksheet ExcelJS worksheet to style
  */
-const applyExcelStyling = (worksheet: XLSX.WorkSheet, options: ExcelStylingOptions): void => {
-  // We can't directly style the worksheet with the XLSX library
-  // Instead, we'll add cell formatting properties that Excel will recognize
-
-  // Set column widths
-  const columnWidths = [
-    { wch: 45 }, // Column A (Names/Descriptions)
-    { wch: 15 }, // Column B (Story Points)
-    { wch: 15 }, // Column C (Hours)
-    { wch: 25 }, // Column D (Cost/Description)
-    { wch: 15 }, // Column E (Additional data if present)
-    { wch: 15 }, // Column F (Additional data if present)
-    { wch: 15 }, // Column G (Additional data if present)
-  ];
-
-  worksheet["!cols"] = columnWidths;
-
-  // Build cell styles
-  const titleStyle = {
-    font: { bold: true, color: { rgb: "2F5496" }, sz: 14 },
-    fill: { fgColor: { rgb: "FFFFFF" } },
+const applyReleaseSheetStyling = (worksheet: ExcelJS.Worksheet): void => {
+  // Release title (row 1)
+  worksheet.getCell("A1").font = {
+    bold: true,
+    color: { argb: "FF2F5496" },
+    size: 14,
   };
 
-  const subtitleStyle = {
-    font: { bold: true, color: { rgb: "2F5496" }, sz: 12 },
-    fill: { fgColor: { rgb: "FFFFFF" } },
-  };
-
-  const headerStyle = {
-    font: { bold: true, color: { rgb: "FFFFFF" } },
-    fill: { fgColor: { rgb: "2F5496" } },
-    alignment: { horizontal: "center", vertical: "center" },
-    border: {
+  // Release summary (rows 3-7)
+  for (let i = 3; i <= 7; i++) {
+    // Label cells
+    const labelCell = worksheet.getCell(`A${i}`);
+    labelCell.font = { bold: true };
+    labelCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE7E6E6" },
+    };
+    labelCell.border = {
       top: { style: "thin" },
       bottom: { style: "thin" },
       left: { style: "thin" },
       right: { style: "thin" },
-    },
-  };
+    };
 
-  const dataCellStyle = {
-    border: {
+    // Value cells
+    const valueCell = worksheet.getCell(`B${i}`);
+    valueCell.border = {
       top: { style: "thin" },
       bottom: { style: "thin" },
       left: { style: "thin" },
       right: { style: "thin" },
-    },
+    };
+  }
+
+  // Breakdown title (row 9)
+  worksheet.getCell("A9").font = {
+    bold: true,
+    color: { argb: "FF2F5496" },
+    size: 12,
   };
 
-  const numericCellStyle = {
-    ...dataCellStyle,
-    alignment: { horizontal: "right" },
-  };
+  // Table headers (row 11)
+  const headerRow = worksheet.getRow(11);
+  headerRow.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF2F5496" },
+    };
+    cell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+  });
 
-  const labelCellStyle = {
-    ...dataCellStyle,
-    font: { bold: true },
-    fill: { fgColor: { rgb: "E7E6E6" } },
-  };
+  // Style hierarchical data (activity/epic/story)
+  let currentRow = 12; // Start after headers
 
-  const activityStyle = {
-    ...dataCellStyle,
-    font: { bold: true, color: { rgb: "1F3864" } },
-    fill: { fgColor: { rgb: "E7E6E6" } },
-  };
+  while (worksheet.getRow(currentRow).getCell(1).value) {
+    const row = worksheet.getRow(currentRow);
+    const cellValue = row.getCell(1).value?.toString() || "";
 
-  const epicStyle = {
-    ...dataCellStyle,
-    font: { italic: true },
-  };
+    // Apply borders to all cells in the row
+    row.eachCell(cell => {
+      cell.border = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
 
-  // If there's a title row, style it
-  if (options.titleRow !== undefined) {
-    // Create cell ref like A1, B1, etc.
-    const titleCell = XLSX.utils.encode_cell({ r: options.titleRow, c: 0 });
-    worksheet[titleCell].s = titleStyle;
-  }
-
-  // Style header row if specified
-  if (options.headerRow !== undefined) {
-    // Get the range of cells in the header row
-    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
-    for (let c = 0; c <= range.e.c; c++) {
-      const cell = XLSX.utils.encode_cell({ r: options.headerRow, c });
-      if (worksheet[cell]) {
-        worksheet[cell].s = headerStyle;
-      }
+    // Apply specific styling based on indentation
+    if (cellValue.trim().startsWith("  ")) {
+      // Story level - regular styling with borders already applied
+    } else if (cellValue.trim().startsWith(" ")) {
+      // Epic level - italic
+      row.eachCell(cell => {
+        cell.font = { italic: true };
+      });
+    } else if (cellValue.trim() !== "") {
+      // Activity level - bold, colored, with background
+      row.eachCell(cell => {
+        cell.font = { bold: true, color: { argb: "FF1F3864" } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFE7E6E6" },
+        };
+      });
     }
-  }
 
-  // Style main table data if specified
-  if (options.tableStartRow !== undefined && options.tableEndRow !== undefined) {
-    for (let r = options.tableStartRow; r <= options.tableEndRow; r++) {
-      // Label cells (first column)
-      const labelCell = XLSX.utils.encode_cell({ r, c: 0 });
-      if (worksheet[labelCell]) {
-        worksheet[labelCell].s = labelCellStyle;
-      }
-
-      // Data cells (second column)
-      const dataCell = XLSX.utils.encode_cell({ r, c: 1 });
-      if (worksheet[dataCell]) {
-        worksheet[dataCell].s = dataCellStyle;
-      }
-    }
-  }
-
-  // Style second table if specified
-  if (options.secondHeaderRow !== undefined) {
-    const headerCell = XLSX.utils.encode_cell({ r: options.secondHeaderRow, c: 0 });
-    if (worksheet[headerCell]) {
-      worksheet[headerCell].s = subtitleStyle;
-    }
-  }
-
-  if (options.secondTableStartRow !== undefined && options.secondTableEndRow !== undefined) {
-    for (let r = options.secondTableStartRow; r <= options.secondTableEndRow; r++) {
-      // Label cells (first column)
-      const labelCell = XLSX.utils.encode_cell({ r, c: 0 });
-      if (worksheet[labelCell]) {
-        worksheet[labelCell].s = labelCellStyle;
-      }
-
-      // Data cells (second column)
-      const dataCell = XLSX.utils.encode_cell({ r, c: 1 });
-      if (worksheet[dataCell]) {
-        worksheet[dataCell].s = dataCellStyle;
-      }
-    }
-  }
-
-  // Style third table if specified
-  if (options.thirdHeaderRow !== undefined) {
-    const headerCell = XLSX.utils.encode_cell({ r: options.thirdHeaderRow, c: 0 });
-    if (worksheet[headerCell]) {
-      worksheet[headerCell].s = subtitleStyle;
-    }
-  }
-
-  if (options.thirdTableStartRow !== undefined && options.thirdTableEndRow !== undefined) {
-    for (let r = options.thirdTableStartRow; r <= options.thirdTableEndRow; r++) {
-      // Label cells (first column)
-      const labelCell = XLSX.utils.encode_cell({ r, c: 0 });
-      if (worksheet[labelCell]) {
-        worksheet[labelCell].s = labelCellStyle;
-      }
-
-      // Data cells (second column)
-      const dataCell = XLSX.utils.encode_cell({ r, c: 1 });
-      if (worksheet[dataCell]) {
-        worksheet[dataCell].s = dataCellStyle;
-      }
-    }
-  }
-
-  // Style release table if specified
-  if (options.releaseHeaderRow !== undefined) {
-    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
-    for (let c = 0; c <= range.e.c; c++) {
-      const cell = XLSX.utils.encode_cell({ r: options.releaseHeaderRow, c });
-      if (worksheet[cell]) {
-        worksheet[cell].s = headerStyle;
-      }
-    }
-  }
-
-  if (options.releaseStartRow !== undefined && options.releaseEndRow !== undefined) {
-    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
-    for (let r = options.releaseStartRow; r <= options.releaseEndRow; r++) {
-      for (let c = 0; c <= range.e.c; c++) {
-        const cell = XLSX.utils.encode_cell({ r, c });
-        if (worksheet[cell]) {
-          if (c === 0) {
-            // Release name
-            worksheet[cell].s = { ...dataCellStyle, font: { bold: true } };
-          } else if (c === 2 || c === 3) {
-            // Hours and cost columns
-            worksheet[cell].s = numericCellStyle;
-          } else {
-            worksheet[cell].s = dataCellStyle;
-          }
-        }
-      }
-    }
-  }
-
-  // Style hierarchical data if specified
-  if (options.hierarchicalData) {
-    // We need to scan all data rows to find hierarchical data
-    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
-    // Skip first several rows which are headers
-    const dataStartRow = options.headerRow !== undefined ? options.headerRow + 1 : 11;
-
-    for (let r = dataStartRow; r <= range.e.r; r++) {
-      const nameCell = XLSX.utils.encode_cell({ r, c: 0 });
-      if (!worksheet[nameCell]) {
-        continue;
-      }
-
-      const nameValue = worksheet[nameCell].v?.toString() || "";
-
-      if (nameValue.trim().startsWith("  ")) {
-        // Story level (most indented)
-        for (let c = 0; c <= range.e.c; c++) {
-          const cell = XLSX.utils.encode_cell({ r, c });
-          if (worksheet[cell]) {
-            worksheet[cell].s = dataCellStyle;
-          }
-        }
-      } else if (nameValue.trim().startsWith(" ")) {
-        // Epic level
-        for (let c = 0; c <= range.e.c; c++) {
-          const cell = XLSX.utils.encode_cell({ r, c });
-          if (worksheet[cell]) {
-            worksheet[cell].s = epicStyle;
-          }
-        }
-      } else if (nameValue.trim() !== "") {
-        // Activity level (no indentation)
-        for (let c = 0; c <= range.e.c; c++) {
-          const cell = XLSX.utils.encode_cell({ r, c });
-          if (worksheet[cell]) {
-            worksheet[cell].s = activityStyle;
-          }
-        }
-      }
-    }
+    currentRow++;
   }
 };
 

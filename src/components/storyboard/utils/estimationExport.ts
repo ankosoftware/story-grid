@@ -1148,6 +1148,7 @@ const applyReleaseSheetStyling = (worksheet: ExcelJS.Worksheet): void => {
     // Apply specific styling based on indentation
     if (cellValue.trim().startsWith("  ")) {
       // Story level - regular styling with borders already applied
+      // No bold font for stories
     } else if (cellValue.trim().startsWith(" ")) {
       // Epic level - italic
       row.eachCell(cell => {
@@ -1319,30 +1320,21 @@ const generateReleaseSheetData = (
         release.activities?.find(activity => activity.id === activityId)?.name ||
         `Activity ${activityId}`;
 
-      // Calculate activity totals
-      const activityStoryPoints = epics.reduce((sum, epic) => sum + epic.storyPoints, 0);
-      const activityHours = epics.reduce((sum, epic) => sum + epic.hours, 0);
-
-      // Add activity row
-      releaseData.push([activityName, activityStoryPoints, activityHours, ""]);
+      // Add activity row - no story points or hours at this level
+      releaseData.push([activityName, "", "", ""]);
 
       // Process each epic within this activity
       epics
         .sort((a, b) => a.issue.displayOrder - b.issue.displayOrder)
         .forEach(epic => {
-          // Add epic row
-          releaseData.push([
-            `  ${epic.name}`,
-            epic.storyPoints,
-            epic.hours,
-            sanitizeHtml(epic.issue.description),
-          ]);
+          // Add epic row - no story points or hours at this level
+          releaseData.push([`  ${epic.name}`, "", "", sanitizeHtml(epic.issue.description)]);
 
           // Process each story within this epic
           epic.stories
             .sort((a, b) => a.issue.displayOrder - b.issue.displayOrder)
             .forEach(story => {
-              // Add story row
+              // Add story row - include story points and hours only at this level
               releaseData.push([
                 `    ${story.name}`,
                 story.storyPoints,

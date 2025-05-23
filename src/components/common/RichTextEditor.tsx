@@ -48,6 +48,10 @@ const hasHtmlTagsRegex = /<[a-z][\s\S]*>/i;
 // Initialize lowlight with common languages
 const lowlight = createLowlight(common);
 
+const isMarkdown = (content: string) => {
+  return /^\s*#/.test(content);
+};
+
 /**
  * Rich Text Editor Component that supports both HTML and Markdown
  *
@@ -126,14 +130,15 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }
 
       // Check if content is HTML and convert if needed
-      if (hasHtmlTagsRegex.test(content)) {
-        try {
-          return turndownService.turndown(content);
-        } catch (error) {
-          console.error("Error converting HTML to Markdown:", error);
-          return content; // Return original content if conversion fails
-        }
-      }
+      //   if (!isMarkdown(content) && hasHtmlTagsRegex.test(content)) {
+      //     try {
+      //       console.log("Converting HTML to Markdown:", content);
+      //       return turndownService.turndown(content);
+      //     } catch (error) {
+      //       console.error("Error converting HTML to Markdown:", error);
+      //       return content; // Return original content if conversion fails
+      //     }
+      //   }
 
       return content; // Return as-is if not HTML
     },

@@ -3,6 +3,8 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { Markdown } from "tiptap-markdown";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { common, createLowlight } from "lowlight";
 import TurndownService from "turndown";
 import "@/styles/RichTextEditor.css";
 import {
@@ -23,6 +25,7 @@ import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import ImageIcon from "@mui/icons-material/Image";
 import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
 import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
+import CodeIcon from "@mui/icons-material/Code";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import { uploadBase64Image } from "@/lib/firebase/storage";
@@ -42,6 +45,9 @@ export interface RichTextEditorProps {
 // Simple HTML tag detection regex
 const hasHtmlTagsRegex = /<[a-z][\s\S]*>/i;
 
+// Initialize lowlight with common languages
+const lowlight = createLowlight(common);
+
 /**
  * Rich Text Editor Component that supports both HTML and Markdown
  *
@@ -51,6 +57,8 @@ const hasHtmlTagsRegex = /<[a-z][\s\S]*>/i;
  * - Always outputs content as Markdown
  * - Provides rich text editing UI (bold, italic, lists, etc.)
  * - Supports image uploads (with Firebase Storage integration)
+ * - Supports code blocks with syntax highlighting
+ * - Handles pasting of markup text
  */
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
@@ -84,6 +92,29 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       },
     });
 
+    // Add rule for code blocks
+    service.addRule("codeBlocks", {
+      filter: ["pre"],
+      replacement: function (content, node) {
+        const code = node.querySelector("code");
+        const language = code?.className?.replace(/^language-/, "") || "";
+        const codeContent = code ? code.textContent : node.textContent;
+        return `\n\`\`\`${language}\n${codeContent}\n\`\`\`\n`;
+      },
+    });
+
+    // Add rule for inline code
+    service.addRule("inlineCode", {
+      filter: function (node) {
+        const isCodeNotInPre =
+          node.nodeName === "CODE" && !node.parentNode?.nodeName.match(/^PRE$/i);
+        return isCodeNotInPre;
+      },
+      replacement: function (content) {
+        return "`" + content + "`";
+      },
+    });
+
     return service;
   }, []);
 
@@ -111,16 +142,25 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        codeBlock: false, // Disable default code block to use CodeBlockLowlight
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+        defaultLanguage: "plaintext",
+      }),
       Image.configure({
         inline: true,
         allowBase64: true,
       }),
       Markdown.configure({
-        html: false,
+        html: true,
         tightLists: true,
         bulletListMarker: "-",
         linkify: true,
+        transformPastedText: true,
+        transformCopiedText: true,
+        breaks: true,
       }),
     ],
     content: processInitialContent(value) || "",
@@ -134,6 +174,32 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       attributes: {
         class: "rich-text-editor-content",
         style: `min-height: ${minHeight}px; max-height: ${maxHeight}px; overflow-y: auto;`,
+      },
+      handlePaste: (view, event, slice) => {
+        // Let the built-in paste handler handle images and other non-text content
+        if (!editor || !event.clipboardData || event.clipboardData.files.length > 0) {
+          return false;
+        }
+
+        // Check if there's text/html content in the clipboard
+        const html = event.clipboardData.getData("text/html");
+        // const text = event.clipboardData.getData("text/plain");
+        // If we have HTML content, try to process it
+        if (html && html.trim()) {
+          try {
+            // Convert HTML to Markdown
+            const markdown = turndownService.turndown(html);
+
+            editor.commands.insertContent(markdown);
+            return true; // Indicate we've handled the paste
+          } catch (error) {
+            console.error("Error processing pasted HTML:", error);
+            // Fall through to default handler
+          }
+        }
+
+        // Let the default handler process the paste
+        return false;
       },
     },
   });
@@ -282,6 +348,13 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     input.click();
   }, [disabled]);
 
+  // Toggle code block
+  const toggleCodeBlock = useCallback(() => {
+    if (editor) {
+      editor.chain().focus().toggleCodeBlock().run();
+    }
+  }, [editor]);
+
   if (!editor) {
     return <CircularProgress size={24} />;
   }
@@ -360,6 +433,17 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               onClick={() => editor.chain().focus().toggleBlockquote().run()}
             >
               <FormatQuoteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Code Block">
+            <IconButton
+              color={editor.isActive("codeBlock") ? "primary" : "default"}
+              disabled={disabled}
+              size="small"
+              onClick={toggleCodeBlock}
+            >
+              <CodeIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 

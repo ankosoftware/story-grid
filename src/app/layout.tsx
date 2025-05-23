@@ -4,6 +4,7 @@ import "./globals.css";
 import ThemeRegistry from "../lib/theme/ThemeRegistry";
 import { AuthProvider } from "../lib/auth/AuthProvider";
 import { TenantProvider } from "../lib/context/TenantContext";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +28,17 @@ export default function RootLayout({
 }>) {
   return (
     <html className={`${geistSans.variable} ${geistMono.variable}`} lang="en">
+      <head>
+        <Script id="markdown-it-fix" strategy="beforeInteractive">
+          {`
+            if (typeof window !== 'undefined' && typeof window.isSpace === 'undefined') {
+              window.isSpace = function(code) {
+                return code === 0x20 || code === 0x09 || code === 0x0A || code === 0x0B || code === 0x0C || code === 0x0D;
+              };
+            }
+          `}
+        </Script>
+      </head>
       <body>
         <ThemeRegistry>
           <AuthProvider>

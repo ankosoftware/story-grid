@@ -15,8 +15,9 @@ import {
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import FolderIcon from "@mui/icons-material/Folder";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 interface HeaderProps {
   title: string;
@@ -24,6 +25,8 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
   const theme = useTheme();
+  const router = useRouter();
+  const { logOut } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const pathname = usePathname();
@@ -34,6 +37,16 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    handleClose();
+    try {
+      await logOut();
+      router.push("/login");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   const menuItems = [
@@ -104,7 +117,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
           >
             <MenuItem onClick={handleClose}>Profile</MenuItem>
             <MenuItem onClick={handleClose}>Settings</MenuItem>
-            <MenuItem onClick={handleClose}>Logout</MenuItem>
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
           </Menu>
         </Box>
       </Toolbar>

@@ -10,13 +10,13 @@ export const CARD_TEXT_WIDTH = 70; // Width for text area inside story cards (le
 export const CARD_TEXT_HEIGHT = 40; // Height for text area inside story cards
 
 // Gaps between cards (MUI spacing units, 1 unit = 8px)
-export const EPIC_GAP = 3; // 24px - gap between epic columns
+export const EPIC_GAP = 2; // 16px - gap between epic columns
 export const STORY_GAP = 1; // 8px - gap between story cards vertically
 
 // Margins (MUI spacing units)
 export const ACTIVITY_MARGIN_X = 0; // horizontal margin between activities
 export const RELEASE_ROW_MARGIN_BOTTOM = 2; // 16px - space below each release row
-export const EPIC_COLUMN_PADDING_X = 1; // 8px - padding inside epic columns
+export const EPIC_COLUMN_PADDING_X = 2; // 16px - padding inside epic columns
 
 // Calculated values for width computation (in pixels)
 export const CARD_PADDING = 16; // px: 1 = 8px * 2 sides

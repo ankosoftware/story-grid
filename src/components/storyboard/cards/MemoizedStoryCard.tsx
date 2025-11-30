@@ -47,6 +47,7 @@ export const MemoizedStoryCard = memo(
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
+      overflow: "visible",
       cursor: "pointer",
       borderRadius: 1,
       "&:hover": {
@@ -73,8 +74,17 @@ export const MemoizedStoryCard = memo(
 
     return (
       <Card sx={cardStyles} onClick={handleCardClick}>
-        <CardContent sx={{ p: 0.5, "&:last-child": { pb: 0.5 } }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <CardContent
+          data-testid="memoized-story-card-content"
+          sx={{ p: 0.5, "&:last-child": { pb: 0.5 }, width: CARD_WIDTH_STYLE }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
             <Typography
               sx={{
                 overflow: "hidden",

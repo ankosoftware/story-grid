@@ -122,6 +122,7 @@ export const StoryMapCard = memo(
 
     return (
       <Card
+        data-testid={`story-map-card-${type}`}
         sx={{
           ...(cardStyles[type] || cardStyles.blank),
           mb: 0.5,
@@ -139,6 +140,7 @@ export const StoryMapCard = memo(
         onClick={onClick}
       >
         <CardContent
+          data-testid={`story-map-card-content-${type}`}
           sx={{
             p: 0.5,
             pt: paddingTop,

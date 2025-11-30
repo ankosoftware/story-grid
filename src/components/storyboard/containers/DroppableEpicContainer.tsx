@@ -284,7 +284,10 @@ export const DroppableEpicContainer = memo(
     // Memoized container style
     const containerStyle = useMemo(
       () => ({
-        p: 1,
+        paddingTop: 1,
+        paddingBottom: 1,
+        paddingLeft: 0,
+        paddingRight: 1,
         borderRadius: 1,
         transition: "all 0.2s ease",
         background: isOver && canDrop ? "rgba(0, 172, 193, 0.2)" : "transparent",
@@ -295,7 +298,7 @@ export const DroppableEpicContainer = memo(
     );
 
     return (
-      <Box ref={dropRef} sx={containerStyle}>
+      <Box ref={dropRef} data-testid={`droppable-epic-${epic.id}`} sx={containerStyle}>
         {childrenWithIndicators}
       </Box>
     );

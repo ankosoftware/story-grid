@@ -789,11 +789,12 @@ export default function StoryMap({
     (epic: Issue) => (
       <Box
         key={epic.id}
+        data-testid={`epic-card-${epic.id}`}
         sx={{
           flex: 1,
           minWidth: 0,
           borderRight: `1px solid ${theme.palette.divider}`,
-          px: SPACING.EPIC_COLUMN_PADDING_X,
+          paddingRight: SPACING.EPIC_COLUMN_PADDING_X,
           height: "100%",
           display: "flex",
           flexDirection: "column",
@@ -975,6 +976,7 @@ export default function StoryMap({
                       <>
                         {/* Epics Row - Horizontal */}
                         <Box
+                          data-testid={`epics-row-${activity.id}`}
                           sx={{
                             display: "flex",
                             flexDirection: "row",
@@ -1026,9 +1028,13 @@ export default function StoryMap({
             </DroppableActivityRowContainer>
           </Box>
           {releases.map((release, index) => (
-            <Box key={release.id} sx={{ minWidth: activities.length * 250 }}>
+            <Box
+              key={release.id}
+              data-testid={`release-section-${release.id}`}
+              sx={{ minWidth: activities.length * 250 }}
+            >
               {/* Release Header */}
-              <Box sx={{ display: "flex", width: "100%" }}>
+              <Box data-release-id={release.id} sx={{ display: "flex", width: "100%" }}>
                 <MemoizedReleaseCard
                   handleMoveRelease={handleMoveRelease}
                   handleOpenReleaseForEdit={handleOpenReleaseForEdit}
@@ -1039,18 +1045,20 @@ export default function StoryMap({
                 />
               </Box>
               <Box
+                data-testid={`release-row-${release.id}`}
                 sx={{
                   display: "flex",
                   alignItems: "flex-start",
                   mb: SPACING.RELEASE_ROW_MARGIN_BOTTOM,
+                  px: 2,
                 }}
               >
                 {activities.map(activity => (
                   <Box
                     key={activity.id}
+                    data-testid={`activity-column-${activity.id}-${release.id}`}
                     sx={{
                       mx: SPACING.ACTIVITY_MARGIN_X,
-                      width: getActivityColumnWidth(activity.id),
                     }}
                   >
                     {/* Add placeholder for activity */}
@@ -1060,12 +1068,14 @@ export default function StoryMap({
                     {!collapsedActivities.includes(activity.id) ? (
                       /* Epics Row - Horizontal */
                       <Box
+                        data-testid={`epics-story-row-${activity.id}-${release.id}`}
                         sx={{
                           display: "flex",
                           flexDirection: "row",
                           gap: SPACING.EPIC_GAP,
                           mb: SPACING.STORY_GAP,
                           height: "100%",
+                          pr: 1,
                         }}
                       >
                         {epics[activity.id] &&
@@ -1076,7 +1086,7 @@ export default function StoryMap({
                                 flex: 1,
                                 minWidth: 0,
                                 borderRight: `1px solid ${theme.palette.divider}`,
-                                px: SPACING.EPIC_COLUMN_PADDING_X,
+                                paddingRight: SPACING.EPIC_COLUMN_PADDING_X,
                                 height: "100%",
                                 display: "flex",
                                 flexDirection: "column",
@@ -1093,12 +1103,19 @@ export default function StoryMap({
                                   fontWeight: "bold",
                                   bgcolor: theme.palette.grey[200],
                                   borderRadius: "8px",
-                                  marginLeft: "8px",
+                                  marginLeft: "0px",
                                 }}
                               />
                               {/* Stories Column - Vertical under each epic */}
-                              <DroppableEpicContainer epic={epic} releaseId={release.id}>
-                                <Box sx={{ mb: SPACING.STORY_GAP, flexGrow: 1 }}>
+                              <DroppableEpicContainer
+                                data-testid={`stories-column-${epic.id}-${release.id}`}
+                                epic={epic}
+                                releaseId={release.id}
+                              >
+                                <Box
+                                  data-testid={`stories-column-box-${epic.id}-${release.id}`}
+                                  sx={{ mb: SPACING.STORY_GAP, flexGrow: 1 }}
+                                >
                                   {issues[epic.id] && issues[epic.id].length > 0 ? (
                                     issues[epic.id]
                                       .filter(story => story.releaseId === release.id)

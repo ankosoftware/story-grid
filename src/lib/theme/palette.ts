@@ -109,9 +109,9 @@ export const lightPalette = {
     low: "#22c55e", // Green 500
   },
   status: {
-    todo: "#e2e8f0", // Slate 200
-    inProgress: "#bfdbfe", // Blue 200
-    done: "#bbf7d0", // Green 200
+    todo: "#64748b", // Slate 500 - readable with white text
+    inProgress: "#3b82f6", // Blue 500 - vibrant blue
+    done: "#22c55e", // Green 500 - vibrant green
   },
 };
 
@@ -179,8 +179,8 @@ export const darkPalette = {
     low: "#4ade80", // Green 400
   },
   status: {
-    todo: "#334155", // Slate 700
-    inProgress: "#1e3a5f", // Blue tinted dark
-    done: "#14532d", // Green 900
+    todo: "#475569", // Slate 600 - more visible
+    inProgress: "#3b82f6", // Blue 500 - vibrant blue
+    done: "#22c55e", // Green 500 - vibrant green
   },
 };

@@ -7,7 +7,7 @@ export const CARD_HEIGHT = 50;
 
 // Internal card dimensions (in pixels)
 export const CARD_TEXT_WIDTH = 70; // Width for text area inside story cards (leaves space for icons)
-export const CARD_TEXT_HEIGHT = 40; // Height for text area inside story cards
+export const CARD_TEXT_HEIGHT = 25; // Height for text area inside story cards
 
 // Gaps between cards (MUI spacing units, 1 unit = 8px)
 export const EPIC_GAP = 2; // 16px - gap between epic columns

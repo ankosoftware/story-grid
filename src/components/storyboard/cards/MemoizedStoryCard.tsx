@@ -90,11 +90,12 @@ export const MemoizedStoryCard = memo(
               sx={{
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                fontSize: "0.75rem",
-                lineHeight: 1.2,
+                fontSize: "0.725rem",
+                lineHeight: 1.1,
                 width: CARD_TEXT_WIDTH_STYLE,
                 maxWidth: CARD_TEXT_WIDTH_STYLE,
                 height: CARD_TEXT_HEIGHT_STYLE,
+                verticalAlign: "top",
               }}
               variant="body2"
             >
@@ -172,22 +173,26 @@ export const MemoizedStoryCard = memo(
               mt: 0.1,
             }}
           >
-            {story.status !== IssueStatus.TO_DO && (
-              <Chip
-                label={story.status}
-                size="small"
-                sx={{
-                  fontSize: "0.6rem",
-                  bgcolor: getStatusColor(story.status),
-                  color:
-                    theme.palette.mode === "dark"
-                      ? theme.palette.common.white
-                      : theme.palette.text.primary,
-                  height: "14px",
-                  borderRadius: "7px",
-                }}
-              />
-            )}
+            <Chip
+              label={story.status}
+              size="small"
+              sx={{
+                fontSize: "0.6rem",
+                bgcolor:
+                  theme.palette.status[
+                    story.status === IssueStatus.IN_PROGRESS
+                      ? "inProgress"
+                      : story.status === IssueStatus.DONE
+                        ? "done"
+                        : "todo"
+                  ],
+                color: theme.palette.common.white,
+                fontWeight: 500,
+                height: "16px",
+                borderRadius: "8px",
+              }}
+            />
+
             {story.storyPoints !== undefined && (
               <Chip
                 label={story.storyPoints}

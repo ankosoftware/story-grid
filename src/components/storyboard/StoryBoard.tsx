@@ -42,6 +42,7 @@ import {
   StoryMapProps,
   exportStoryboardToCSV,
   exportStoryboardToMarkup,
+  SPACING,
 } from "./utils";
 
 // Import dialog components
@@ -771,6 +772,18 @@ export default function StoryMap({
     [issues]
   );
 
+  // Calculate activity column width based on number of epics
+  const getActivityColumnWidth = useCallback(
+    (activityId: string) => {
+      const epicCount = epics[activityId]?.length || 0;
+      // Width for epic cards + add epic card
+      return (
+        (epicCount + 1) * (SPACING.CARD_WIDTH + SPACING.CARD_PADDING) + epicCount * SPACING.GAP_PX
+      );
+    },
+    [epics]
+  );
+
   // Memoize the epic card component
   const renderEpicCard = useCallback(
     (epic: Issue) => (
@@ -780,7 +793,7 @@ export default function StoryMap({
           flex: 1,
           minWidth: 0,
           borderRight: `1px solid ${theme.palette.divider}`,
-          px: 1,
+          px: SPACING.EPIC_COLUMN_PADDING_X,
           height: "100%",
           display: "flex",
           flexDirection: "column",
@@ -941,7 +954,10 @@ export default function StoryMap({
           >
             <DroppableActivityRowContainer activities={activities}>
               {activities.map(activity => (
-                <Box key={activity.id} sx={{ mx: 0 }}>
+                <Box
+                  key={activity.id}
+                  sx={{ mx: SPACING.ACTIVITY_MARGIN_X, width: getActivityColumnWidth(activity.id) }}
+                >
                   <DroppableActivityContainer activity={activity}>
                     <Box sx={{ px: 0, mb: 0 }}>
                       <DraggableActivityCard
@@ -962,8 +978,8 @@ export default function StoryMap({
                           sx={{
                             display: "flex",
                             flexDirection: "row",
-                            gap: 3,
-                            mb: 1,
+                            gap: SPACING.EPIC_GAP,
+                            mb: SPACING.STORY_GAP,
                             height: "100%",
                             ...(stickyActivitiesRow && {
                               position: "sticky",
@@ -1025,11 +1041,18 @@ export default function StoryMap({
               <Box
                 sx={{
                   display: "flex",
-                  mb: 2,
+                  alignItems: "flex-start",
+                  mb: SPACING.RELEASE_ROW_MARGIN_BOTTOM,
                 }}
               >
                 {activities.map(activity => (
-                  <Box key={activity.id} sx={{ mx: 0 }}>
+                  <Box
+                    key={activity.id}
+                    sx={{
+                      mx: SPACING.ACTIVITY_MARGIN_X,
+                      width: getActivityColumnWidth(activity.id),
+                    }}
+                  >
                     {/* Add placeholder for activity */}
                     <StoryMapCard type="placeholder" />
 
@@ -1040,8 +1063,8 @@ export default function StoryMap({
                         sx={{
                           display: "flex",
                           flexDirection: "row",
-                          gap: 1,
-                          mb: 1,
+                          gap: SPACING.EPIC_GAP,
+                          mb: SPACING.STORY_GAP,
                           height: "100%",
                         }}
                       >
@@ -1053,7 +1076,7 @@ export default function StoryMap({
                                 flex: 1,
                                 minWidth: 0,
                                 borderRight: `1px solid ${theme.palette.divider}`,
-                                px: 1,
+                                px: SPACING.EPIC_COLUMN_PADDING_X,
                                 height: "100%",
                                 display: "flex",
                                 flexDirection: "column",
@@ -1075,7 +1098,7 @@ export default function StoryMap({
                               />
                               {/* Stories Column - Vertical under each epic */}
                               <DroppableEpicContainer epic={epic} releaseId={release.id}>
-                                <Box sx={{ mb: 1, flexGrow: 1 }}>
+                                <Box sx={{ mb: SPACING.STORY_GAP, flexGrow: 1 }}>
                                   {issues[epic.id] && issues[epic.id].length > 0 ? (
                                     issues[epic.id]
                                       .filter(story => story.releaseId === release.id)
@@ -1132,11 +1155,15 @@ export default function StoryMap({
             <Box
               sx={{
                 display: "flex",
-                mb: 2,
+                alignItems: "flex-start",
+                mb: SPACING.RELEASE_ROW_MARGIN_BOTTOM,
               }}
             >
               {activities.map(activity => (
-                <Box key={activity.id} sx={{ mx: 1 }}>
+                <Box
+                  key={activity.id}
+                  sx={{ mx: SPACING.ACTIVITY_MARGIN_X, width: getActivityColumnWidth(activity.id) }}
+                >
                   {/* Add placeholder for activity */}
                   <StoryMapCard type="placeholder" />
 
@@ -1144,7 +1171,13 @@ export default function StoryMap({
                   {!collapsedActivities.includes(activity.id) ? (
                     /* Epics Row - Horizontal */
                     <Box
-                      sx={{ display: "flex", flexDirection: "row", gap: 1, mb: 1, height: "100%" }}
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: SPACING.EPIC_GAP,
+                        mb: SPACING.STORY_GAP,
+                        height: "100%",
+                      }}
                     >
                       {epics[activity.id] &&
                         epics[activity.id].map(epic => (
@@ -1154,7 +1187,7 @@ export default function StoryMap({
                               flex: 1,
                               minWidth: 0,
                               borderRight: `1px solid ${theme.palette.divider}`,
-                              px: 1,
+                              px: SPACING.EPIC_COLUMN_PADDING_X,
                               height: "100%",
                               display: "flex",
                               flexDirection: "column",
@@ -1164,7 +1197,7 @@ export default function StoryMap({
                             <StoryMapCard type="placeholder" />
                             {/* Stories Column - Vertical under each epic */}
                             <DroppableEpicContainer epic={epic} releaseId={null}>
-                              <Box sx={{ mb: 2, flexGrow: 1 }}>
+                              <Box sx={{ mb: SPACING.STORY_GAP, flexGrow: 1 }}>
                                 {issues[epic.id] && issues[epic.id].length > 0 ? (
                                   issues[epic.id]
                                     .filter(story => !story.releaseId)

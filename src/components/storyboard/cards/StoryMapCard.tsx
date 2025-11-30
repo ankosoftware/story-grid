@@ -6,6 +6,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import ErrorIcon from "@mui/icons-material/Error";
 import { Issue, IssuePriority } from "@/lib/firebase/models/types";
 import { getPriorityColor } from "../utils/colorUtils";
+import { CARD_WIDTH_STYLE, CARD_HEIGHT_STYLE } from "../utils/spacingConstants";
 
 interface StoryMapCardProps {
   type: "activity" | "epic" | "story" | "blank" | "release" | "placeholder";
@@ -34,22 +35,22 @@ export const StoryMapCard = memo(
       activity: {
         bgcolor: theme.palette.primary.main,
         color: "white",
-        height: "50px",
-        width: "100px",
+        height: CARD_HEIGHT_STYLE,
+        width: CARD_WIDTH_STYLE,
         borderRadius: 1,
       },
       epic: {
         bgcolor: "#07abb1",
         color: "white",
-        height: "50px",
-        width: "100px",
+        height: CARD_HEIGHT_STYLE,
+        width: CARD_WIDTH_STYLE,
         borderRadius: 1,
       },
       story: {
         bgcolor: "white",
         color: "text.primary",
-        height: "50px",
-        width: "100px",
+        height: CARD_HEIGHT_STYLE,
+        width: CARD_WIDTH_STYLE,
         border: "1px solid #e0e0e0",
         borderLeft: item ? `4px solid ${getPriorityColor(item?.priority)}` : undefined,
         boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
@@ -58,8 +59,8 @@ export const StoryMapCard = memo(
       blank: {
         bgcolor: "white",
         color: "text.secondary",
-        height: "50px",
-        width: "100px",
+        height: CARD_HEIGHT_STYLE,
+        width: CARD_WIDTH_STYLE,
         border: "1px dashed #bdbdbd",
         display: "flex",
         justifyContent: "center",
@@ -69,15 +70,15 @@ export const StoryMapCard = memo(
       release: {
         bgcolor: theme.palette.background.paper,
         color: "text.primary",
-        height: "50px",
-        width: "120px",
+        height: CARD_HEIGHT_STYLE,
+        width: CARD_WIDTH_STYLE,
         border: `1px solid ${theme.palette.primary.main}`,
         borderLeft: `4px solid ${theme.palette.primary.main}`,
         borderRadius: 1,
       },
       placeholder: {
         height: "0px",
-        width: "100px",
+        width: CARD_WIDTH_STYLE,
       },
     };
 
@@ -112,7 +113,7 @@ export const StoryMapCard = memo(
     }
 
     if (type === "placeholder") {
-      return <div style={{ height: "0px", width: "100px" }}></div>;
+      return <div style={{ height: "0px", width: CARD_WIDTH_STYLE }}></div>;
     }
 
     // Determine justifyContent based on card type

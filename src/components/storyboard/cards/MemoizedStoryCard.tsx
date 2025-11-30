@@ -4,6 +4,13 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChatIcon from "@mui/icons-material/Chat";
 import ErrorIcon from "@mui/icons-material/Error";
 import { Issue, IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
+import {
+  CARD_WIDTH_STYLE,
+  CARD_HEIGHT_STYLE,
+  CARD_TEXT_WIDTH_STYLE,
+  CARD_TEXT_HEIGHT_STYLE,
+  SPACING,
+} from "../utils/spacingConstants";
 
 interface MemoizedStoryCardProps {
   story: Issue;
@@ -31,12 +38,12 @@ export const MemoizedStoryCard = memo(
     const cardStyles = {
       bgcolor: "white",
       color: "text.primary",
-      height: "50px",
-      width: "100px",
+      height: CARD_HEIGHT_STYLE,
+      width: CARD_WIDTH_STYLE,
       border: "1px solid #e0e0e0",
       borderLeft: `4px solid ${getPriorityColor(story.priority)}`,
       boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-      mb: 0.5,
+      mb: SPACING.STORY_GAP / 2, // Half of story gap for spacing between cards
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
@@ -74,9 +81,9 @@ export const MemoizedStoryCard = memo(
                 textOverflow: "ellipsis",
                 fontSize: "0.75rem",
                 lineHeight: 1.2,
-                width: "70px",
-                maxWidth: "70px",
-                height: "40px",
+                width: CARD_TEXT_WIDTH_STYLE,
+                maxWidth: CARD_TEXT_WIDTH_STYLE,
+                height: CARD_TEXT_HEIGHT_STYLE,
               }}
               variant="body2"
             >

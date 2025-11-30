@@ -15,3 +15,10 @@ export {
   type EstimationExportData,
 } from "./estimationExport";
 export { estimateReleasesWithEpics } from "./estimationUtils";
+export {
+  CARD_WIDTH,
+  CARD_HEIGHT,
+  CARD_WIDTH_STYLE,
+  CARD_HEIGHT_STYLE,
+  SPACING,
+} from "./spacingConstants";

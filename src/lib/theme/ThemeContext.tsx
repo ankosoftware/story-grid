@@ -55,7 +55,9 @@ export function ThemeModeProvider({ children }: ThemeProviderProps) {
 
   // Listen for system preference changes
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+      return;
+    }
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 

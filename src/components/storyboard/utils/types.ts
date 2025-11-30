@@ -50,6 +50,10 @@ export interface StoryMapProps {
     }
   ) => Promise<string>;
   onMoveIssue?: (issueId: string, releaseId: string | null) => Promise<void>;
+  onUpdateIssueOptimistic?: (
+    issueId: string,
+    updates: Partial<Omit<Issue, "id" | "projectId" | "type" | "createdAt" | "createdBy">>
+  ) => Promise<void>;
 }
 
 // Create a mock release for the unassigned section

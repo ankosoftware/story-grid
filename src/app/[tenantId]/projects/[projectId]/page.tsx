@@ -48,6 +48,7 @@ export default function ProjectView() {
     addStory,
     addRelease,
     moveIssue,
+    updateIssueOptimistic,
   } = useStoryBoard(projectId);
 
   // Navigate to estimation page
@@ -177,6 +178,7 @@ export default function ProjectView() {
           onAddRelease={addRelease}
           onAddStory={addStory}
           onMoveIssue={moveIssue}
+          onUpdateIssueOptimistic={updateIssueOptimistic}
         />
       </Paper>
 

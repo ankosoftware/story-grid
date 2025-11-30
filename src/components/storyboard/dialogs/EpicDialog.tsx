@@ -92,9 +92,9 @@ export const EpicDialog = ({
           label="Description (optional)"
           minHeight={150}
           placeholder="Add detailed description..."
+          projectId={projectId}
           value={epicDescription}
           onChange={setEpicDescription}
-          projectId={projectId}
         />
 
         <Box sx={{ mt: 2 }}>

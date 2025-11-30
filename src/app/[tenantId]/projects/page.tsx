@@ -17,10 +17,16 @@ import {
   FormControlLabel,
   Checkbox,
   LinearProgress,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import IconButton from "@mui/material/IconButton";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/lib/context/TenantContext";
 import { useProjects } from "@/lib/hooks/useProjects";
@@ -48,6 +54,14 @@ export default function ProjectsPage() {
   const [cloneError, setCloneError] = useState<string | null>(null);
   const [cloneProgress, setCloneProgress] = useState(0);
 
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    mouseX: number;
+    mouseY: number;
+    projectId: string;
+    projectName: string;
+  } | null>(null);
+
   const handleClickOpen = () => {
     setOpen(true);
   };
@@ -59,11 +73,28 @@ export default function ProjectsPage() {
     setCreateError(null);
   };
 
-  const handleCloneDialogOpen = (projectId: string, projectName: string) => {
-    setCloneProjectId(projectId);
-    setCloneProjectName(`Copy of ${projectName}`);
-    setIncludeComments(false);
-    setCloneDialogOpen(true);
+  const handleContextMenu = (event: React.MouseEvent, projectId: string, projectName: string) => {
+    event.preventDefault();
+    setContextMenu({
+      mouseX: event.clientX,
+      mouseY: event.clientY,
+      projectId,
+      projectName,
+    });
+  };
+
+  const handleContextMenuClose = () => {
+    setContextMenu(null);
+  };
+
+  const handleCloneFromContextMenu = () => {
+    if (contextMenu) {
+      setCloneProjectId(contextMenu.projectId);
+      setCloneProjectName(`Copy of ${contextMenu.projectName}`);
+      setIncludeComments(false);
+      setCloneDialogOpen(true);
+    }
+    handleContextMenuClose();
   };
 
   const handleCloneDialogClose = () => {
@@ -286,48 +317,70 @@ export default function ProjectsPage() {
         </Paper>
       ) : (
         <Grid container spacing={3}>
-          {projects.map(project => (
-            <Grid key={project.id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <Paper
-                sx={{
-                  p: 3,
-                  display: "flex",
-                  flexDirection: "column",
-                  height: 200,
-                  "&:hover": {
-                    boxShadow: 6,
-                  },
-                }}
-              >
-                <Typography gutterBottom component="h2" variant="h6">
-                  {project.name}
-                </Typography>
-                <Typography color="text.secondary" sx={{ mb: 2 }} variant="body2">
-                  {project.description}
-                </Typography>
-                <Box sx={{ mt: "auto", display: "flex", justifyContent: "space-between" }}>
-                  <Button
-                    size="small"
-                    startIcon={<ContentCopyIcon />}
-                    onClick={e => {
-                      e.stopPropagation(); // Prevent opening the project
-                      handleCloneDialogOpen(project.id, project.name);
+          {[...projects]
+            .sort((a, b) => {
+              const dateA = a.updatedAt?.toDate?.() || new Date(0);
+              const dateB = b.updatedAt?.toDate?.() || new Date(0);
+              return dateB.getTime() - dateA.getTime();
+            })
+            .map(project => (
+              <Grid key={project.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                <Paper
+                  sx={{
+                    p: 3,
+                    display: "flex",
+                    flexDirection: "column",
+                    height: 200,
+                    cursor: "pointer",
+                    "&:hover": {
+                      boxShadow: 6,
+                    },
+                  }}
+                  onClick={() => router.push(`/${tenant?.id}/projects/${project.id}`)}
+                  onContextMenu={e => handleContextMenu(e, project.id, project.name)}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
                     }}
                   >
-                    Clone
-                  </Button>
-                  <Button
-                    size="small"
-                    onClick={() => router.push(`/${tenant?.id}/projects/${project.id}`)}
-                  >
-                    Open Project
-                  </Button>
-                </Box>
-              </Paper>
-            </Grid>
-          ))}
+                    <Typography gutterBottom component="h2" variant="h6">
+                      {project.name}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={e => handleContextMenu(e, project.id, project.name)}
+                    >
+                      <MoreVertIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  <Typography color="text.secondary" sx={{ flex: 1 }} variant="body2">
+                    {project.description}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
         </Grid>
       )}
+
+      {/* Context menu */}
+      <Menu
+        anchorPosition={
+          contextMenu ? { top: contextMenu.mouseY, left: contextMenu.mouseX } : undefined
+        }
+        anchorReference="anchorPosition"
+        open={Boolean(contextMenu)}
+        onClose={handleContextMenuClose}
+      >
+        <MenuItem onClick={handleCloneFromContextMenu}>
+          <ListItemIcon>
+            <ContentCopyIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Clone</ListItemText>
+        </MenuItem>
+      </Menu>
 
       {/* Success message */}
       <Snackbar

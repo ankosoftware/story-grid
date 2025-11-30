@@ -87,9 +87,9 @@ export const ActivityDialog = ({
           label="Description (optional)"
           minHeight={150}
           placeholder="Add detailed description..."
+          projectId={projectId}
           value={activityDescription}
           onChange={setActivityDescription}
-          projectId={projectId}
         />
 
         <Box sx={{ mt: 2 }}>

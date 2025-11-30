@@ -115,7 +115,9 @@ export const useProjects = () => {
 
     try {
       // Report initial progress
-      if (onProgress) onProgress(0);
+      if (onProgress) {
+        onProgress(0);
+      }
 
       // 1. Get source project data
       const sourceProject = await getProjectById(sourceProjectId);
@@ -159,13 +161,17 @@ export const useProjects = () => {
       }
 
       // Report progress after project creation
-      if (onProgress) onProgress(5);
+      if (onProgress) {
+        onProgress(5);
+      }
 
       // 4. Get all releases from source project
       const sourceReleases = await getReleases(sourceProjectId);
 
       // Report progress after fetching releases
-      if (onProgress) onProgress(8);
+      if (onProgress) {
+        onProgress(8);
+      }
 
       // 5. Get all issues from source project
       const sourceIssues = await getAllIssuesByProject(sourceProjectId);
@@ -192,7 +198,9 @@ export const useProjects = () => {
 
         releaseIdMap.set(release.id, newReleaseId);
         completedItems++;
-        if (onProgress) onProgress(8 + completedItems * progressStep);
+        if (onProgress) {
+          onProgress(8 + completedItems * progressStep);
+        }
       }
 
       // 7. Clone backbones (activities)
@@ -213,7 +221,9 @@ export const useProjects = () => {
 
         idMap.set(backbone.id, newBackboneId);
         completedItems++;
-        if (onProgress) onProgress(8 + completedItems * progressStep);
+        if (onProgress) {
+          onProgress(8 + completedItems * progressStep);
+        }
       }
 
       // 8. Clone epics with correct parent references
@@ -221,7 +231,9 @@ export const useProjects = () => {
         const epics = epicsByBackbone[backbone.id] || [];
         const newBackboneId = idMap.get(backbone.id);
 
-        if (!newBackboneId) continue;
+        if (!newBackboneId) {
+          continue;
+        }
 
         for (const epic of epics) {
           const newEpicId = await createIssue(newProjectId, epic.name, IssueType.EPIC, user.uid, {
@@ -235,7 +247,9 @@ export const useProjects = () => {
 
           idMap.set(epic.id, newEpicId);
           completedItems++;
-          if (onProgress) onProgress(8 + completedItems * progressStep);
+          if (onProgress) {
+            onProgress(8 + completedItems * progressStep);
+          }
         }
       }
 
@@ -244,7 +258,9 @@ export const useProjects = () => {
         const stories = storiesByEpic[epic.id] || [];
         const newEpicId = idMap.get(epic.id);
 
-        if (!newEpicId) continue;
+        if (!newEpicId) {
+          continue;
+        }
 
         for (const story of stories) {
           // Map the release ID if this story is assigned to a release
@@ -272,7 +288,9 @@ export const useProjects = () => {
 
           idMap.set(story.id, newStoryId);
           completedItems++;
-          if (onProgress) onProgress(8 + completedItems * progressStep);
+          if (onProgress) {
+            onProgress(8 + completedItems * progressStep);
+          }
         }
       }
 
@@ -281,7 +299,9 @@ export const useProjects = () => {
         for (const issue of allIssues) {
           const newIssueId = idMap.get(issue.id);
 
-          if (!newIssueId) continue;
+          if (!newIssueId) {
+            continue;
+          }
 
           // Get comments for this issue
           const comments = await getCommentsForIssue(issue.id);
@@ -291,7 +311,9 @@ export const useProjects = () => {
           }
 
           completedItems++;
-          if (onProgress) onProgress(8 + completedItems * progressStep);
+          if (onProgress) {
+            onProgress(8 + completedItems * progressStep);
+          }
         }
       }
 
@@ -300,7 +322,9 @@ export const useProjects = () => {
       setProjects(updatedProjects);
 
       // Report completion
-      if (onProgress) onProgress(100);
+      if (onProgress) {
+        onProgress(100);
+      }
 
       return newProjectId;
     } catch (err) {

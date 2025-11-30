@@ -13,10 +13,14 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   useEffect(() => {
     // Wait for auth to be loaded
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     // If user is not logged in or no tenant is selected, this is handled by ProtectedRoute
-    if (!userProfile || !currentTenant) return;
+    if (!userProfile || !currentTenant) {
+      return;
+    }
 
     // Check if user is an admin
     const isAdmin = userProfile.role === UserRole.ADMIN;

@@ -747,6 +747,45 @@ export const useStoryBoard = (projectId: string) => {
     }
   };
 
+  /**
+   * Optimistically update an issue in local state and persist to Firestore
+   * Rolls back local state if Firestore update fails
+   *
+   * @param issueId - The ID of the issue to update
+   * @param updates - Partial issue data to update
+   * @returns Promise that resolves when Firestore update completes
+   */
+  const updateIssueOptimistic = async (
+    issueId: string,
+    updates: Partial<Omit<Issue, "id" | "projectId" | "type" | "createdAt" | "createdBy">>
+  ): Promise<void> => {
+    // Find the current issue state for potential rollback
+    const currentIssue = allIssuesRef.current.find(i => i.id === issueId);
+    if (!currentIssue) {
+      throw new Error("Issue not found");
+    }
+
+    // Create the optimistically updated issue
+    const optimisticIssue: Issue = {
+      ...currentIssue,
+      ...updates,
+    };
+
+    // 1. OPTIMISTIC: Update local state immediately
+    updateLocalIssueState(optimisticIssue);
+
+    try {
+      // 2. ASYNC: Persist to Firestore
+      await updateIssue(issueId, updates);
+      // Success - the real-time listener will confirm the update
+    } catch (err) {
+      // 3. ROLLBACK: Revert to previous state on error
+      console.error("Error updating issue, rolling back:", err);
+      updateLocalIssueState(currentIssue);
+      throw err;
+    }
+  };
+
   return {
     activities,
     backbones: activities,
@@ -762,5 +801,6 @@ export const useStoryBoard = (projectId: string) => {
     addStory,
     addRelease,
     moveIssue,
+    updateIssueOptimistic,
   };
 };

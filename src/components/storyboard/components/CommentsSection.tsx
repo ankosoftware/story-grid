@@ -185,7 +185,7 @@ export const CommentsSection = ({
 
   return (
     <Box sx={{ mt: 3 }}>
-      <Typography variant="h6" gutterBottom>
+      <Typography gutterBottom variant="h6">
         Comments
       </Typography>
 
@@ -250,13 +250,13 @@ export const CommentsSection = ({
                     {editingCommentId === comment.id ? (
                       <Box sx={{ mt: 1 }}>
                         <RichTextEditor
-                          value={editText}
-                          onChange={setEditText}
                           disabled={isSubmitting}
-                          minHeight={100}
                           maxHeight={300}
+                          minHeight={100}
                           placeholder="Edit your comment..."
                           projectId={issue?.projectId}
+                          value={editText}
+                          onChange={setEditText}
                         />
                         <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
                           <Button
@@ -278,7 +278,7 @@ export const CommentsSection = ({
                         </Box>
                       </Box>
                     ) : (
-                      <Box sx={{ mt: 0.5 }} dangerouslySetInnerHTML={{ __html: comment.text }} />
+                      <Box dangerouslySetInnerHTML={{ __html: comment.text }} sx={{ mt: 0.5 }} />
                     )}
                   </Box>
                 </Box>
@@ -324,13 +324,13 @@ export const CommentsSection = ({
           Add a comment
         </Typography>
         <RichTextEditor
+          disabled={isSubmitting || !user}
+          maxHeight={300}
+          minHeight={150}
+          placeholder="Type your comment here..."
+          projectId={issue?.projectId}
           value={newComment}
           onChange={setNewComment}
-          disabled={isSubmitting || !user}
-          placeholder="Type your comment here..."
-          minHeight={150}
-          maxHeight={300}
-          projectId={issue?.projectId}
         />
         <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
           <Button

@@ -213,14 +213,14 @@ export default function TenantDashboardPage() {
                 <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                   {isAdmin && (
                     <Link
-                      href={`/[tenantId]/admin/users`}
                       as={`/${tenant.id}/admin/users`}
+                      href={`/[tenantId]/admin/users`}
                       style={{ textDecoration: "none" }}
                     >
                       <Button
                         color="primary"
-                        variant="outlined"
                         startIcon={<AdminPanelSettingsIcon />}
+                        variant="outlined"
                       >
                         Admin Panel
                       </Button>
@@ -340,8 +340,8 @@ export default function TenantDashboardPage() {
               </Typography>
               {isAdmin && (
                 <Link
-                  href={`/[tenantId]/admin/users`}
                   as={`/${tenant.id}/admin/users`}
+                  href={`/[tenantId]/admin/users`}
                   style={{ textDecoration: "none" }}
                 >
                   <Button color="primary" sx={{ mt: 2 }} variant="outlined">

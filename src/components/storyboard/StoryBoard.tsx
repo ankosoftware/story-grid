@@ -90,6 +90,7 @@ export default function StoryMap({
   onAddStory,
   onAddRelease,
   onMoveIssue,
+  onUpdateIssueOptimistic,
 }: StoryMapProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -190,38 +191,34 @@ export default function StoryMap({
     localStorage.setItem("collapsedActivities", JSON.stringify(collapsedActivities));
   }, [collapsedActivities]);
 
-  // Add handler for updating issues
-  const handleUpdateIssue = useCallback(async (issue: Issue, updatedData: Partial<Issue>) => {
-    try {
-      setUpdatingIssue(true);
+  // Add handler for updating issues with optimistic updates
+  const handleUpdateIssue = useCallback(
+    async (issue: Issue, updatedData: Partial<Issue>) => {
+      try {
+        setUpdatingIssue(true);
 
-      // Check if this is a display order update
-      const isDisplayOrderUpdate = updatedData.displayOrder !== undefined;
-
-      // For display order updates during dragging, we can use debouncing
-      // by adding a small delay before actually sending the update
-      if (isDisplayOrderUpdate) {
-        console.log(
-          `Updating display order for ${issue.type.toLowerCase()}: ${issue.id} to ${updatedData.displayOrder}`
-        );
-
-        // Call the Firestore updateIssue function
-        await updateIssue(issue.id, updatedData);
-
-        // After updating, log completion
-        console.log(`Display order update completed for ${issue.id}`);
-      } else {
-        // For non-display order updates, process immediately
-        await updateIssue(issue.id, updatedData);
-        console.log(`Updated ${issue.type.toLowerCase()}: ${issue.id}`, updatedData);
+        // Use optimistic update if available, otherwise fall back to direct Firestore call
+        if (onUpdateIssueOptimistic) {
+          // Optimistic update: UI updates immediately, Firestore syncs in background
+          await onUpdateIssueOptimistic(issue.id, updatedData);
+          console.log(
+            `Optimistically updated ${issue.type.toLowerCase()}: ${issue.id}`,
+            updatedData
+          );
+        } else {
+          // Fallback: wait for Firestore (slower, but works without the prop)
+          await updateIssue(issue.id, updatedData);
+          console.log(`Updated ${issue.type.toLowerCase()}: ${issue.id}`, updatedData);
+        }
+      } catch (error) {
+        console.error("Error updating issue:", error);
+        throw error;
+      } finally {
+        setUpdatingIssue(false);
       }
-    } catch (error) {
-      console.error("Error updating issue:", error);
-      throw error;
-    } finally {
-      setUpdatingIssue(false);
-    }
-  }, []);
+    },
+    [onUpdateIssueOptimistic]
+  );
 
   // Add drag and drop handlers for stories and epics
   const handleMoveStoryToEpic = useCallback(

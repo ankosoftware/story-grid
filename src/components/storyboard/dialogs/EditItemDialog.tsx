@@ -6,7 +6,6 @@ import {
   DialogActions,
   TextField,
   Button,
-  CircularProgress,
   Alert,
   MenuItem,
   Box,
@@ -41,7 +40,6 @@ export const EditItemDialog = ({
   const [editReleaseId, setEditReleaseId] = useState<string>("");
   const [editStoryPoints, setEditStoryPoints] = useState<number | null>(null);
   const [editingError, setEditingError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
 
   // Reset form when item changes
   useEffect(() => {
@@ -56,7 +54,7 @@ export const EditItemDialog = ({
     }
   }, [item]);
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = () => {
     if (!item || !itemType || !onUpdateItem) {
       return;
     }
@@ -66,30 +64,27 @@ export const EditItemDialog = ({
       return;
     }
 
-    try {
-      setIsEditing(true);
-      setEditingError(null);
+    const updatedData: Partial<Issue> = {
+      name: editName,
+      description: editDescription,
+    };
 
-      const updatedData: Partial<Issue> = {
-        name: editName,
-        description: editDescription,
-      };
-
-      // Add additional fields for stories
-      if (itemType === "story") {
-        updatedData.status = editStatus;
-        updatedData.priority = editPriority;
-        updatedData.releaseId = editReleaseId || null;
-        updatedData.storyPoints = editStoryPoints;
-      }
-
-      await onUpdateItem(item, updatedData);
-      onClose();
-    } catch (err) {
-      setEditingError((err as Error).message || `Failed to update ${itemType}`);
-    } finally {
-      setIsEditing(false);
+    // Add additional fields for stories
+    if (itemType === "story") {
+      updatedData.status = editStatus;
+      updatedData.priority = editPriority;
+      updatedData.releaseId = editReleaseId || null;
+      updatedData.storyPoints = editStoryPoints;
     }
+
+    // Close dialog immediately (optimistic)
+    onClose();
+
+    // Fire and forget - update happens in background with optimistic UI
+    // If it fails, the hook will rollback the state automatically
+    onUpdateItem(item, updatedData).catch(err => {
+      console.error(`Failed to update ${itemType}:`, err);
+    });
   };
 
   // Helper function to handle numeric input for story points
@@ -107,7 +102,7 @@ export const EditItemDialog = ({
 
   // Add keyboard handler for Enter key
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && !isEditing) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSaveEdit();
     }
@@ -127,7 +122,6 @@ export const EditItemDialog = ({
         <TextField
           autoFocus
           fullWidth
-          disabled={isEditing}
           error={!!editingError}
           helperText={editingError}
           label="Name"
@@ -139,7 +133,6 @@ export const EditItemDialog = ({
         />
 
         <RichTextEditor
-          disabled={isEditing}
           label="Description"
           minHeight={150}
           projectId={item?.projectId}
@@ -160,7 +153,6 @@ export const EditItemDialog = ({
             <TextField
               fullWidth
               select
-              disabled={isEditing}
               label="Status"
               margin="dense"
               sx={{ mb: 2 }}
@@ -179,7 +171,6 @@ export const EditItemDialog = ({
             <TextField
               fullWidth
               select
-              disabled={isEditing}
               label="Priority"
               margin="dense"
               sx={{ mb: 2 }}
@@ -197,7 +188,6 @@ export const EditItemDialog = ({
             {/* Story Points field */}
             <TextField
               fullWidth
-              disabled={isEditing}
               InputProps={{
                 inputProps: { min: 0 },
               }}
@@ -214,7 +204,6 @@ export const EditItemDialog = ({
             <TextField
               fullWidth
               select
-              disabled={isEditing}
               label="Release"
               margin="dense"
               value={editReleaseId}
@@ -240,16 +229,9 @@ export const EditItemDialog = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button disabled={isEditing} onClick={onClose}>
-          Cancel
-        </Button>
-        <Button
-          disabled={isEditing}
-          startIcon={isEditing ? <CircularProgress size={20} /> : undefined}
-          variant="contained"
-          onClick={handleSaveEdit}
-        >
-          {isEditing ? "Saving..." : "Save Changes"}
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" onClick={handleSaveEdit}>
+          Save Changes
         </Button>
       </DialogActions>
     </Dialog>

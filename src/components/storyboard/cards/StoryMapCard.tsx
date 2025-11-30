@@ -4,8 +4,8 @@ import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChatIcon from "@mui/icons-material/Chat";
 import ErrorIcon from "@mui/icons-material/Error";
-import { Issue, IssuePriority } from "@/lib/firebase/models/types";
-import { getPriorityColor } from "../utils/colorUtils";
+import { Issue } from "@/lib/firebase/models/types";
+import { getThemedPriorityColor } from "../utils/colorUtils";
 import { CARD_WIDTH_STYLE, CARD_HEIGHT_STYLE } from "../utils/spacingConstants";
 
 interface StoryMapCardProps {
@@ -30,45 +30,48 @@ export const StoryMapCard = memo(
   }: StoryMapCardProps) => {
     const theme = useTheme();
 
-    // Card styling based on type
+    // Card styling based on type - using theme palette for dark mode support
     const cardStyles = {
       activity: {
-        bgcolor: theme.palette.primary.main,
+        bgcolor: theme.palette.storyboard.activity,
         color: "white",
         height: CARD_HEIGHT_STYLE,
         width: CARD_WIDTH_STYLE,
         borderRadius: 1,
       },
       epic: {
-        bgcolor: "#07abb1",
+        bgcolor: theme.palette.storyboard.epic,
         color: "white",
         height: CARD_HEIGHT_STYLE,
         width: CARD_WIDTH_STYLE,
         borderRadius: 1,
       },
       story: {
-        bgcolor: "white",
+        bgcolor: theme.palette.storyboard.story,
         color: "text.primary",
         height: CARD_HEIGHT_STYLE,
         width: CARD_WIDTH_STYLE,
-        border: "1px solid #e0e0e0",
-        borderLeft: item ? `4px solid ${getPriorityColor(item?.priority)}` : undefined,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+        border: `1px solid ${theme.palette.divider}`,
+        borderLeft: item ? `4px solid ${getThemedPriorityColor(item?.priority, theme)}` : undefined,
+        boxShadow:
+          theme.palette.mode === "dark"
+            ? "0 1px 2px rgba(0,0,0,0.2)"
+            : "0 1px 2px rgba(0,0,0,0.05)",
         borderRadius: 1,
       },
       blank: {
-        bgcolor: "white",
+        bgcolor: theme.palette.storyboard.blank,
         color: "text.secondary",
         height: CARD_HEIGHT_STYLE,
         width: CARD_WIDTH_STYLE,
-        border: "1px dashed #bdbdbd",
+        border: `1px dashed ${theme.palette.divider}`,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         borderRadius: 1,
       },
       release: {
-        bgcolor: theme.palette.background.paper,
+        bgcolor: theme.palette.storyboard.release,
         color: "text.primary",
         height: CARD_HEIGHT_STYLE,
         width: CARD_WIDTH_STYLE,

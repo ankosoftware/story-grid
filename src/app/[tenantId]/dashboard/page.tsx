@@ -19,6 +19,7 @@ import {
 import ProtectedRoute from "@/lib/auth/ProtectedRoute";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { useTenant } from "@/lib/context/TenantContext";
+import { useProjects } from "@/lib/hooks/useProjects";
 import { useRouter, useParams } from "next/navigation";
 import AddBusinessIcon from "@mui/icons-material/AddBusiness";
 import BusinessIcon from "@mui/icons-material/Business";
@@ -29,6 +30,7 @@ import { UserRole } from "@/lib/firebase/models/types";
 export default function TenantDashboardPage() {
   const { user, logOut, userProfile } = useAuth();
   const { tenant, tenants, switchTenant, isLoading } = useTenant();
+  const { projects, loading: projectsLoading } = useProjects();
   const router = useRouter();
   const params = useParams();
   const tenantId = params.tenantId as string;
@@ -39,6 +41,15 @@ export default function TenantDashboardPage() {
 
   // Check if user is an admin
   const isAdmin = userProfile?.role === UserRole.ADMIN;
+
+  // Get recent projects (last 5, sorted by updatedAt)
+  const recentProjects = projects
+    .sort((a, b) => {
+      const dateA = a.updatedAt?.toDate?.() || new Date(0);
+      const dateB = b.updatedAt?.toDate?.() || new Date(0);
+      return dateB.getTime() - dateA.getTime();
+    })
+    .slice(0, 5);
 
   // Ensure we're using the correct tenant based on the URL
   useEffect(() => {
@@ -240,17 +251,67 @@ export default function TenantDashboardPage() {
               <Typography gutterBottom variant="h6">
                 Recent Projects
               </Typography>
-              <Typography color="text.secondary" variant="body2">
-                No projects yet. Create your first project to get started.
-              </Typography>
-              <Button
-                color="primary"
-                sx={{ mt: 2 }}
-                variant="contained"
-                onClick={() => router.push(`/${tenant.id}/projects/new`)}
-              >
-                Create Project
-              </Button>
+              {projectsLoading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : recentProjects.length > 0 ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {recentProjects.map(project => (
+                    <Button
+                      key={project.id}
+                      fullWidth
+                      sx={{
+                        justifyContent: "flex-start",
+                        textTransform: "none",
+                        py: 1,
+                      }}
+                      variant="text"
+                      onClick={() => router.push(`/${tenant.id}/projects/${project.id}`)}
+                    >
+                      <Box sx={{ textAlign: "left" }}>
+                        <Typography variant="body2">{project.name}</Typography>
+                        {project.description && (
+                          <Typography
+                            color="text.secondary"
+                            sx={{
+                              fontSize: "0.75rem",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: "200px",
+                            }}
+                          >
+                            {project.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Button>
+                  ))}
+                  <Button
+                    color="primary"
+                    sx={{ mt: 1 }}
+                    variant="outlined"
+                    onClick={() => router.push(`/${tenant.id}/projects`)}
+                  >
+                    View All Projects
+                  </Button>
+                </Box>
+              ) : (
+                <>
+                  <Typography color="text.secondary" variant="body2">
+                    No projects yet. Create your first project to get started.
+                  </Typography>
+                  <Button
+                    color="primary"
+                    sx={{ mt: 2 }}
+                    variant="contained"
+                    onClick={() => router.push(`/${tenant.id}/projects`)}
+                  >
+                    Create Project
+                  </Button>
+                </>
+              )}
             </Paper>
           </Grid>
 

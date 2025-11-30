@@ -109,7 +109,11 @@ export const DraggableEpicCard = memo(
                   fontSize: "0.6rem",
                   height: "16px",
                   fontWeight: "bold",
-                  bgcolor: theme.palette.grey[200],
+                  bgcolor:
+                    theme.palette.mode === "dark"
+                      ? "rgba(255,255,255,0.2)"
+                      : theme.palette.grey[200],
+                  color: theme.palette.mode === "dark" ? "white" : theme.palette.grey[800],
                   borderRadius: "8px",
                 }}
               />

@@ -104,7 +104,11 @@ export const MemoizedReleaseCard = memo(
                 label={`Start: ${formatDate(release.startDate)}`}
                 size="small"
                 sx={{
-                  bgcolor: theme.palette.grey[100],
+                  bgcolor:
+                    theme.palette.mode === "dark"
+                      ? theme.palette.grey[700]
+                      : theme.palette.grey[100],
+                  color: theme.palette.text.primary,
                   height: "16px",
                   fontSize: "0.6rem",
                   borderRadius: "8px",
@@ -116,7 +120,11 @@ export const MemoizedReleaseCard = memo(
                 label={`End: ${formatDate(release.endDate)}`}
                 size="small"
                 sx={{
-                  bgcolor: theme.palette.grey[100],
+                  bgcolor:
+                    theme.palette.mode === "dark"
+                      ? theme.palette.grey[700]
+                      : theme.palette.grey[100],
+                  color: theme.palette.text.primary,
                   height: "16px",
                   fontSize: "0.6rem",
                   borderRadius: "8px",

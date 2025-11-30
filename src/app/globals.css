@@ -1,14 +1,7 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/**
+ * Global CSS styles
+ * Note: Dark mode is handled by MUI ThemeProvider, not CSS media queries
+ */
 
 html,
 body {
@@ -16,8 +9,6 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -34,8 +25,14 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* Smooth theme transitions */
+body,
+body * {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+
+/* Disable transitions on initial load to prevent flash */
+.no-transition,
+.no-transition * {
+  transition: none !important;
 }

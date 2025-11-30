@@ -62,6 +62,7 @@ Tenant
 ```
 
 Key types are defined in `src/lib/firebase/models/types.ts`:
+
 - `Issue` - Unified type for backbones, epics, and stories (differentiated by `IssueType`)
 - `Project` - Contains estimation settings (story points to hours, overhead, burn rate)
 - `Release` - Sprint/release groupings with display order

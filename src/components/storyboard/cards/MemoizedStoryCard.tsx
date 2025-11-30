@@ -34,15 +34,16 @@ export const MemoizedStoryCard = memo(
   }: MemoizedStoryCardProps) => {
     const theme = useTheme();
 
-    // Card styling based on type - more compact
+    // Card styling based on type - more compact, with dark mode support
     const cardStyles = {
-      bgcolor: "white",
+      bgcolor: theme.palette.background.paper,
       color: "text.primary",
       height: CARD_HEIGHT_STYLE,
       width: CARD_WIDTH_STYLE,
-      border: "1px solid #e0e0e0",
+      border: `1px solid ${theme.palette.divider}`,
       borderLeft: `4px solid ${getPriorityColor(story.priority)}`,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+      boxShadow:
+        theme.palette.mode === "dark" ? "0 1px 2px rgba(0,0,0,0.2)" : "0 1px 2px rgba(0,0,0,0.05)",
       mb: SPACING.STORY_GAP / 2, // Half of story gap for spacing between cards
       display: "flex",
       flexDirection: "column",
@@ -178,6 +179,10 @@ export const MemoizedStoryCard = memo(
                 sx={{
                   fontSize: "0.6rem",
                   bgcolor: getStatusColor(story.status),
+                  color:
+                    theme.palette.mode === "dark"
+                      ? theme.palette.common.white
+                      : theme.palette.text.primary,
                   height: "14px",
                   borderRadius: "7px",
                 }}
@@ -195,7 +200,14 @@ export const MemoizedStoryCard = memo(
                   height: "16px",
                   width: "16px",
                   fontWeight: "bold",
-                  bgcolor: theme.palette.grey[200],
+                  bgcolor:
+                    theme.palette.mode === "dark"
+                      ? theme.palette.grey[700]
+                      : theme.palette.grey[200],
+                  color:
+                    theme.palette.mode === "dark"
+                      ? theme.palette.grey[100]
+                      : theme.palette.grey[800],
                   borderRadius: "50%",
                   p: 0,
                 }}

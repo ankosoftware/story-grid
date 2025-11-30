@@ -101,18 +101,22 @@ export const DraggableActivityCard = memo(
                   position: "absolute",
                   bottom: 2,
                   right: 2,
-                  backgroundColor: isCollapsed ? "rgba(255, 255, 255, 0.1)" : "transparent",
-                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  minWidth: "18px",
+                  minHeight: "18px",
+                  width: "18px",
+                  height: "18px",
+                  backgroundColor: isCollapsed ? "rgba(255, 255, 255, 0.15)" : "transparent",
+                  borderRadius: "3px",
                   "&:hover": {
-                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    backgroundColor: "rgba(255, 255, 255, 0.25)",
                   },
                 }}
                 onClick={handleToggleCollapse}
               >
                 {isCollapsed ? (
-                  <ExpandMoreIcon fontSize="small" />
+                  <ExpandMoreIcon sx={{ fontSize: "0.9rem" }} />
                 ) : (
-                  <ExpandLessIcon fontSize="small" />
+                  <ExpandLessIcon sx={{ fontSize: "0.9rem" }} />
                 )}
               </IconButton>
             )}

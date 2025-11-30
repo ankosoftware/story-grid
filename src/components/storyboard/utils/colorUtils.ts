@@ -1,37 +1,79 @@
+import { Theme } from "@mui/material/styles";
 import { IssueStatus, IssuePriority } from "@/lib/firebase/models/types";
 
 /**
- * Returns a color for a given issue status
+ * Returns a color for a given issue status using theme palette
  */
-export const getStatusColor = (status: IssueStatus): string => {
+export const getThemedStatusColor = (status: IssueStatus, theme: Theme): string => {
   switch (status) {
     case IssueStatus.TO_DO:
-      return "#e0e0e0";
+      return theme.palette.status.todo;
     case IssueStatus.IN_PROGRESS:
-      return "#bbdefb";
+      return theme.palette.status.inProgress;
     case IssueStatus.DONE:
-      return "#c8e6c9";
+      return theme.palette.status.done;
     default:
-      return "#e0e0e0";
+      return theme.palette.status.todo;
   }
 };
 
 /**
- * Returns a color for a given issue priority
+ * Returns a color for a given issue priority using theme palette
  */
-export const getPriorityColor = (priority?: IssuePriority): string => {
+export const getThemedPriorityColor = (
+  priority: IssuePriority | undefined,
+  theme: Theme
+): string => {
   if (!priority) {
-    return "#ff9800"; // Default to medium
+    return theme.palette.priority.medium;
   }
 
   switch (priority) {
     case IssuePriority.HIGH:
-      return "#f44336";
+      return theme.palette.priority.high;
     case IssuePriority.MEDIUM:
-      return "#ff9800";
+      return theme.palette.priority.medium;
     case IssuePriority.LOW:
-      return "#4caf50";
+      return theme.palette.priority.low;
     default:
-      return "#ff9800";
+      return theme.palette.priority.medium;
+  }
+};
+
+/**
+ * Legacy function - returns a color for a given issue status
+ * @deprecated Use getThemedStatusColor instead for dark mode support
+ */
+export const getStatusColor = (status: IssueStatus): string => {
+  switch (status) {
+    case IssueStatus.TO_DO:
+      return "#e2e8f0"; // Updated to match new palette
+    case IssueStatus.IN_PROGRESS:
+      return "#bfdbfe";
+    case IssueStatus.DONE:
+      return "#bbf7d0";
+    default:
+      return "#e2e8f0";
+  }
+};
+
+/**
+ * Legacy function - returns a color for a given issue priority
+ * @deprecated Use getThemedPriorityColor instead for dark mode support
+ */
+export const getPriorityColor = (priority?: IssuePriority): string => {
+  if (!priority) {
+    return "#f59e0b"; // Default to medium
+  }
+
+  switch (priority) {
+    case IssuePriority.HIGH:
+      return "#ef4444";
+    case IssuePriority.MEDIUM:
+      return "#f59e0b";
+    case IssuePriority.LOW:
+      return "#22c55e";
+    default:
+      return "#f59e0b";
   }
 };

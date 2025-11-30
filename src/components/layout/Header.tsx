@@ -16,6 +16,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import FolderIcon from "@mui/icons-material/Folder";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 
 interface HeaderProps {
   title: string;
@@ -78,8 +79,9 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
           })}
         </Box>
 
-        {/* User Menu */}
-        <Box>
+        {/* Theme Toggle & User Menu */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <ThemeToggle size="small" />
           <Tooltip title="Account settings">
             <IconButton
               aria-controls={open ? "account-menu" : undefined}

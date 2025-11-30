@@ -1108,7 +1108,11 @@ export default function StoryMap({
                                     fontSize: "0.6rem",
                                     height: "16px",
                                     fontWeight: "bold",
-                                    bgcolor: theme.palette.grey[200],
+                                    bgcolor:
+                                      theme.palette.mode === "dark"
+                                        ? theme.palette.grey[700]
+                                        : theme.palette.grey[200],
+                                    color: theme.palette.text.primary,
                                     borderRadius: "8px",
                                     marginLeft: "0px",
                                   }}

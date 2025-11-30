@@ -917,11 +917,11 @@ export default function StoryMap({
 
         {/* Main Story Map Structure */}
         <Box
+          data-testid="story-map-main-container"
           sx={{
             p: 1,
             border: `1px solid ${theme.palette.divider}`,
             overflowX: "auto",
-            position: "relative",
             maxHeight: stickyActivitiesRow ? "calc(100vh - 200px)" : "auto",
             ...(stickyActivitiesRow && {
               overflowY: "auto",
@@ -938,127 +938,257 @@ export default function StoryMap({
             }),
           }}
         >
-          {/* Activities Row */}
-          <Box
-            sx={{
-              minWidth: activities.length * 250,
-              width: "100%",
-              ...(stickyActivitiesRow && {
-                backgroundColor: theme.palette.background.paper,
-                position: "sticky",
-                top: 0,
-                zIndex: 10,
-                boxShadow: `0 2px 4px ${theme.palette.divider}`,
-                transition: "box-shadow 0.3s ease", // Add smooth transition for box-shadow
-              }),
-            }}
+          <div
+            data-testid="story-map-container"
+            style={{ display: "inline-block", minWidth: "100%" }}
           >
-            <DroppableActivityRowContainer activities={activities}>
-              {activities.map(activity => (
-                <Box
-                  key={activity.id}
-                  sx={{ mx: SPACING.ACTIVITY_MARGIN_X, width: getActivityColumnWidth(activity.id) }}
-                >
-                  <DroppableActivityContainer activity={activity}>
-                    <Box sx={{ px: 0, mb: 0 }}>
-                      <DraggableActivityCard
-                        activity={activity}
-                        handleOpenComments={handleOpenComments}
-                        handleOpenItemForEdit={handleOpenItemForEdit}
-                        isCollapsed={collapsedActivities.includes(activity.id)}
-                        onAction={e => handleContextMenu(e, activity.id, "activity")}
-                        onToggleCollapse={handleToggleActivityCollapse}
-                      />
-                    </Box>
+            {/* Activities Row */}
+            <Box
+              sx={{
+                minWidth: activities.length * 250,
+                width: "100%",
+                ...(stickyActivitiesRow && {
+                  backgroundColor: theme.palette.background.paper,
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 10,
+                  boxShadow: `0 2px 4px ${theme.palette.divider}`,
+                  transition: "box-shadow 0.3s ease", // Add smooth transition for box-shadow
+                }),
+              }}
+            >
+              <DroppableActivityRowContainer activities={activities}>
+                {activities.map(activity => (
+                  <Box
+                    key={activity.id}
+                    sx={{
+                      mx: SPACING.ACTIVITY_MARGIN_X,
+                      width: getActivityColumnWidth(activity.id),
+                    }}
+                  >
+                    <DroppableActivityContainer activity={activity}>
+                      <Box sx={{ px: 0, mb: 0 }}>
+                        <DraggableActivityCard
+                          activity={activity}
+                          handleOpenComments={handleOpenComments}
+                          handleOpenItemForEdit={handleOpenItemForEdit}
+                          isCollapsed={collapsedActivities.includes(activity.id)}
+                          onAction={e => handleContextMenu(e, activity.id, "activity")}
+                          onToggleCollapse={handleToggleActivityCollapse}
+                        />
+                      </Box>
 
-                    {/* Only show content if the activity is not collapsed */}
-                    {!collapsedActivities.includes(activity.id) && (
-                      <>
-                        {/* Epics Row - Horizontal */}
+                      {/* Only show content if the activity is not collapsed */}
+                      {!collapsedActivities.includes(activity.id) && (
+                        <>
+                          {/* Epics Row - Horizontal */}
+                          <Box
+                            data-testid={`epics-row-${activity.id}`}
+                            sx={{
+                              display: "flex",
+                              flexDirection: "row",
+                              gap: SPACING.EPIC_GAP,
+                              mb: SPACING.STORY_GAP,
+                              height: "100%",
+                              ...(stickyActivitiesRow && {
+                                position: "sticky",
+                                top: theme.spacing(7),
+                                zIndex: 9,
+                                backgroundColor: theme.palette.background.paper,
+                                paddingTop: 1,
+                              }),
+                            }}
+                          >
+                            {epics[activity.id] &&
+                              epics[activity.id].map(epic => renderEpicCard(epic))}
+
+                            <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
+                              <StoryMapCard
+                                isAddCard={true}
+                                type="epic"
+                                onClick={() => handleOpenEpicDialog(activity.id)}
+                              />
+                            </Box>
+                          </Box>
+                        </>
+                      )}
+                    </DroppableActivityContainer>
+                  </Box>
+                ))}
+
+                {/* Add Activity Card */}
+                <Box
+                  sx={{
+                    width: 100,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "center",
+                    pt: 1,
+                  }}
+                >
+                  <StoryMapCard
+                    isAddCard={true}
+                    type="activity"
+                    onClick={() => setActivityDialogOpen(true)}
+                  />
+                </Box>
+              </DroppableActivityRowContainer>
+            </Box>
+            {releases.map((release, index) => (
+              <Box
+                key={release.id}
+                data-testid={`release-section-${release.id}`}
+                sx={{ width: "100%" }}
+              >
+                {/* Release Header */}
+                <Box data-release-id={release.id} sx={{ display: "flex", width: "100%" }}>
+                  <MemoizedReleaseCard
+                    handleMoveRelease={handleMoveRelease}
+                    handleOpenReleaseForEdit={handleOpenReleaseForEdit}
+                    isFirst={index === 0}
+                    isLast={index === releases.length - 1}
+                    release={release}
+                    totalStoryPoints={calculateReleaseStoryPoints(release.id)}
+                  />
+                </Box>
+                <Box
+                  data-testid={`release-row-${release.id}`}
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    mb: SPACING.RELEASE_ROW_MARGIN_BOTTOM,
+                    px: 2,
+                  }}
+                >
+                  {activities.map(activity => (
+                    <Box
+                      key={activity.id}
+                      data-testid={`activity-column-${activity.id}-${release.id}`}
+                      sx={{
+                        mx: SPACING.ACTIVITY_MARGIN_X,
+                      }}
+                    >
+                      {/* Add placeholder for activity */}
+                      <StoryMapCard type="placeholder" />
+
+                      {/* Only show content if the activity is not collapsed */}
+                      {!collapsedActivities.includes(activity.id) ? (
+                        /* Epics Row - Horizontal */
                         <Box
-                          data-testid={`epics-row-${activity.id}`}
+                          data-testid={`epics-story-row-${activity.id}-${release.id}`}
                           sx={{
                             display: "flex",
                             flexDirection: "row",
                             gap: SPACING.EPIC_GAP,
                             mb: SPACING.STORY_GAP,
                             height: "100%",
-                            ...(stickyActivitiesRow && {
-                              position: "sticky",
-                              top: theme.spacing(7),
-                              zIndex: 9,
-                              backgroundColor: theme.palette.background.paper,
-                              paddingTop: 1,
-                            }),
+                            pr: 1,
                           }}
                         >
                           {epics[activity.id] &&
-                            epics[activity.id].map(epic => renderEpicCard(epic))}
-
+                            epics[activity.id].map(epic => (
+                              <Box
+                                key={epic.id}
+                                sx={{
+                                  flex: 1,
+                                  minWidth: 0,
+                                  borderRight: `1px solid ${theme.palette.divider}`,
+                                  paddingRight: SPACING.EPIC_COLUMN_PADDING_X,
+                                  height: "100%",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                }}
+                              >
+                                {/* Add placeholder for epic */}
+                                <StoryMapCard type="placeholder" />
+                                {/* Add story points to the epic in the release */}
+                                <Chip
+                                  label={calculateEpicStoryPoints(epic.id, release.id)}
+                                  sx={{
+                                    fontSize: "0.6rem",
+                                    height: "16px",
+                                    fontWeight: "bold",
+                                    bgcolor: theme.palette.grey[200],
+                                    borderRadius: "8px",
+                                    marginLeft: "0px",
+                                  }}
+                                />
+                                {/* Stories Column - Vertical under each epic */}
+                                <DroppableEpicContainer
+                                  data-testid={`stories-column-${epic.id}-${release.id}`}
+                                  epic={epic}
+                                  releaseId={release.id}
+                                >
+                                  <Box
+                                    data-testid={`stories-column-box-${epic.id}-${release.id}`}
+                                    sx={{ mb: SPACING.STORY_GAP, flexGrow: 1 }}
+                                  >
+                                    {issues[epic.id] && issues[epic.id].length > 0 ? (
+                                      issues[epic.id]
+                                        .filter(story => story.releaseId === release.id)
+                                        .map((story, index) => renderStoryCard(story, index))
+                                    ) : (
+                                      <></>
+                                    )}
+                                    <StoryMapCard
+                                      isAddCard={true}
+                                      type="story"
+                                      onClick={() => handleOpenStoryDialog(epic.id, release.id)}
+                                    />
+                                  </Box>
+                                </DroppableEpicContainer>
+                              </Box>
+                            ))}
                           <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
-                            <StoryMapCard
-                              isAddCard={true}
-                              type="epic"
-                              onClick={() => handleOpenEpicDialog(activity.id)}
-                            />
+                            <StoryMapCard type="placeholder" />
                           </Box>
                         </Box>
-                      </>
-                    )}
-                  </DroppableActivityContainer>
+                      ) : (
+                        /* Show a collapsed placeholder when the activity is collapsed */
+                        <Box
+                          sx={{
+                            height: "30px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Typography color="text.secondary" variant="caption">
+                            (Collapsed)
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
                 </Box>
-              ))}
-
-              {/* Add Activity Card */}
-              <Box
-                sx={{
-                  width: 100,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "center",
-                  pt: 1,
-                }}
-              >
-                <StoryMapCard
-                  isAddCard={true}
-                  type="activity"
-                  onClick={() => setActivityDialogOpen(true)}
-                />
               </Box>
-            </DroppableActivityRowContainer>
-          </Box>
-          {releases.map((release, index) => (
-            <Box
-              key={release.id}
-              data-testid={`release-section-${release.id}`}
-              sx={{ minWidth: activities.length * 250 }}
-            >
-              {/* Release Header */}
-              <Box data-release-id={release.id} sx={{ display: "flex", width: "100%" }}>
+            ))}
+            {/* Unassigned Stories */}
+            <Box sx={{ minWidth: activities.length * 250 }}>
+              <Box sx={{ display: "flex" }}>
                 <MemoizedReleaseCard
+                  allowReorder={false}
                   handleMoveRelease={handleMoveRelease}
                   handleOpenReleaseForEdit={handleOpenReleaseForEdit}
-                  isFirst={index === 0}
-                  isLast={index === releases.length - 1}
-                  release={release}
-                  totalStoryPoints={calculateReleaseStoryPoints(release.id)}
+                  isFirst={false}
+                  isLast={false}
+                  release={createUnassignedReleaseObject(projectId) as Release}
+                  totalStoryPoints={calculateReleaseStoryPoints("unassigned")}
                 />
               </Box>
               <Box
-                data-testid={`release-row-${release.id}`}
                 sx={{
                   display: "flex",
                   alignItems: "flex-start",
                   mb: SPACING.RELEASE_ROW_MARGIN_BOTTOM,
-                  px: 2,
                 }}
               >
                 {activities.map(activity => (
                   <Box
                     key={activity.id}
-                    data-testid={`activity-column-${activity.id}-${release.id}`}
                     sx={{
                       mx: SPACING.ACTIVITY_MARGIN_X,
+                      width: getActivityColumnWidth(activity.id),
                     }}
                   >
                     {/* Add placeholder for activity */}
@@ -1068,14 +1198,12 @@ export default function StoryMap({
                     {!collapsedActivities.includes(activity.id) ? (
                       /* Epics Row - Horizontal */
                       <Box
-                        data-testid={`epics-story-row-${activity.id}-${release.id}`}
                         sx={{
                           display: "flex",
                           flexDirection: "row",
                           gap: SPACING.EPIC_GAP,
                           mb: SPACING.STORY_GAP,
                           height: "100%",
-                          pr: 1,
                         }}
                       >
                         {epics[activity.id] &&
@@ -1086,7 +1214,7 @@ export default function StoryMap({
                                 flex: 1,
                                 minWidth: 0,
                                 borderRight: `1px solid ${theme.palette.divider}`,
-                                paddingRight: SPACING.EPIC_COLUMN_PADDING_X,
+                                px: SPACING.EPIC_COLUMN_PADDING_X,
                                 height: "100%",
                                 display: "flex",
                                 flexDirection: "column",
@@ -1094,31 +1222,12 @@ export default function StoryMap({
                             >
                               {/* Add placeholder for epic */}
                               <StoryMapCard type="placeholder" />
-                              {/* Add story points to the epic in the release */}
-                              <Chip
-                                label={calculateEpicStoryPoints(epic.id, release.id)}
-                                sx={{
-                                  fontSize: "0.6rem",
-                                  height: "16px",
-                                  fontWeight: "bold",
-                                  bgcolor: theme.palette.grey[200],
-                                  borderRadius: "8px",
-                                  marginLeft: "0px",
-                                }}
-                              />
                               {/* Stories Column - Vertical under each epic */}
-                              <DroppableEpicContainer
-                                data-testid={`stories-column-${epic.id}-${release.id}`}
-                                epic={epic}
-                                releaseId={release.id}
-                              >
-                                <Box
-                                  data-testid={`stories-column-box-${epic.id}-${release.id}`}
-                                  sx={{ mb: SPACING.STORY_GAP, flexGrow: 1 }}
-                                >
+                              <DroppableEpicContainer epic={epic} releaseId={null}>
+                                <Box sx={{ mb: SPACING.STORY_GAP, flexGrow: 1 }}>
                                   {issues[epic.id] && issues[epic.id].length > 0 ? (
                                     issues[epic.id]
-                                      .filter(story => story.releaseId === release.id)
+                                      .filter(story => !story.releaseId)
                                       .map((story, index) => renderStoryCard(story, index))
                                   ) : (
                                     <></>
@@ -1126,12 +1235,13 @@ export default function StoryMap({
                                   <StoryMapCard
                                     isAddCard={true}
                                     type="story"
-                                    onClick={() => handleOpenStoryDialog(epic.id, release.id)}
+                                    onClick={() => handleOpenStoryDialog(epic.id, null)}
                                   />
                                 </Box>
                               </DroppableEpicContainer>
                             </Box>
                           ))}
+
                         <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
                           <StoryMapCard type="placeholder" />
                         </Box>
@@ -1155,106 +1265,7 @@ export default function StoryMap({
                 ))}
               </Box>
             </Box>
-          ))}
-          {/* Unassigned Stories */}
-          <Box sx={{ minWidth: activities.length * 250 }}>
-            <Box sx={{ display: "flex" }}>
-              <MemoizedReleaseCard
-                allowReorder={false}
-                handleMoveRelease={handleMoveRelease}
-                handleOpenReleaseForEdit={handleOpenReleaseForEdit}
-                isFirst={false}
-                isLast={false}
-                release={createUnassignedReleaseObject(projectId) as Release}
-                totalStoryPoints={calculateReleaseStoryPoints("unassigned")}
-              />
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "flex-start",
-                mb: SPACING.RELEASE_ROW_MARGIN_BOTTOM,
-              }}
-            >
-              {activities.map(activity => (
-                <Box
-                  key={activity.id}
-                  sx={{ mx: SPACING.ACTIVITY_MARGIN_X, width: getActivityColumnWidth(activity.id) }}
-                >
-                  {/* Add placeholder for activity */}
-                  <StoryMapCard type="placeholder" />
-
-                  {/* Only show content if the activity is not collapsed */}
-                  {!collapsedActivities.includes(activity.id) ? (
-                    /* Epics Row - Horizontal */
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "row",
-                        gap: SPACING.EPIC_GAP,
-                        mb: SPACING.STORY_GAP,
-                        height: "100%",
-                      }}
-                    >
-                      {epics[activity.id] &&
-                        epics[activity.id].map(epic => (
-                          <Box
-                            key={epic.id}
-                            sx={{
-                              flex: 1,
-                              minWidth: 0,
-                              borderRight: `1px solid ${theme.palette.divider}`,
-                              px: SPACING.EPIC_COLUMN_PADDING_X,
-                              height: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
-                            {/* Add placeholder for epic */}
-                            <StoryMapCard type="placeholder" />
-                            {/* Stories Column - Vertical under each epic */}
-                            <DroppableEpicContainer epic={epic} releaseId={null}>
-                              <Box sx={{ mb: SPACING.STORY_GAP, flexGrow: 1 }}>
-                                {issues[epic.id] && issues[epic.id].length > 0 ? (
-                                  issues[epic.id]
-                                    .filter(story => !story.releaseId)
-                                    .map((story, index) => renderStoryCard(story, index))
-                                ) : (
-                                  <></>
-                                )}
-                                <StoryMapCard
-                                  isAddCard={true}
-                                  type="story"
-                                  onClick={() => handleOpenStoryDialog(epic.id, null)}
-                                />
-                              </Box>
-                            </DroppableEpicContainer>
-                          </Box>
-                        ))}
-
-                      <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
-                        <StoryMapCard type="placeholder" />
-                      </Box>
-                    </Box>
-                  ) : (
-                    /* Show a collapsed placeholder when the activity is collapsed */
-                    <Box
-                      sx={{
-                        height: "30px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Typography color="text.secondary" variant="caption">
-                        (Collapsed)
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          </Box>
+          </div>
         </Box>
 
         {/* Move Story Menu */}

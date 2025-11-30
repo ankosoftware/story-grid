@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   getIssuesByProject,
   getAllIssuesByProject,
@@ -30,6 +30,17 @@ export const useStoryBoard = (projectId: string) => {
   const [issuesByRelease, setIssuesByRelease] = useState<Record<string, Issue[]>>({});
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
 
+  // Ref to track allIssues without causing listener re-subscription
+  const allIssuesRef = useRef<Issue[]>([]);
+
+  // Track if initial data load is complete (to skip first onSnapshot)
+  const initialLoadCompleteRef = useRef(false);
+
+  // Keep ref in sync with state for use in callbacks
+  useEffect(() => {
+    allIssuesRef.current = allIssues;
+  }, [allIssues]);
+
   // UI state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -40,6 +51,9 @@ export const useStoryBoard = (projectId: string) => {
       setLoading(false);
       return;
     }
+
+    // Reset the flag when projectId changes
+    initialLoadCompleteRef.current = false;
 
     const fetchStoryBoardData = async () => {
       try {
@@ -57,8 +71,13 @@ export const useStoryBoard = (projectId: string) => {
         setIssues(issuesData.storiesByEpic);
         setIssuesByRelease(issuesData.issuesByRelease);
         setAllIssues(issuesData.allIssues);
+        // Also update the ref immediately so the listener can use it
+        allIssuesRef.current = issuesData.allIssues;
         setReleases(fetchedReleases);
         setError(null);
+
+        // Mark initial load as complete
+        initialLoadCompleteRef.current = true;
       } catch (err) {
         console.error("Error fetching story board data:", err);
         setError(err as Error);
@@ -84,6 +103,12 @@ export const useStoryBoard = (projectId: string) => {
     const unsubscribeIssues = onSnapshot(
       issuesQuery,
       snapshot => {
+        // Skip processing until initial load is complete
+        // This prevents the "added" events from the first snapshot from being processed
+        if (!initialLoadCompleteRef.current) {
+          return;
+        }
+
         // Process changes
         snapshot.docChanges().forEach(change => {
           const issueData = change.doc.data() as Issue;
@@ -95,7 +120,7 @@ export const useStoryBoard = (projectId: string) => {
             updateLocalIssueState(issueData);
           } else if (change.type === "added") {
             // If this is a new issue that wasn't in our initial fetch
-            const isExisting = allIssues.some(issue => issue.id === issueData.id);
+            const isExisting = allIssuesRef.current.some(issue => issue.id === issueData.id);
             if (!isExisting) {
               console.log("New issue added:", issueData.id);
               updateLocalIssueState(issueData);
@@ -145,7 +170,7 @@ export const useStoryBoard = (projectId: string) => {
       unsubscribeIssues();
       unsubscribeReleases();
     };
-  }, [projectId, allIssues]);
+  }, [projectId]);
 
   /**
    * Helper function to remove an issue from all state variables
@@ -216,7 +241,7 @@ export const useStoryBoard = (projectId: string) => {
 
     // Handle moving between epics for stories
     if (newIssue.type === IssueType.STORY) {
-      const currentState = allIssues.find(i => i.id === newIssue.id);
+      const currentState = allIssuesRef.current.find(i => i.id === newIssue.id);
 
       // If parentId has changed, remove from old epic
       if (currentState && currentState.parentId !== newIssue.parentId) {
@@ -301,7 +326,7 @@ export const useStoryBoard = (projectId: string) => {
         return; // Epic should have a parent
       }
 
-      const currentState = allIssues.find(i => i.id === newIssue.id);
+      const currentState = allIssuesRef.current.find(i => i.id === newIssue.id);
 
       // If parentId has changed, remove from old activity
       if (currentState && currentState.parentId !== newIssue.parentId) {
@@ -368,7 +393,7 @@ export const useStoryBoard = (projectId: string) => {
    */
   const updateIssueInReleases = (issue: Issue) => {
     // First get the current state of the issue
-    const currentState = allIssues.find(i => i.id === issue.id);
+    const currentState = allIssuesRef.current.find(i => i.id === issue.id);
 
     // If we found the issue in our current state and the releaseId has changed
     if (currentState && currentState.releaseId !== issue.releaseId) {

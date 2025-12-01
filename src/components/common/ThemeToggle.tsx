@@ -1,20 +1,21 @@
 "use client";
 
 import React from "react";
-import { IconButton, Tooltip, useTheme } from "@mui/material";
+import { IconButton, SxProps, Theme, Tooltip, useTheme } from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { useThemeMode } from "@/lib/theme/ThemeContext";
 
 interface ThemeToggleProps {
   size?: "small" | "medium" | "large";
+  sx?: SxProps<Theme>;
 }
 
 /**
  * Theme toggle button component
  * Switches between light and dark mode with smooth icon transition
  */
-export function ThemeToggle({ size = "medium" }: ThemeToggleProps) {
+export function ThemeToggle({ size = "medium", sx }: ThemeToggleProps) {
   const { mode, toggleTheme } = useThemeMode();
   const theme = useTheme();
 
@@ -31,6 +32,7 @@ export function ThemeToggle({ size = "medium" }: ThemeToggleProps) {
           "&:hover": {
             transform: "rotate(180deg)",
           },
+          ...sx,
         }}
         onClick={toggleTheme}
       >

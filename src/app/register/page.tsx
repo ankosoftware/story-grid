@@ -16,6 +16,7 @@ import {
   styled,
 } from "@mui/material";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { AuthLayout } from "@/components/landing";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -71,77 +72,79 @@ export default function RegisterPage() {
   }));
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <Paper elevation={3} sx={{ p: 4, width: "100%", borderRadius: 2 }}>
-          <Typography gutterBottom align="center" component="h1" variant="h4">
-            Create Account
-          </Typography>
+    <AuthLayout>
+      <Container maxWidth="sm">
+        <Box sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <Paper elevation={3} sx={{ p: 4, width: "100%", borderRadius: 2 }}>
+            <Typography gutterBottom align="center" component="h1" variant="h4">
+              Create Account
+            </Typography>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              <AlertTitle>Error</AlertTitle>
-              {error}
-            </Alert>
-          )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                <AlertTitle>Error</AlertTitle>
+                {error}
+              </Alert>
+            )}
 
-          <Box noValidate component="form" sx={{ mt: 1 }} onSubmit={handleSubmit}>
-            <TextField
-              autoFocus
-              fullWidth
-              required
-              autoComplete="email"
-              id="email"
-              label="Email Address"
-              margin="normal"
-              name="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-            <TextField
-              fullWidth
-              required
-              autoComplete="new-password"
-              id="password"
-              label="Password"
-              margin="normal"
-              name="password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-            <TextField
-              fullWidth
-              required
-              id="confirmPassword"
-              label="Confirm Password"
-              margin="normal"
-              name="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-            />
-            <Button
-              fullWidth
-              disabled={loading}
-              sx={{ mt: 3, mb: 2 }}
-              type="submit"
-              variant="contained"
-            >
-              {loading ? "Creating Account..." : "Create Account"}
-            </Button>
-            <Grid container justifyContent="flex-end">
-              <Grid size={12}>
-                <Item>
-                  <Link href="/login" style={{ textDecoration: "none" }}>
-                    Already have an account? Sign in
-                  </Link>
-                </Item>
+            <Box noValidate component="form" sx={{ mt: 1 }} onSubmit={handleSubmit}>
+              <TextField
+                autoFocus
+                fullWidth
+                required
+                autoComplete="email"
+                id="email"
+                label="Email Address"
+                margin="normal"
+                name="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                required
+                autoComplete="new-password"
+                id="password"
+                label="Password"
+                margin="normal"
+                name="password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                required
+                id="confirmPassword"
+                label="Confirm Password"
+                margin="normal"
+                name="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+              />
+              <Button
+                fullWidth
+                disabled={loading}
+                sx={{ mt: 3, mb: 2 }}
+                type="submit"
+                variant="contained"
+              >
+                {loading ? "Creating Account..." : "Create Account"}
+              </Button>
+              <Grid container justifyContent="flex-end">
+                <Grid size={12}>
+                  <Item>
+                    <Link href="/login" style={{ textDecoration: "none" }}>
+                      Already have an account? Sign in
+                    </Link>
+                  </Item>
+                </Grid>
               </Grid>
-            </Grid>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+            </Box>
+          </Paper>
+        </Box>
+      </Container>
+    </AuthLayout>
   );
 }

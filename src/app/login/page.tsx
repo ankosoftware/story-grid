@@ -18,6 +18,7 @@ import {
 import { useAuth } from "@/lib/auth/AuthProvider";
 import GoogleIcon from "@mui/icons-material/Google";
 import { Suspense } from "react";
+import { AuthLayout } from "@/components/landing";
 
 // Create a separate component for the parts that use useSearchParams
 function LoginForm() {
@@ -156,18 +157,20 @@ function LoginForm() {
 // Main component with Suspense boundary
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <Container maxWidth="sm">
-          <Box sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <Paper elevation={3} sx={{ p: 4, width: "100%", borderRadius: 2, textAlign: "center" }}>
-              <Typography variant="h5">Loading...</Typography>
-            </Paper>
-          </Box>
-        </Container>
-      }
-    >
-      <LoginForm />
-    </Suspense>
+    <AuthLayout>
+      <Suspense
+        fallback={
+          <Container maxWidth="sm">
+            <Box sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <Paper elevation={3} sx={{ p: 4, width: "100%", borderRadius: 2, textAlign: "center" }}>
+                <Typography variant="h5">Loading...</Typography>
+              </Paper>
+            </Box>
+          </Container>
+        }
+      >
+        <LoginForm />
+      </Suspense>
+    </AuthLayout>
   );
 }

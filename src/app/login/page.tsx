@@ -162,7 +162,10 @@ export default function LoginPage() {
         fallback={
           <Container maxWidth="sm">
             <Box sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <Paper elevation={3} sx={{ p: 4, width: "100%", borderRadius: 2, textAlign: "center" }}>
+              <Paper
+                elevation={3}
+                sx={{ p: 4, width: "100%", borderRadius: 2, textAlign: "center" }}
+              >
                 <Typography variant="h5">Loading...</Typography>
               </Paper>
             </Box>
